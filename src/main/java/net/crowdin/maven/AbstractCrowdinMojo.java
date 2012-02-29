@@ -15,6 +15,7 @@ import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.manager.WagonManager;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -181,6 +182,10 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		} catch (Exception e) {
 			throw new MojoExecutionException("Failed to call API", e);
 		}
+	}
+
+	protected String getMavenId(Artifact artifact) {
+		return artifact.getGroupId() + "." + artifact.getArtifactId();
 	}
 
 }
