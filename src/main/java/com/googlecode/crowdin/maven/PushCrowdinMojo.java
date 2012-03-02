@@ -1,4 +1,4 @@
-package net.crowdin.maven;
+package com.googlecode.crowdin.maven;
 
 import java.io.File;
 import java.util.ArrayList;

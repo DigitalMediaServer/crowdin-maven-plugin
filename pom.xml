@@ -9,7 +9,7 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>net.crowdin.maven</groupId>
+	<groupId>com.googlecode.crowdin-maven</groupId>
 	<artifactId>crowdin-plugin</artifactId>
 	<version>1.0-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>

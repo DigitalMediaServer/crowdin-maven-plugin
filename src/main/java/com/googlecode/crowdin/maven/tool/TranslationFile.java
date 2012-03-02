@@ -1,4 +1,4 @@
-package net.crowdin.maven.tool;
+package com.googlecode.crowdin.maven.tool;
 
 public class TranslationFile {
 	private String language;

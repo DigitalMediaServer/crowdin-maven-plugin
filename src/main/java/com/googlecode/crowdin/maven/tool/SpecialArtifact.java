@@ -1,4 +1,4 @@
-package net.crowdin.maven.tool;
+package com.googlecode.crowdin.maven.tool;
 
 import java.io.File;
 import java.util.Collection;

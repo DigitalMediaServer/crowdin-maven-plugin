@@ -1,4 +1,4 @@
-package net.crowdin.maven;
+package com.googlecode.crowdin.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
