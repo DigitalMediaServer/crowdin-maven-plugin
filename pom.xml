@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
@@ -11,7 +10,7 @@
 
 	<groupId>com.googlecode.crowdin-maven</groupId>
 	<artifactId>crowdin-plugin</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.0</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>crowdin Maven Plugin</name>
@@ -28,9 +27,9 @@
 	</licenses>
 
 	<scm>
-		<url>http://crowdin-maven.googlecode.com/svn/trunk</url>
-		<connection>scm:svn:http://crowdin-maven.googlecode.com/svn/trunk</connection>
-		<developerConnection>scm:svn:https://crowdin-maven.googlecode.com/svn/trunk</developerConnection>
+		<url>http://crowdin-maven.googlecode.com/svn/tags/crowdin-plugin-1.0</url>
+		<connection>scm:svn:http://crowdin-maven.googlecode.com/svn/tags/crowdin-plugin-1.0</connection>
+		<developerConnection>scm:svn:https://crowdin-maven.googlecode.com/svn/tags/crowdin-plugin-1.0</developerConnection>
 	</scm>
 
 	<developers>
