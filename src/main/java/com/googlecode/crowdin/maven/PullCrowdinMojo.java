@@ -123,13 +123,15 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		File[] listFiles = folder.listFiles();
 		if (listFiles != null) {
 			for (File file : listFiles) {
-				if (file.isDirectory()) {
-					deleteFolder(file, true);
+				if (!file.getName().startsWith(".") || deleteRoot) {
+					if (file.isDirectory()) {
+						deleteFolder(file, true);
+					}
+					if (!file.delete()) {
+						return false;
+					}
+					getLog().debug("Deleted " + file);
 				}
-				if (!file.delete()) {
-					return false;
-				}
-				getLog().debug("Deleted " + file);
 			}
 		}
 		if (deleteRoot) {
