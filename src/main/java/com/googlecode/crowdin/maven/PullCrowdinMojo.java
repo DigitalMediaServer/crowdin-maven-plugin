@@ -1,7 +1,9 @@
 package com.googlecode.crowdin.maven;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -14,7 +16,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
@@ -29,6 +30,7 @@ import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
 import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
 import org.apache.maven.shared.dependency.tree.traversal.CollectingDependencyNodeVisitor;
 
+import com.googlecode.crowdin.maven.tool.SortedProperties;
 import com.googlecode.crowdin.maven.tool.SpecialArtifact;
 import com.googlecode.crowdin.maven.tool.TranslationFile;
 
@@ -141,7 +143,8 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 
 	private Map<TranslationFile, byte[]> downloadTranslations() throws MojoExecutionException {
 		try {
-			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/download/all.zip?key=" + authenticationInfo.getPassword();
+			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName()
+					+ "/download/all.zip?key=" + authenticationInfo.getPassword();
 			getLog().debug("Calling " + uri);
 			GetMethod getMethod = new GetMethod(uri);
 			int returnCode = client.executeMethod(getMethod);
@@ -241,7 +244,12 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		Set<Entry<TranslationFile, byte[]>> entrySet = translations.entrySet();
 		for (Entry<TranslationFile, byte[]> entry : entrySet) {
 			TranslationFile translationFile = entry.getKey();
+
 			byte[] bytes = entry.getValue();
+			SortedProperties properties = new SortedProperties();
+			InputStream inStream = new ByteArrayInputStream(bytes);
+			properties.load(inStream);
+			inStream.close();
 
 			File languageFolder = new File(messagesOutputDirectory, translationFile.getLanguage());
 			if (!languageFolder.exists()) {
@@ -253,8 +261,14 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 			}
 			File targetFile = new File(mavenIdFolder, translationFile.getName());
 
-			getLog().info("Importing from crowdin " + translationFile.getLanguage() + "/" + translationFile.getMavenId() + "/" + translationFile.getName());
-			FileUtils.writeByteArrayToFile(targetFile, bytes);
+			getLog().info(
+					"Importing from crowdin " + translationFile.getLanguage() + "/" + translationFile.getMavenId()
+							+ "/" + translationFile.getName());
+
+			FileOutputStream out = new FileOutputStream(targetFile);
+			properties.store(out, AggregateCrowdinMojo.COMMENT);
+			out.close();
+
 		}
 	}
 
@@ -263,8 +277,8 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		try {
 			ArtifactFilter artifactFilter = new ScopeArtifactFilter(null);
 
-			DependencyNode rootNode = treeBuilder.buildDependencyTree(project, localRepository, artifactFactory, artifactMetadataSource, artifactFilter,
-					artifactCollector);
+			DependencyNode rootNode = treeBuilder.buildDependencyTree(project, localRepository, artifactFactory,
+					artifactMetadataSource, artifactFilter, artifactCollector);
 
 			CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
 
