@@ -10,7 +10,7 @@
 
 	<groupId>com.googlecode.crowdin-maven</groupId>
 	<artifactId>crowdin-plugin</artifactId>
-	<version>1.2</version>
+	<version>1.3-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>crowdin Maven Plugin</name>
@@ -27,9 +27,9 @@
 	</licenses>
 
 	<scm>
-		<url>http://crowdin-maven.googlecode.com/svn/tags/crowdin-plugin-1.2</url>
-		<connection>scm:svn:http://crowdin-maven.googlecode.com/svn/tags/crowdin-plugin-1.2</connection>
-		<developerConnection>scm:svn:https://crowdin-maven.googlecode.com/svn/tags/crowdin-plugin-1.2</developerConnection>
+		<url>http://crowdin-maven.googlecode.com/svn/trunk</url>
+		<connection>scm:svn:http://crowdin-maven.googlecode.com/svn/trunk</connection>
+		<developerConnection>scm:svn:https://crowdin-maven.googlecode.com/svn/trunk</developerConnection>
 	</scm>
 
 	<developers>
