@@ -166,19 +166,21 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 						String language = name.substring(0, slash);
 						name = name.substring(slash + 1);
 						slash = name.indexOf('/');
-						String mavenId = name.substring(0, slash);
-						name = name.substring(slash + 1);
-						TranslationFile translationFile = new TranslationFile(language, mavenId, name);
+						if (slash > 0) {
+							String mavenId = name.substring(0, slash);
+							name = name.substring(slash + 1);
+							TranslationFile translationFile = new TranslationFile(language, mavenId, name);
 
-						ByteArrayOutputStream bos = new ByteArrayOutputStream();
-						while (zis.available() > 0) {
-							int read = zis.read();
-							if (read != -1) {
-								bos.write(read);
+							ByteArrayOutputStream bos = new ByteArrayOutputStream();
+							while (zis.available() > 0) {
+								int read = zis.read();
+								if (read != -1) {
+									bos.write(read);
+								}
 							}
+							bos.close();
+							translations.put(translationFile, bos.toByteArray());
 						}
-						bos.close();
-						translations.put(translationFile, bos.toByteArray());
 					}
 				}
 
