@@ -1,20 +1,24 @@
 package com.googlecode.crowdin.maven;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.multipart.FilePart;
-import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
-import org.apache.commons.httpclient.methods.multipart.Part;
-import org.apache.commons.httpclient.methods.multipart.StringPart;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.manager.WagonManager;
 import org.apache.maven.plugin.AbstractMojo;
@@ -29,6 +33,16 @@ import org.jdom.input.SAXBuilder;
 
 public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
+	private static final String HTTP_AUTH_NTLM_DOMAIN = "http.auth.ntlm.domain";
+
+	private static final String HTTP_PROXY_PASSWORD = "http.proxyPassword";
+
+	private static final String HTTP_PROXY_USER = "http.proxyUser";
+
+	private static final String HTTP_PROXY_PORT = "http.proxyPort";
+
+	private static final String HTTP_PROXY_HOST = "http.proxyHost";
+
 	protected static final SAXBuilder saxBuilder = new SAXBuilder();
 
 	/**
@@ -41,8 +55,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	protected MavenProject project;
 
 	/**
-	 * The Maven Wagon manager to use when obtaining server authentication
-	 * details.
+	 * The Maven Wagon manager to use when obtaining server authentication details.
 	 * 
 	 * @component role="org.apache.maven.artifact.manager.WagonManager"
 	 */
@@ -57,8 +70,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	/**
 	 * 
-	 * Server id in settings.xml. username is project identifier, password is
-	 * API key
+	 * Server id in settings.xml. username is project identifier, password is API key
 	 * 
 	 * @parameter expression= "${crowdinServerId}"
 	 * @required
@@ -81,16 +93,53 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 	protected File messagesOutputDirectory;
 
-	protected HttpClient client;
+	protected DefaultHttpClient client;
 	protected AuthenticationInfo authenticationInfo;
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		authenticationInfo = wagonManager.getAuthenticationInfo(crowdinServerId);
 		if (authenticationInfo == null) {
-			throw new MojoExecutionException("Failed to find server with id " + crowdinServerId + " in Maven settings (~/.m2/settings.xml)");
+			throw new MojoExecutionException("Failed to find server with id " + crowdinServerId
+					+ " in Maven settings (~/.m2/settings.xml)");
 		}
 
-		client = new HttpClient();
+		client = new DefaultHttpClient();
+		if (System.getProperty(HTTP_PROXY_HOST) != null) {
+			String host = System.getProperty(HTTP_PROXY_HOST);
+			String port = System.getProperty(HTTP_PROXY_PORT);
+
+			if (port == null) {
+				throw new MojoExecutionException("http.proxyHost without http.proxyPort");
+			}
+			HttpHost proxy = new HttpHost(host, Integer.parseInt(port));
+			client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
+
+			Credentials credential = null;
+
+			String user = System.getProperty(HTTP_PROXY_USER);
+			String password = System.getProperty(HTTP_PROXY_PASSWORD);
+
+			if (System.getProperty(HTTP_AUTH_NTLM_DOMAIN) != null) {
+				String domain = System.getProperty(HTTP_AUTH_NTLM_DOMAIN);
+				if (user == null || password == null) {
+					throw new MojoExecutionException(
+							"http.auth.ntlm.domain without http.proxyUser and http.proxyPassword");
+				}
+				credential = new NTCredentials(user, password, host, domain);
+			} else {
+				if (user != null || password != null) {
+					if (user == null || password == null) {
+						throw new MojoExecutionException("http.proxyUser and http.proxyPassword go together");
+					}
+					credential = new UsernamePasswordCredentials(user, password);
+				}
+			}
+			if (credential != null) {
+				AuthScope authScope = new AuthScope(null, -1);
+				client.getCredentialsProvider().setCredentials(authScope, credential);
+			}
+		}
+
 	}
 
 	protected boolean crowdinContainsFile(Element files, String fileName, boolean folder) {
@@ -141,37 +190,41 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		return item.getChild("node_type") != null && "directory".equals(item.getChildTextNormalize("node_type"));
 	}
 
-	protected Document crowdinRequestAPI(String method, Map<String, String> parameters, Map<String, File> files, boolean shallSuccess)
-			throws MojoExecutionException {
+	protected Document crowdinRequestAPI(String method, Map<String, String> parameters, Map<String, File> files,
+			boolean shallSuccess) throws MojoExecutionException {
 		try {
-			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/" + method + "?key=" + authenticationInfo.getPassword();
+			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/" + method
+					+ "?key=" + authenticationInfo.getPassword();
 			getLog().debug("Calling " + uri);
-			PostMethod postMethod = new PostMethod(uri);
-			List<Part> parts = new ArrayList<Part>();
+			HttpPost postMethod = new HttpPost(uri);
+
+			MultipartEntity reqEntity = new MultipartEntity();
+
 			if (parameters != null) {
 				Set<Entry<String, String>> entrySetParameters = parameters.entrySet();
 				for (Entry<String, String> entryParameter : entrySetParameters) {
-					parts.add(new StringPart(entryParameter.getKey(), entryParameter.getValue()));
+					reqEntity.addPart(entryParameter.getKey(), new StringBody(entryParameter.getValue()));
 				}
 			}
 			if (files != null) {
 				Set<Entry<String, File>> entrySetFiles = files.entrySet();
 				for (Entry<String, File> entryFile : entrySetFiles) {
 					String key = "files[" + entryFile.getKey() + "]";
-					parts.add(new FilePart(key, entryFile.getValue()));
+					reqEntity.addPart(key, new FileBody(entryFile.getValue()));
 				}
 			}
-			postMethod.setRequestEntity(new MultipartRequestEntity(parts.toArray(new Part[parts.size()]), postMethod.getParams()));
-			getLog().debug("Sent request : ");
 
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			postMethod.getRequestEntity().writeRequest(bos);
-			getLog().debug(bos.toString());
+			postMethod.setEntity(reqEntity);
 
-			int returnCode = client.executeMethod(postMethod);
+			// getLog().debug("Sent request : ");
+			// ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			// reqEntity.writeTo(bos);
+			// getLog().debug(bos.toString());
+
+			HttpResponse response = client.execute(postMethod);
+			int returnCode = response.getStatusLine().getStatusCode();
 			getLog().debug("Return code : " + returnCode);
-			getLog().debug("Response : " + postMethod.getResponseBodyAsString());
-			InputStream responseBodyAsStream = postMethod.getResponseBodyAsStream();
+			InputStream responseBodyAsStream = response.getEntity().getContent();
 			Document document = saxBuilder.build(responseBodyAsStream);
 			if (shallSuccess && document.getRootElement().getName().equals("error")) {
 				String code = document.getRootElement().getChildTextNormalize("code");

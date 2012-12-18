@@ -15,7 +15,9 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
@@ -148,15 +150,16 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName()
 					+ "/download/all.zip?key=" + authenticationInfo.getPassword();
 			getLog().debug("Calling " + uri);
-			GetMethod getMethod = new GetMethod(uri);
-			int returnCode = client.executeMethod(getMethod);
+			HttpGet getMethod = new HttpGet(uri);
+			HttpResponse response = client.execute(getMethod);
+			int returnCode = response.getStatusLine().getStatusCode();
 			getLog().debug("Return code : " + returnCode);
 
 			if (returnCode == 200) {
 
 				Map<TranslationFile, byte[]> translations = new HashMap<TranslationFile, byte[]>();
 
-				InputStream responseBodyAsStream = getMethod.getResponseBodyAsStream();
+				InputStream responseBodyAsStream = response.getEntity().getContent();
 				ZipInputStream zis = new ZipInputStream(responseBodyAsStream);
 				ZipEntry entry;
 				while ((entry = zis.getNextEntry()) != null) {

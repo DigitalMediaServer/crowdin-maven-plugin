@@ -1,6 +1,6 @@
 package com.googlecode.crowdin.maven;
 
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 
@@ -25,10 +25,10 @@ public class ExportCrowdinMojo extends AbstractCrowdinMojo {
 		getLog().info(
 				"Calling " + "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/export?key="
 						+ "?????");
-		GetMethod getMethod = new GetMethod(uri);
+		HttpGet getMethod = new HttpGet(uri);
 		int returnCode;
 		try {
-			returnCode = client.executeMethod(getMethod);
+			returnCode = client.execute(getMethod).getStatusLine().getStatusCode();
 		} catch (Exception e) {
 			throw new MojoExecutionException("Failed to call API", e);
 		}
