@@ -27,9 +27,9 @@
 	</licenses>
 
 	<scm>
-		<url>http://crowdin-maven.googlecode.com/svn/trunk</url>
-		<connection>scm:svn:http://crowdin-maven.googlecode.com/svn/trunk</connection>
-		<developerConnection>scm:svn:https://crowdin-maven.googlecode.com/svn/trunk</developerConnection>
+		<url>https://github.com/glandais/crowdin-maven</url>
+		<connection>scm:git:git://github.com/glandais/crowdin-maven.git</connection>
+		<developerConnection>scm:git:ssh://github.com/glandais/crowdin-maven.git</developerConnection>
 	</scm>
 
 	<developers>
