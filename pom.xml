@@ -10,7 +10,7 @@
 
 	<groupId>com.googlecode.crowdin-maven</groupId>
 	<artifactId>crowdin-plugin</artifactId>
-	<version>1.6</version>
+	<version>1.7-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>crowdin Maven Plugin</name>
