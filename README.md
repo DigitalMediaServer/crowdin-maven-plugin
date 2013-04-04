@@ -42,7 +42,7 @@ Configure your build for crowdin usage in your project's pom.xml :
    <plugin>
     <groupId>com.googlecode.crowdin-maven</groupId>
     <artifactId>crowdin-plugin</artifactId>
-    <version>1.4</version>   
+    <version>LATEST</version>   
      <executions>
       <execution>
        <goals>
