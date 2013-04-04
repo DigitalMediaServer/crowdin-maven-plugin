@@ -65,7 +65,6 @@ Put your messages files in properties format in src/main/messages.
 *Goal* | *Description*
 --- | ---
 `mvn crowdin:push` | Push the messages files on crowdin.<br>It is a Maven first, files or keys not in Maven will be erased on crowdin.
-```
 
 ## Getting translations from crowdin
 
@@ -74,4 +73,3 @@ Put your messages files in properties format in src/main/messages.
 `mvn crowdin:export` | Ask crowdin to update the translations on their side.<br>There is a limit of 30 minutes between two exports.
 `mvn crowdin:pull` | Retrieve messages from crowdin in `src/main/crowdin`.<br>`src/main/crowdin` must be considered as a derived resource. Do not edit those files.
 `mvn crowdin:aggregate` | This goal should be executed when the project is built.<br>It aggregates the properties from `src/main/crowdin` in regular Java properties files.<br>Those files are attached to the build, included in the packaging next to the classes.<br>Using the configuration above in project's pom.xml, this goal is executed on Maven `generate-resources`.
-```
