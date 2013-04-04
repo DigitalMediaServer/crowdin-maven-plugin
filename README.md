@@ -8,55 +8,59 @@ This plugin allows Maven projects to be translated using crowdin.
 
 Add a server to your ~/.m2/settings.xml (keeping your API key private)
 
-    <settings>
-    <!-- ... -->
-     <servers>
-      <!-- ... -->
-      <server>
-       <id>crowdin-myproject</id>
-       <username>myproject<username>
-       <password>API key</password>
-      <server>
-      <!-- ... -->
-     </servers>
-    <!-- ... -->
-     <pluginGroups>
-      <!-- ... -->
-      <pluginGroup>com.googlecode.crowdin-maven</pluginGroup>
-      <!-- ... -->
-     </pluginGroups>
-    <!-- ... -->
-    </settings>
+```xml
+<settings>
+<!-- ... -->
+ <servers>
+  <!-- ... -->
+  <server>
+   <id>crowdin-myproject</id>
+   <username>myproject<username>
+   <password>API key</password>
+  <server>
+  <!-- ... -->
+ </servers>
+<!-- ... -->
+ <pluginGroups>
+  <!-- ... -->
+  <pluginGroup>com.googlecode.crowdin-maven</pluginGroup>
+  <!-- ... -->
+ </pluginGroups>
+<!-- ... -->
+</settings>
+```
 
 Configure your build for crowdin usage in your project's pom.xml :
 
-    <project>
-    <!-- ... -->
-     <build>
-     <!-- ... -->
-      <plugins>
-       <!-- ... -->
-       <plugin>
-        <groupId>com.googlecode.crowdin-maven</groupId>
-        <artifactId>crowdin-plugin</artifactId>
-        <version>1.4</version>   
-         <executions>
-          <execution>
-           <goals>
-            <goal>aggregate</goal>
-           </goals>
-          </execution>
-         </executions>
-         <configuration>
-          <crowdinServerId>crowdin-myproject</crowdinServerId>
-         </configuration>
-       </plugin>
-       <!-- ... -->
-      </plugin>
-      <!-- ... -->
-     </build>
-     <!-- ... -->
-    </project>
+```xml
+<project>
+<!-- ... -->
+ <build>
+ <!-- ... -->
+  <plugins>
+   <!-- ... -->
+   <plugin>
+    <groupId>com.googlecode.crowdin-maven</groupId>
+    <artifactId>crowdin-plugin</artifactId>
+    <version>1.4</version>   
+     <executions>
+      <execution>
+       <goals>
+        <goal>aggregate</goal>
+       </goals>
+      </execution>
+     </executions>
+     <configuration>
+      <crowdinServerId>crowdin-myproject</crowdinServerId>
+     </configuration>
+   </plugin>
+   <!-- ... -->
+  </plugin>
+  <!-- ... -->
+ </build>
+ <!-- ... -->
+</project>
+```
 
 ## Pushing translations to crowdin
 
