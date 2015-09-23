@@ -8,12 +8,12 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.googlecode.crowdin-maven</groupId>
-	<artifactId>crowdin-plugin</artifactId>
-	<version>1.7-SNAPSHOT</version>
+	<groupId>com.ums.crowdin-maven</groupId>
+	<artifactId>ums-crowdin-plugin</artifactId>
+	<version>0.1-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
-	<name>crowdin Maven Plugin</name>
+	<name>UMS crowdin Maven Plugin</name>
 
 	<description>This plugin allows Maven projects to be translated using crowdin.</description>
 	<url>http://code.google.com/p/crowdin-maven/</url>
@@ -94,7 +94,7 @@
 				<artifactId>maven-plugin-plugin</artifactId>
 				<version>2.9</version>
 				<configuration>
-					<goalPrefix>crowdin</goalPrefix>
+					<goalPrefix>ums-crowdin</goalPrefix>
 				</configuration>
 				<executions>
 					<execution>

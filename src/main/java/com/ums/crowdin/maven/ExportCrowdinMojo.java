@@ -1,4 +1,4 @@
-package com.googlecode.crowdin.maven;
+package com.ums.crowdin.maven;
 
 import org.apache.http.client.methods.HttpGet;
 import org.apache.maven.plugin.MojoExecutionException;

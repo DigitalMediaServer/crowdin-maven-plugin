@@ -1,4 +1,4 @@
-package com.googlecode.crowdin.maven;
+package com.ums.crowdin.maven;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import org.jdom.Element;
 
 /**
  * Push Maven translations of this project in crowdin
- * 
+ *
  * @goal push
  * @threadSafe
  */
@@ -108,8 +108,9 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			for (String toDeleteFile : toDeleteFiles) {
 				Map<String, String> parameters = new HashMap<String, String>();
 				parameters.put("file", toDeleteFile);
-				getLog().info("Deleting " + toDeleteFile + " on crowdin");
-				crowdinRequestAPI("delete-file", parameters, null, true);
+				getLog().info("Crowdin file deletion is disabled, but " + toDeleteFile + "would have been deleted in enabled");
+				/*getLog().info("Deleting " + toDeleteFile + " on crowdin");
+				crowdinRequestAPI("delete-file", parameters, null, true);*/
 			}
 
 		} else {

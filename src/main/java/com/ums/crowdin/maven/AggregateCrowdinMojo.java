@@ -1,22 +1,20 @@
-package com.googlecode.crowdin.maven;
+package com.ums.crowdin.maven;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
-
-import com.googlecode.crowdin.maven.tool.SortedProperties;
+import com.ums.crowdin.maven.tool.SortedProperties;
 
 /**
  * Aggregate the translations of this project with crowdin
- * 
+ *
  * @goal aggregate
  * @phase generate-resources
  * @threadSafe
@@ -30,7 +28,7 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 
 	/**
 	 * The current Maven project
-	 * 
+	 *
 	 * @parameter expression="${project}"
 	 * @readonly
 	 * @required
@@ -40,8 +38,8 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 	/**
 	 * The directory where the generated resource files will be stored. The
 	 * directory will be registered as a resource root of the project such that
-	 * the generated files will participate in later build phases like packaing.
-	 * 
+	 * the generated files will participate in later build phases like packaging.
+	 *
 	 * @parameter expression=
 	 *            "${project.build.directory}/generated-resources/messages-aggregated"
 	 * @required
@@ -50,7 +48,7 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 
 	/**
 	 * The directory where the messages can be fund.
-	 * 
+	 *
 	 * @parameter expression="${project.basedir}/src/main/crowdin"
 	 * @required
 	 */

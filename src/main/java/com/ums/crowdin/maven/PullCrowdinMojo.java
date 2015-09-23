@@ -1,4 +1,4 @@
-package com.googlecode.crowdin.maven;
+package com.ums.crowdin.maven;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -14,7 +14,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.maven.artifact.Artifact;
@@ -30,10 +29,9 @@ import org.apache.maven.shared.dependency.tree.DependencyNode;
 import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
 import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
 import org.apache.maven.shared.dependency.tree.traversal.CollectingDependencyNodeVisitor;
-
-import com.googlecode.crowdin.maven.tool.SortedProperties;
-import com.googlecode.crowdin.maven.tool.SpecialArtifact;
-import com.googlecode.crowdin.maven.tool.TranslationFile;
+import com.ums.crowdin.maven.tool.SortedProperties;
+import com.ums.crowdin.maven.tool.SpecialArtifact;
+import com.ums.crowdin.maven.tool.TranslationFile;
 
 /**
  * Pull crowdin translations in this project, looking dependencies

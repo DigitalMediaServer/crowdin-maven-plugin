@@ -1,4 +1,4 @@
-package com.googlecode.crowdin.maven;
+package com.ums.crowdin.maven;
 
 import java.io.File;
 import java.io.InputStream;

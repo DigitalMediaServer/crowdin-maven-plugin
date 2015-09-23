@@ -1,4 +1,4 @@
-package com.googlecode.crowdin.maven.tool;
+package com.ums.crowdin.maven.tool;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
