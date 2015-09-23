@@ -82,6 +82,11 @@
 		</dependency>
 	</dependencies>
 
+	<!--
+		If you get an "execution not covered by lifecycle configuration: org.apache.maven.plugins:maven-plugin-plugin"
+		below in Eclipse, the solution is to go to Preferences -> Maven -> Discovery -> Open Catalog and install
+		"Eclipse Plug-in Development Environment"
+	 -->
 	<build>
 		<plugins>
 			<plugin>
