@@ -12,7 +12,7 @@ import java.util.Vector;
 // http://www.rgagnon.com/javadetails/java-0614.html
 public class SortedProperties extends Properties {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 7676620742633491575L;
 
@@ -40,7 +40,7 @@ public class SortedProperties extends Properties {
 		}
 		bw.newLine();
 		synchronized (this) {
-			for (Enumeration e = keys(); e.hasMoreElements();) {
+			for (Enumeration<?> e = keys(); e.hasMoreElements();) {
 				String key = (String) e.nextElement();
 				String val = (String) get(key);
 				key = saveConvert(key, true, escUnicode);
@@ -164,7 +164,7 @@ public class SortedProperties extends Properties {
 
 	/**
 	 * Convert a nibble to a hex character
-	 * 
+	 *
 	 * @param nibble
 	 *            the nibble to convert.
 	 */

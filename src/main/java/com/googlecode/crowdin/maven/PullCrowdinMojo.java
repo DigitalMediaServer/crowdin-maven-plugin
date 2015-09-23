@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.maven.artifact.Artifact;
@@ -38,7 +37,7 @@ import com.googlecode.crowdin.maven.tool.TranslationFile;
 
 /**
  * Pull crowdin translations in this project, looking dependencies
- * 
+ *
  * @goal pull
  * @threadSafe
  */
