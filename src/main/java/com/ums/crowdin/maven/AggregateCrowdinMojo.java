@@ -29,7 +29,7 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 	/**
 	 * The current Maven project
 	 *
-	 * @parameter expression="${project}"
+	 * @parameter parameter="project"
 	 * @readonly
 	 * @required
 	 */
@@ -40,8 +40,8 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 	 * directory will be registered as a resource root of the project such that
 	 * the generated files will participate in later build phases like packaging.
 	 *
-	 * @parameter expression=
-	 *            "${project.build.directory}/generated-resources/messages-aggregated"
+	 * @parameter parameter=
+	 *            "project.build.directory/generated-resources/messages-aggregated"
 	 * @required
 	 */
 	private File resourceAggregatedOutputDirectory;
@@ -49,7 +49,7 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 	/**
 	 * The directory where the messages can be fund.
 	 *
-	 * @parameter expression="${project.basedir}/src/main/crowdin"
+	 * @parameter parameter="project.basedir/src/main/crowdin"
 	 * @required
 	 */
 	protected File messagesOutputDirectory;

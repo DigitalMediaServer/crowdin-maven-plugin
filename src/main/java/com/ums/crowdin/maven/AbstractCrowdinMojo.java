@@ -47,8 +47,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	/**
 	 * The current Maven project
-	 * 
-	 * @parameter expression="${project}"
+	 *
+	 * @parameter parameter="project"
 	 * @readonly
 	 * @required
 	 */
@@ -56,39 +56,39 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	/**
 	 * The Maven Wagon manager to use when obtaining server authentication details.
-	 * 
+	 *
 	 * @component role="org.apache.maven.artifact.manager.WagonManager"
 	 */
 	protected WagonManager wagonManager;
 
 	/**
 	 * Maven ProjectHelper.
-	 * 
+	 *
 	 * @component
 	 */
 	protected MavenProjectHelper projectHelper;
 
 	/**
-	 * 
+	 *
 	 * Server id in settings.xml. username is project identifier, password is API key
-	 * 
-	 * @parameter expression= "${crowdinServerId}"
+	 *
+	 * @parameter parameter="crowdinServerId"
 	 * @required
 	 */
 	protected String crowdinServerId;
 
 	/**
 	 * The directory where the messages can be fund.
-	 * 
-	 * @parameter expression="${project.basedir}/src/main/messages"
+	 *
+	 * @parameter parameter="project.basedir/src/main/messages"
 	 * @required
 	 */
 	protected File messagesInputDirectory;
 
 	/**
 	 * The directory where the messages can be fund.
-	 * 
-	 * @parameter expression="${project.basedir}/src/main/crowdin"
+	 *
+	 * @parameter parameter="project.basedir/src/main/crowdin"
 	 * @required
 	 */
 	protected File messagesOutputDirectory;
