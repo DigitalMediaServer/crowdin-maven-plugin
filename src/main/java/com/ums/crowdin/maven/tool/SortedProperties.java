@@ -4,30 +4,31 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Properties;
-import java.util.Vector;
 
-// http://www.rgagnon.com/javadetails/java-0614.html
+/**
+ * This class sorts Properties when saving and is based on
+ * <a href="http://www.rgagnon.com/javadetails/java-0614.html">http://www.rgagnon.com/javadetails/java-0614.html</a>
+ */
 public class SortedProperties extends Properties {
 	/**
-	 *
+	 * Sorts and convert the .properties files
 	 */
 	private static final long serialVersionUID = 7676620742633491575L;
 
 	/**
 	 * Overrides, called by the store method.
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public synchronized Enumeration keys() {
-		Enumeration keysEnum = super.keys();
-		Vector keyList = new Vector();
+	public synchronized Enumeration<Object> keys() {
+		Enumeration<Object> keysEnum = super.keys();
+
+		LineList<Object> lineList = new LineList<Object>();
 		while (keysEnum.hasMoreElements()) {
-			keyList.add(keysEnum.nextElement());
+			lineList.add(keysEnum.nextElement());
 		}
-		Collections.sort(keyList);
-		return keyList.elements();
+		lineList.sort();
+		return lineList.elements();
 	}
 
 	public void store(OutputStream out, String comments) throws IOException {
@@ -102,13 +103,13 @@ public class SortedProperties extends Properties {
 				outBuffer.append('\\');
 				outBuffer.append('f');
 				break;
-			case '=': // Fall through
+			/*case '=': // Fall through
 			case ':': // Fall through
 			case '#': // Fall through
 			case '!':
 				outBuffer.append('\\');
 				outBuffer.append(aChar);
-				break;
+				break;*/
 			default:
 				if (((aChar < 0x0020) || (aChar > 0x007e)) & escapeUnicode) {
 					outBuffer.append('\\');
@@ -173,6 +174,5 @@ public class SortedProperties extends Properties {
 	}
 
 	/** A table of hex digits */
-	private static final char[] hexDigit = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
-			'F' };
+	private static final char[] hexDigit = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 }

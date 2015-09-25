@@ -37,8 +37,10 @@ import com.ums.crowdin.maven.tool.TranslationFile;
  *Fetch crowdin translations in this project, looking dependencies
  *
  * @goal fetch
+ * @phase generate-resources
  * @threadSafe
  */
+//TODO: Phase is temp
 public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 	/**
@@ -48,7 +50,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	private DependencyTreeBuilder treeBuilder;
 
-	/** @parameter default-value="localRepository" */
+	/** parameter default-value="${localRepository}" */
 	private ArtifactRepository localRepository;
 
 	/**
@@ -73,8 +75,8 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	private ArtifactCollector artifactCollector;
 
 	private void cleanFolders(Set<TranslationFile> translationFiles) {
-		if (messagesOutputDirectory.exists()) {
-			File[] languageFolders = messagesOutputDirectory.listFiles();
+		if (downloadFolder.exists()) {
+			File[] languageFolders = downloadFolder.listFiles();
 			for (File languageFolder : languageFolders) {
 				if (!languageFolder.getName().startsWith(".") && languageFolder.isDirectory()) {
 					if (!containsLanguage(translationFiles, languageFolder.getName())) {
@@ -145,8 +147,9 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	private Map<TranslationFile, byte[]> downloadTranslations() throws MojoExecutionException {
 		try {
 			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName()
-					+ "/download/all.zip?key=" + authenticationInfo.getPassword();
-			getLog().debug("Calling " + uri);
+					+ "/download/all.zip?key=";
+			getLog().debug("Calling " + uri + "<API key>");
+			uri += authenticationInfo.getPassword();
 			HttpGet getMethod = new HttpGet(uri);
 			HttpResponse response = client.execute(getMethod);
 			int returnCode = response.getStatusLine().getStatusCode();
@@ -168,21 +171,22 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 						String language = name.substring(0, slash);
 						name = name.substring(slash + 1);
 						slash = name.indexOf('/');
+						String mavenId = null;
 						if (slash > 0) {
-							String mavenId = name.substring(0, slash);
+							mavenId = name.substring(0, slash);
 							name = name.substring(slash + 1);
-							TranslationFile translationFile = new TranslationFile(language, mavenId, name);
-
-							ByteArrayOutputStream bos = new ByteArrayOutputStream();
-							while (zis.available() > 0) {
-								int read = zis.read();
-								if (read != -1) {
-									bos.write(read);
-								}
-							}
-							bos.close();
-							translations.put(translationFile, bos.toByteArray());
 						}
+						TranslationFile translationFile = new TranslationFile(language, mavenId, name);
+
+						ByteArrayOutputStream bos = new ByteArrayOutputStream();
+						while (zis.available() > 0) {
+							int read = zis.read();
+							if (read != -1) {
+								bos.write(read);
+							}
+						}
+						bos.close();
+						translations.put(translationFile, bos.toByteArray());
 					}
 				}
 
@@ -199,10 +203,10 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		super.execute();
 
-		if (messagesInputDirectory.exists()) {
-			getLog().info("Downloading translations from crowdin.");
-			Map<TranslationFile, byte[]> translations = downloadTranslations();
+		getLog().info("Downloading translations from crowdin.");
+		Map<TranslationFile, byte[]> translations = downloadTranslations();
 
+		if (localRepository != null) {
 			Set<Artifact> dependencyArtifacts = getAllDependencies();
 			Set<String> mavenIds = new HashSet<String>();
 			for (Artifact artifact : dependencyArtifacts) {
@@ -214,37 +218,37 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			usedTranslations.putAll(translations);
 
 			for (TranslationFile translationFile : translations.keySet()) {
-				if (!mavenIds.contains(translationFile.getMavenId())) {
+				if (translationFile.getMavenId() == null) {
+					getLog().debug(translationFile.getName() + " is a root project file");
+				} else if (!mavenIds.contains(translationFile.getMavenId())) {
 					getLog().debug(translationFile.getMavenId() + " is not a dependency");
 					usedTranslations.remove(translationFile);
 				} else {
 					getLog().debug(translationFile.getMavenId() + " is a dependency");
 				}
 			}
-
 			translations = usedTranslations;
-			if (translations.size() == 0) {
-				getLog().info("No translations available for this project!");
-			} else {
+		}
 
-				getLog().info("Cleaning crowdin folder.");
-				cleanFolders(translations.keySet());
-
-				getLog().info("Copying translations to crowdin folder.");
-				try {
-					copyTranslations(translations);
-				} catch (IOException e) {
-					throw new MojoExecutionException("Failed to write file", e);
-				}
-
-			}
+		if (translations.size() == 0) {
+			getLog().info("No translations available for this project!");
 		} else {
-			getLog().info(messagesInputDirectory.getPath() + " not found - skipping fetch");
+
+			getLog().info("Cleaning crowdin folder.");
+			cleanFolders(translations.keySet());
+
+			getLog().info("Copying translations to crowdin folder.");
+			try {
+				copyTranslations(translations);
+			} catch (IOException e) {
+				throw new MojoExecutionException("Failed to write file", e);
+			}
+
 		}
 
 	}
 
-	private void copyTranslations(Map<TranslationFile, byte[]> translations) throws IOException {
+	private void copyTranslations(Map<TranslationFile, byte[]> translations) throws IOException, MojoExecutionException {
 		Set<Entry<TranslationFile, byte[]>> entrySet = translations.entrySet();
 		for (Entry<TranslationFile, byte[]> entry : entrySet) {
 			TranslationFile translationFile = entry.getKey();
@@ -252,18 +256,29 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			byte[] bytes = entry.getValue();
 			SortedProperties properties = new SortedProperties();
 			InputStream inStream = new ByteArrayInputStream(bytes);
-			properties.load(inStream);
-			inStream.close();
+			try {
+				properties.load(inStream);
+			} finally {
+				inStream.close();
+			}
 
-			File languageFolder = new File(messagesOutputDirectory, translationFile.getLanguage());
+			File languageFolder = new File(downloadFolder, translationFile.getLanguage());
 			if (!languageFolder.exists()) {
-				languageFolder.mkdirs();
+				if (!languageFolder.mkdirs()) {
+					throw new MojoExecutionException("Could not create folder " + languageFolder.getAbsolutePath());
+				}
 			}
-			File mavenIdFolder = new File(languageFolder, translationFile.getMavenId());
-			if (!mavenIdFolder.exists()) {
-				mavenIdFolder.mkdirs();
+
+			File targetFile;
+			if (translationFile.getMavenId() != null) {
+				File mavenIdFolder = new File(languageFolder, translationFile.getMavenId());
+				if (!mavenIdFolder.exists()) {
+					mavenIdFolder.mkdirs();
+				}
+				targetFile = new File(mavenIdFolder, translationFile.getName());
+			} else {
+				targetFile = new File(languageFolder, translationFile.getName());
 			}
-			File targetFile = new File(mavenIdFolder, translationFile.getName());
 
 			getLog().info(
 					"Importing from crowdin " + translationFile.getLanguage() + "/" + translationFile.getMavenId()
@@ -281,20 +296,22 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		try {
 			ArtifactFilter artifactFilter = new ScopeArtifactFilter(null);
 
-			DependencyNode rootNode = treeBuilder.buildDependencyTree(project, localRepository, artifactFactory,
-					artifactMetadataSource, artifactFilter, artifactCollector);
+			if (localRepository != null) {
+				DependencyNode rootNode = treeBuilder.buildDependencyTree(project, localRepository, artifactFactory,
+						artifactMetadataSource, artifactFilter, artifactCollector);
 
-			CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
+				CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
 
-			rootNode.accept(visitor);
+				rootNode.accept(visitor);
 
-			@SuppressWarnings("unchecked")
-			List<DependencyNode> nodes = visitor.getNodes();
-			for (DependencyNode dependencyNode : nodes) {
-				int state = dependencyNode.getState();
-				Artifact artifact = dependencyNode.getArtifact();
-				if (state == DependencyNode.INCLUDED) {
-					result.add(new SpecialArtifact(artifact));
+				@SuppressWarnings("unchecked")
+				List<DependencyNode> nodes = visitor.getNodes();
+				for (DependencyNode dependencyNode : nodes) {
+					int state = dependencyNode.getState();
+					Artifact artifact = dependencyNode.getArtifact();
+					if (state == DependencyNode.INCLUDED) {
+						result.add(new SpecialArtifact(artifact));
+					}
 				}
 			}
 		} catch (DependencyTreeBuilderException e) {
@@ -302,5 +319,4 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		}
 		return result;
 	}
-
 }

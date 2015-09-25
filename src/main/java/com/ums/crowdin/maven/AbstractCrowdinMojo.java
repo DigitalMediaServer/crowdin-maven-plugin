@@ -65,7 +65,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The folder where the downloaded language files should be placed.
 	 *
-	 * @parameter default-value="${project.basedir}/messages"
+	 * @parameter default-value="${project.basedir}/extras/crowdin"
 	 */
 
 	protected File downloadFolder;
@@ -73,7 +73,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The name of the base language file that should be pushed.
 	 *
-	 * @parameter default-value="messages.properties"
+	 * @parameter (property = "filename", default-value="messages.properties")
 	 */
 
 	protected String pushFileName;
@@ -81,7 +81,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The title of the pushed file to be displayed on crowdin.
 	 *
-	 * @parameter default-value="Universal Media Server"
+	 * @parameter (property = "title", default-value="Universal Media Server")
 	 */
 
 	protected String pushFileTitle;
@@ -89,7 +89,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The POM name of the current project used for validation.
 	 *
-	 * @parameter default-value="Universal Media Server"
+	 * @parameter default-value="${crowdin-project-name}"
 	 */
 
 	protected String projectName;
@@ -117,22 +117,6 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 * @required
 	 */
 	protected String crowdinServerId;
-
-	/**
-	 * The directory where the messages can be fund.
-	 *
-	 * @parameter parameter="project.basedir/src/main/messages"
-	 * @required
-	 */
-	protected File messagesInputDirectory;
-
-	/**
-	 * The directory where the messages can be fund.
-	 *
-	 * @parameter parameter="project.basedir/src/main/crowdin"
-	 * @required
-	 */
-	protected File messagesOutputDirectory;
 
 	protected DefaultHttpClient client;
 	protected AuthenticationInfo authenticationInfo;
