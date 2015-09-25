@@ -34,12 +34,12 @@ import com.ums.crowdin.maven.tool.SpecialArtifact;
 import com.ums.crowdin.maven.tool.TranslationFile;
 
 /**
- * Pull crowdin translations in this project, looking dependencies
+ *Fetch crowdin translations in this project, looking dependencies
  *
- * @goal pull
+ * @goal fetch
  * @threadSafe
  */
-public class PullCrowdinMojo extends AbstractCrowdinMojo {
+public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 	/**
 	 * @component
@@ -239,7 +239,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 
 			}
 		} else {
-			getLog().info(messagesInputDirectory.getPath() + " not found - skipping pull");
+			getLog().info(messagesInputDirectory.getPath() + " not found - skipping fetch");
 		}
 
 	}
@@ -270,7 +270,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 							+ "/" + translationFile.getName());
 
 			FileOutputStream out = new FileOutputStream(targetFile);
-			properties.store(out, AggregateCrowdinMojo.COMMENT);
+			properties.store(out, ApplyCrowdinMojo.COMMENT);
 			out.close();
 
 		}

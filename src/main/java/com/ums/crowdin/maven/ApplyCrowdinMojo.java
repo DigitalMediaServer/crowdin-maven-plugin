@@ -13,13 +13,14 @@ import org.apache.maven.project.MavenProject;
 import com.ums.crowdin.maven.tool.SortedProperties;
 
 /**
- * Aggregate the translations of this project with crowdin
+ * Apply (copy) the translations of this project from the crowdin download
+ * folder to the language files location.
  *
- * @goal aggregate
+ * @goal apply
  * @phase generate-resources
  * @threadSafe
  */
-public class AggregateCrowdinMojo extends AbstractMojo {
+public class ApplyCrowdinMojo extends AbstractMojo {
 
 	private static final String DEFAULT_LANG = "en";
 
@@ -47,9 +48,9 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 	private File resourceAggregatedOutputDirectory;
 
 	/**
-	 * The directory where the messages can be fund.
+	 * The directory where the messages can be found.
 	 *
-	 * @parameter parameter="project.basedir/src/main/crowdin"
+	 * @parameter parameter="project.basedir/src/main/resources/i18n"
 	 * @required
 	 */
 	protected File messagesOutputDirectory;
@@ -68,7 +69,7 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		if (messagesOutputDirectory.exists()) {
-			getLog().info("Aggregating all message properties from dependencies");
+			getLog().info("Applying all message properties from dependencies");
 
 			String[] langFolders = messagesOutputDirectory.list();
 
@@ -95,7 +96,7 @@ public class AggregateCrowdinMojo extends AbstractMojo {
 			this.project.addResource(resource);
 
 		} else {
-			getLog().info("Crowdin folder does not exist (" + messagesOutputDirectory + "). Call pull before.");
+			getLog().info("Crowdin folder does not exist (" + messagesOutputDirectory + "). Call pull first.");
 		}
 	}
 

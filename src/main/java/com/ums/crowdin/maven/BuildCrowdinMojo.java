@@ -11,10 +11,9 @@ import org.jdom.Document;
  * Build crowdin translations for this project to include the latest changes.
  *
  * @goal build
- * @aggregator
  * @threadSafe
  */
-public class ExportCrowdinMojo extends AbstractCrowdinMojo {
+public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
