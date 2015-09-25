@@ -1,26 +1,31 @@
 package com.ums.crowdin.maven;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.jdom.Document;
 import org.jdom.Element;
 
 /**
- * Push Maven translations of this project in crowdin
+ * Push Maven translations of this project to crowdin
  *
  * @goal push
  * @threadSafe
  */
 public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
+	/**
+	 * The folder where the downloaded language files should be placed.
+	 *
+	 * @parameter property="confirm"
+	 * @required
+	 */
+
+	protected String confirm;
+
+	@SuppressWarnings("unused")
 	private void crowdinCreateFolder(String folderName) throws MojoExecutionException {
 		getLog().info("Creating " + folderName + " folder on crowdin");
 		Map<String, String> parameters = new HashMap<String, String>();
@@ -30,97 +35,82 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		super.execute();
-		if (messagesInputDirectory.exists()) {
 
-			Map<String, File> newFiles = new HashMap<String, File>();
-			Map<String, File> toUpdateFiles = new HashMap<String, File>();
-			List<String> toDeleteFiles = new ArrayList<String>();
+		if (!confirm.equalsIgnoreCase("confirm") && !confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("true")) {
+			throw new MojoExecutionException("Push is not confirmed - aborted!");
+		}
+
+		if (!project.getName().equals(projectName)) {
+			throw new MojoExecutionException("POM name (" + project.getName() + ") differs from \"projectName\" parameter (" + projectName + ") - push aborted!");
+		}
+
+		super.execute();
+		if (languageFilesFolder.exists()) {
 
 			// Retrieve project informations
-			getLog().info("Retrieving project informations");
+			getLog().info("Retrieving project information");
 			Document projectDetails = crowdinRequestAPI("info", null, null, false);
+
+			String crowdinProjectName = projectDetails.getRootElement().getChild("details").getChild("name").getText();
+			if (!crowdinProjectName.equals(projectName)) {
+				throw new MojoExecutionException("crowdin project name (" + crowdinProjectName + ") differs from \"projectName\" parameter (" + projectName + ") - push aborted!");
+			}
 
 			// Get crowdin files
 			Element filesElement = projectDetails.getRootElement().getChild("files");
-			String folderName = getMavenId(project.getArtifact());
 
-			// Get Maven files
-			getLog().debug("Retrieving message files from this project");
-			Map<String, File> files = getMessageFiles(folderName);
+			// Get language file
+			getLog().debug("Retrieving message file " + pushFileName);
 
-			if (!crowdinContainsFile(filesElement, folderName, true)) {
-				// Create project folder if it does not exist
-				crowdinCreateFolder(folderName);
-			} else {
-				// List crowdin files
-				@SuppressWarnings("unchecked")
-				List<Element> items = filesElement.getChildren("item");
-				Element projectFolder = crowdinGetFolder(items, folderName);
-				Element subFiles = projectFolder.getChild("files");
-				@SuppressWarnings("unchecked")
-				List<Element> subItems = subFiles.getChildren("item");
-				for (Element subItem : subItems) {
-					if (!crowdinIsFolder(subItem)) {
-						// get crowdin name
-						String name = subItem.getChildTextNormalize("name");
-						// check that files still exist
-						String mapName = folderName + "/" + name;
-						if (!files.containsKey(mapName)) {
-							getLog().debug(mapName + " is in crowdin project but not in this project, delete it later");
-							// otherwise delete it from crowdin
-							toDeleteFiles.add(mapName);
-						}
-					}
+			File pushFile = new File(languageFilesFolder, pushFileName);
+			if (pushFile.exists()) {
+				if (pushFileTitle == null || pushFileTitle.trim().isEmpty()) {
+					pushFileTitle = pushFileName;
 				}
-			}
 
-			// For existing maven files, check if file exist or not on crowdin
-			Set<Entry<String, File>> entrySet = files.entrySet();
-			for (Entry<String, File> entry : entrySet) {
-				if (crowdinContainsFile(filesElement, entry.getKey(), false)) {
-					// update
-					getLog().debug(entry.getKey() + " has to be updated");
-					toUpdateFiles.put(entry.getKey(), entry.getValue());
+				Map<String, File> fileMap = new HashMap<String, File>();
+				fileMap.put(pushFile.getName(), pushFile);
+				Map<String, String> titleMap = new HashMap<String, String>();
+				titleMap.put(pushFileName, pushFileTitle);
+				Map<String, String> patternMap = new HashMap<String, String>();
+				int dotIdx = pushFileName.lastIndexOf(".");
+				if (dotIdx > 0) {
+					String bareFileName = pushFileName.substring(0, dotIdx);
+					String fileExtension = pushFileName.substring(dotIdx);
+					patternMap.put(pushFileName, bareFileName + "_%locale_with_underscore%" + fileExtension);
 				} else {
-					// put
-					getLog().debug(entry.getKey() + " has to be added");
-					newFiles.put(entry.getKey(), entry.getValue());
+					getLog().warn("Could not figure out export pattern for " + pushFileName);
 				}
-			}
 
-			if (toUpdateFiles.size() != 0) {
-				getLog().info("Updating files on crowdin :");
-				for (String toUpdateFile : toUpdateFiles.keySet()) {
-					getLog().info(toUpdateFile);
-				}
-				crowdinRequestAPI("update-file", null, toUpdateFiles, true);
-			}
-			if (newFiles.size() != 0) {
-				getLog().info("Adding files on crowdin :");
-				for (String newFile : newFiles.keySet()) {
-					getLog().info(newFile);
-				}
-				Map<String, String> parameters = new HashMap<String, String>();
-				parameters.put("type", "properties");
-				crowdinRequestAPI("add-file", parameters, newFiles, true);
-			}
-			for (String toDeleteFile : toDeleteFiles) {
-				Map<String, String> parameters = new HashMap<String, String>();
-				parameters.put("file", toDeleteFile);
-				getLog().info("Crowdin file deletion is disabled, but " + toDeleteFile + "would have been deleted in enabled");
-				/*getLog().info("Deleting " + toDeleteFile + " on crowdin");
-				crowdinRequestAPI("delete-file", parameters, null, true);*/
-			}
+				if (crowdinContainsFile(filesElement, pushFileName)) {
+					// update
+					getLog().info("Updating " + pushFileName + " on crowdin");
+					Map<String, String> parameters = new HashMap<String, String>();
+					parameters.put("update_option", "update_as_unapproved");
+					parameters.put("escape_quotes", "0");
+					crowdinRequestAPI("update-file", parameters, fileMap, titleMap, patternMap, true);
 
+				} else {
+					// add
+					getLog().info("Adding " + pushFileName + " to crowdin");
+					Map<String, String> parameters = new HashMap<String, String>();
+					parameters.put("type", "properties");
+					parameters.put("escape_quotes", "0");
+					crowdinRequestAPI("add-file", parameters, fileMap, titleMap, patternMap, true);
+				}
+
+			} else {
+				getLog().warn(languageFilesFolder.getPath() + "/" + pushFileName + " push skipped - file not found");
+			}
 		} else {
-			getLog().info(messagesInputDirectory.getPath() + " not found");
+			getLog().warn(languageFilesFolder.getPath() + "/" + pushFileName + " push skipped - folder not found");
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private Map<String, File> getMessageFiles(String folderName) {
 		Map<String, File> result = new HashMap<String, File>();
-		File[] listFiles = messagesInputDirectory.listFiles();
+		File[] listFiles = languageFilesFolder.listFiles();
 		for (File file : listFiles) {
 			if (!file.isDirectory() && !file.getName().startsWith(".") && file.getName().endsWith(".properties")) {
 				String crowdinPath = folderName + "/" + file.getName();

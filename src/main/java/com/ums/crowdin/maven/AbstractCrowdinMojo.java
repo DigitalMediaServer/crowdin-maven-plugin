@@ -55,10 +55,51 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	protected MavenProject project;
 
 	/**
+	 * The folder where the language files are located in the project.
+	 *
+	 * @parameter default-value="${project.basedir}/src/main/resources/i18n"
+	 */
+
+	protected File languageFilesFolder;
+
+	/**
+	 * The folder where the downloaded language files should be placed.
+	 *
+	 * @parameter default-value="${project.basedir}/messages"
+	 */
+
+	protected File downloadFolder;
+
+	/**
+	 * The name of the base language file that should be pushed.
+	 *
+	 * @parameter default-value="messages.properties"
+	 */
+
+	protected String pushFileName;
+
+	/**
+	 * The title of the pushed file to be displayed on crowdin.
+	 *
+	 * @parameter default-value="Universal Media Server"
+	 */
+
+	protected String pushFileTitle;
+
+	/**
+	 * The POM name of the current project used for validation.
+	 *
+	 * @parameter default-value="Universal Media Server"
+	 */
+
+	protected String projectName;
+
+	/**
 	 * The Maven Wagon manager to use when obtaining server authentication details.
 	 *
 	 * @component role="org.apache.maven.artifact.manager.WagonManager"
 	 */
+
 	protected WagonManager wagonManager;
 
 	/**
@@ -98,7 +139,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		authenticationInfo = wagonManager.getAuthenticationInfo(crowdinServerId);
-		if (authenticationInfo == null) {
+		if (authenticationInfo == null || authenticationInfo.getUserName() == null || authenticationInfo.getPassword() == null) {
 			throw new MojoExecutionException("Failed to find server with id " + crowdinServerId
 					+ " in Maven settings (~/.m2/settings.xml)");
 		}
@@ -175,6 +216,14 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		return false;
 	}
 
+	protected boolean crowdinContainsFile(Element files, String fileName) {
+		return crowdinContainsFile(files, fileName, false);
+	}
+
+	protected boolean crowdinContainsFolder(Element files, String fileName) {
+		return crowdinContainsFile(files, fileName, true);
+	}
+
 	protected Element crowdinGetFolder(List<Element> items, String fileName) {
 		for (Element item : items) {
 			if (fileName.equals(item.getChildTextNormalize("name"))) {
@@ -191,11 +240,17 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	protected Document crowdinRequestAPI(String method, Map<String, String> parameters, Map<String, File> files,
-			boolean shallSuccess) throws MojoExecutionException {
+			boolean mustSucceed) throws MojoExecutionException {
+		return crowdinRequestAPI(method, parameters, files, null, null, mustSucceed);
+	}
+
+	protected Document crowdinRequestAPI(String method, Map<String, String> parameters, Map<String, File> files,
+			Map<String, String> titles, Map<String, String> patterns, boolean mustSucceed) throws MojoExecutionException {
 		try {
 			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/" + method
-					+ "?key=" + authenticationInfo.getPassword();
-			getLog().debug("Calling " + uri);
+					+ "?key=";
+			getLog().debug("Calling " + uri + "<API Key>");
+			uri += authenticationInfo.getPassword();
 			HttpPost postMethod = new HttpPost(uri);
 
 			MultipartEntity reqEntity = new MultipartEntity();
@@ -214,6 +269,20 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 				}
 			}
 
+			if (titles != null) {
+				Set<Entry<String, String>> entrySetTitles = titles.entrySet();
+				for (Entry<String, String> entryTitle : entrySetTitles) {
+					reqEntity.addPart("titles[" + entryTitle.getKey() + "]", new StringBody(entryTitle.getValue()));
+				}
+			}
+
+			if (patterns != null) {
+				Set<Entry<String, String>> entrySetPatterns = patterns.entrySet();
+				for (Entry<String, String> entryPattern : entrySetPatterns) {
+					reqEntity.addPart("export_patterns[" + entryPattern.getKey() + "]", new StringBody(entryPattern.getValue()));
+				}
+			}
+
 			postMethod.setEntity(reqEntity);
 
 			// getLog().debug("Sent request : ");
@@ -226,7 +295,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			getLog().debug("Return code : " + returnCode);
 			InputStream responseBodyAsStream = response.getEntity().getContent();
 			Document document = saxBuilder.build(responseBodyAsStream);
-			if (shallSuccess && document.getRootElement().getName().equals("error")) {
+			if (mustSucceed && document.getRootElement().getName().equals("error")) {
 				String code = document.getRootElement().getChildTextNormalize("code");
 				String message = document.getRootElement().getChildTextNormalize("message");
 				throw new MojoExecutionException("Failed to call API - " + code + " - " + message);
