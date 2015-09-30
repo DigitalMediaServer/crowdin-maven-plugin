@@ -10,38 +10,59 @@ import java.util.regex.Pattern;
 import edu.emory.mathcs.backport.java.util.Collections;
 
 /**
- * This is a helper class to sort the files according to .properties files' group and name
+ * This is a helper class to sort the files according to .properties files' groups/name
  *
  * @author Nadahar
  */
 public class LineList<E> {
 
-	private class LineStruct {
-		E line = null;
-		String group = "";
+	private class GroupStruct {
 		String name = "";
 		int num = -1;
+	}
 
-		public synchronized String toString() {
-			return String.format("%s : %d \"%s\"", group, num, line);
+	private class LineStruct {
+		E line = null;
+		List<GroupStruct> groups = new ArrayList<GroupStruct>();
+
+		public String toString() {
+			String result = "";
+			for (GroupStruct group : groups) {
+				if (!result.isEmpty()) {
+					result += "." + group.name;
+				} else {
+					result = group.name;
+				}
+			}
+			return result;
 		}
 	}
 
 	private class LineComparator implements Comparator<LineStruct> {
-		@Override
 		public int compare(LineStruct o1, LineStruct o2) {
-			int i = o1.group.compareTo(o2.group);
-			if (i == 0) {
-				i = Integer.valueOf(o1.num).compareTo(Integer.valueOf(o2.num));
-				if (i == 0) {
-					i = o1.name.compareTo(o2.name);
+			int i = 0;
+			int j = 0;
+			while (i == 0) {
+				if (o1.groups.size() > j && o2.groups.size() > j) {
+					i = Integer.valueOf(o1.groups.get(j).num).compareTo(Integer.valueOf(o2.groups.get(j).num));
+					if (i == 0) {
+						i = o1.groups.get(j).name.compareTo(o2.groups.get(j).name);
+					}
+				} else if (o1.groups.size() > j) {
+					i = 1;
+				} else if (o2.groups.size() > j) {
+					i = -1;
+				} else {
+					i = 0;
+					break;
 				}
+				j++;
 			}
 			return i;
 		}
 	}
 
-	Pattern pattern = Pattern.compile("^\\s*(\\w+)\\.(\\w+)");
+	Pattern pattern = Pattern.compile("^\\s*((?:\\w+\\.)*\\w+)");
 	private List<LineStruct> lines = new ArrayList<LineStruct>();
 
     public void add(E e) {
@@ -50,16 +71,16 @@ public class LineList<E> {
     	String key = (String) e;
 		Matcher m = pattern.matcher(key);
 		if (m.find()) {
-			if (m.groupCount() > 0) {
-				line.group = m.group(1);
-			}
-			if (m.groupCount() > 1) {
-				line.name = m.group(2);
+			String[] groups = m.group(1).split("\\.");
+			for (String group : groups) {
+				GroupStruct groupStruct = new GroupStruct();
+				groupStruct.name = group;
 				try {
-				line.num = Integer.valueOf(m.group(2));
+					groupStruct.num = Integer.valueOf(group);
 				} catch (NumberFormatException e1) {
 					// Nothing to do, default value applies
 				}
+				line.groups.add(groupStruct);
 			}
 		}
 		line.line = e;
