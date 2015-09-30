@@ -31,6 +31,10 @@ public class SortedProperties extends Properties {
 		return lineList.elements();
 	}
 
+	public void store(OutputStream out) throws IOException {
+		store0(new BufferedWriter(new OutputStreamWriter(out, "8859_1")), null, true);
+	}
+
 	public void store(OutputStream out, String comments) throws IOException {
 		store0(new BufferedWriter(new OutputStreamWriter(out, "8859_1")), comments, true);
 	}
@@ -127,7 +131,7 @@ public class SortedProperties extends Properties {
 	}
 
 	private static void writeComments(BufferedWriter bw, String comments) throws IOException {
-		bw.write("#");
+		bw.write("# ");
 		int len = comments.length();
 		int current = 0;
 		int last = 0;

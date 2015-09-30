@@ -16,6 +16,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.util.EntityUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
@@ -29,6 +30,9 @@ import org.apache.maven.shared.dependency.tree.DependencyNode;
 import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
 import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
 import org.apache.maven.shared.dependency.tree.traversal.CollectingDependencyNodeVisitor;
+import org.jdom.Document;
+import org.jdom.Element;
+import com.ums.crowdin.maven.tool.CodeConversion;
 import com.ums.crowdin.maven.tool.SortedProperties;
 import com.ums.crowdin.maven.tool.SpecialArtifact;
 import com.ums.crowdin.maven.tool.TranslationFile;
@@ -37,10 +41,8 @@ import com.ums.crowdin.maven.tool.TranslationFile;
  *Fetch crowdin translations in this project, looking dependencies
  *
  * @goal fetch
- * @phase generate-resources
  * @threadSafe
  */
-//TODO: Phase is temp
 public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 	/**
@@ -73,6 +75,8 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	 * @readonly
 	 */
 	private ArtifactCollector artifactCollector;
+
+	public final String statusFileName = "languages.properties";
 
 	private void cleanFolders(Set<TranslationFile> translationFiles) {
 		if (downloadFolder.exists()) {
@@ -176,7 +180,10 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 							mavenId = name.substring(0, slash);
 							name = name.substring(slash + 1);
 						}
-						TranslationFile translationFile = new TranslationFile(language, mavenId, name);
+						if (name.matches("messages_.*\\.properties")) {
+							name = "messages_" + CodeConversion.crowdinCodeToFileTag(language) + ".properties";
+						}
+						TranslationFile translationFile = new TranslationFile(CodeConversion.crowdinCodeToLanguageTag(language), mavenId, name);
 
 						ByteArrayOutputStream bos = new ByteArrayOutputStream();
 						while (zis.available() > 0) {
@@ -190,6 +197,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 					}
 				}
 
+				EntityUtils.consumeQuietly(response.getEntity());
 				return translations;
 			} else {
 				throw new MojoExecutionException("Failed to get translations from crowdin");
@@ -244,10 +252,59 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 				throw new MojoExecutionException("Failed to write file", e);
 			}
 
+			downloadStatus();
 		}
 
 	}
 
+	private void downloadStatus() throws MojoExecutionException {
+		getLog().info("Downloading translation status");
+		Document document = crowdinRequestAPI("status", null, null, true);
+		if (!document.getRootElement().getName().equals("status")) {
+			String code = document.getRootElement().getChildTextNormalize("code");
+			String message = document.getRootElement().getChildTextNormalize("message");
+			throw new MojoExecutionException("Failed to call API for \"status\" - " + code + " - " + message);
+		}
+
+		getLog().info("Writing translation status to file");
+		SortedProperties statusProperties = new SortedProperties();
+		for (Object child : document.getRootElement().getChildren("language")) {
+			Element childElement = (Element) child;
+			if (!childElement.getChildTextTrim("code").isEmpty()) {
+				String languageTag = CodeConversion.crowdinCodeToLanguageTag(childElement.getChildTextNormalize("code"));
+				statusProperties.put(languageTag + ".name", childElement.getChildTextNormalize("name"));
+				statusProperties.put(languageTag + ".phrases", childElement.getChildTextNormalize("phrases"));
+				statusProperties.put(languageTag + ".phrases.translated", childElement.getChildTextNormalize("translated"));
+				statusProperties.put(languageTag + ".phrases.approved", childElement.getChildTextNormalize("approved"));
+				statusProperties.put(languageTag + ".words", childElement.getChildTextNormalize("words"));
+				statusProperties.put(languageTag + ".words.translated", childElement.getChildTextNormalize("words_translated"));
+				statusProperties.put(languageTag + ".words.approved", childElement.getChildTextNormalize("words_approved"));
+				statusProperties.put(languageTag + ".progress.translated", childElement.getChildTextNormalize("translated_progress"));
+				statusProperties.put(languageTag + ".progress.approved", childElement.getChildTextNormalize("approved_progress"));
+				if (getLog().isDebugEnabled()) {
+					getLog().debug(
+						"Translation status for " + childElement.getChildTextNormalize("name") + "(" +
+						childElement.getChildTextNormalize("code") + "): " +
+						"Phrases " + childElement.getChildTextNormalize("phrases") +
+						", Translated " + childElement.getChildTextNormalize("translated") +
+						", Approved " + childElement.getChildTextNormalize("approved")
+					);
+				}
+			}
+		}
+		File statusFile = new File(downloadFolder, statusFileName);
+		try {
+			FileOutputStream out = new FileOutputStream(statusFile);
+			try {
+				statusProperties.store(out, "This file is automatically generated, please do not edit this file.");
+			} finally {
+				out.close();
+			}
+		} catch (IOException e) {
+			throw new MojoExecutionException("Failed to write file " + statusFile.getAbsolutePath() + ": " + e.getMessage());
+		}
+
+	}
 	private void copyTranslations(Map<TranslationFile, byte[]> translations) throws IOException, MojoExecutionException {
 		Set<Entry<TranslationFile, byte[]>> entrySet = translations.entrySet();
 		for (Entry<TranslationFile, byte[]> entry : entrySet) {
@@ -285,9 +342,11 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 							+ "/" + translationFile.getName());
 
 			FileOutputStream out = new FileOutputStream(targetFile);
-			properties.store(out, ApplyCrowdinMojo.COMMENT);
-			out.close();
-
+			try {
+				properties.store(out, ApplyCrowdinMojo.COMMENT);
+			} finally {
+				out.close();
+			}
 		}
 	}
 

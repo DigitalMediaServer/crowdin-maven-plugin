@@ -62,7 +62,7 @@ public class LineList<E> {
 		}
 	}
 
-	Pattern pattern = Pattern.compile("^\\s*((?:\\w+\\.)*\\w+)");
+	Pattern pattern = Pattern.compile("^\\s*((?:[\\w-_]+\\.)*\\w+)");
 	private List<LineStruct> lines = new ArrayList<LineStruct>();
 
     public void add(E e) {
