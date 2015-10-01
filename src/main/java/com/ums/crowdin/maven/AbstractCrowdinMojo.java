@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -71,9 +70,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	protected File downloadFolder;
 
 	/**
-	 * The name of the base language file that should be pushed.
+	 * The base language file that should be uploaded to crowdin.
 	 *
-	 * @parameter (property = "filename", default-value="messages.properties")
+	 * @parameter property = "filename" default-value="messages.properties"
 	 */
 
 	protected String pushFileName;
@@ -81,10 +80,18 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The title of the pushed file to be displayed on crowdin.
 	 *
-	 * @parameter (property = "title", default-value="Universal Media Server")
+	 * @parameter property = "title" default-value="Universal Media Server"
 	 */
 
 	protected String pushFileTitle;
+
+	/**
+	 * The file where the translations status/statistics should be stored.
+	 *
+	 * @parameter property = "statusfile" default-value="${project.basedir}/src/main/resources/languages.properties"
+	 */
+
+	protected File statusFile;
 
 	/**
 	 * The POM name of the current project used for validation.
