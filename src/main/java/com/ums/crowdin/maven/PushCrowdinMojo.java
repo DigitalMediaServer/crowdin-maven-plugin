@@ -19,33 +19,36 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	/**
 	 * The base language file that should be uploaded to crowdin.
 	 *
-	 * @parameter property = "filename" default-value="messages.properties"
+	 * @parameter property = "filename"
+	 * @required
 	 */
-
 	protected String pushFileName;
 
 	/**
 	 * The title of the pushed file to be displayed on crowdin.
 	 *
-	 * @parameter property = "title" default-value="Universal Media Server"
+	 * @parameter property = "title"
+	 * @required
 	 */
-
 	protected String pushFileTitle;
+
 	/**
-	 * The folder where the downloaded language files should be placed.
+	 * A parameter that must be <code>true</code> for push to execute. If this
+	 * is not specified in the POM file, <code>-Dconfirm=true</code> is required
+	 * as a command line argument for the push to execute.
 	 *
 	 * @parameter property="confirm"
 	 * @required
 	 */
-
 	protected String confirm;
 
 	/**
-	 * The POM name of the current project used for validation.
+	 * This parameter must match the POM name of the current project in is used
+	 * to prevent pushing from the wrong project.
 	 *
-	 * @parameter default-value="${crowdin-project-name}"
+	 * @parameter
+	 * @required
 	 */
-
 	protected String projectName;
 
 	@SuppressWarnings("unused")

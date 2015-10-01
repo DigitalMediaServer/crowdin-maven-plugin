@@ -32,7 +32,9 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	protected DependencyTreeBuilder treeBuilder;
 
-	/** parameter default-value="${localRepository}" */
+	/**
+	 * @parameter default-value="${localRepository}"
+	 */
 	protected ArtifactRepository localRepository;
 
 	/**

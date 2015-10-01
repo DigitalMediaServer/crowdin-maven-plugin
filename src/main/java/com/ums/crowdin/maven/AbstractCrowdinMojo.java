@@ -47,7 +47,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The current Maven project
 	 *
-	 * @parameter parameter="project"
+	 * @parameter default-value="${project}"
 	 * @readonly
 	 * @required
 	 */
@@ -60,9 +60,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The folder where the language files are located in the project.
 	 *
-	 * @parameter default-value="${project.basedir}/src/main/resources/i18n"
+	 * @parameter
+	 * @required
 	 */
-
 	protected File languageFilesFolder;
 
 	protected void setLanguageFilesFolder(File value) {
@@ -72,9 +72,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The folder where the downloaded language files should be placed.
 	 *
-	 * @parameter default-value="${project.basedir}/extras/crowdin"
+	 * @parameter
+	 * @required
 	 */
-
 	protected File downloadFolder;
 
 	protected void setDownloadFolder(File value) {
@@ -84,9 +84,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The file where the translations status/statistics should be stored.
 	 *
-	 * @parameter property = "statusfile" default-value="${project.basedir}/src/main/resources/languages.properties"
+	 * @parameter
 	 */
-
 	protected File statusFile;
 
 	protected void setStatusFile(File value) {
@@ -98,7 +97,6 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 *
 	 * @component role="org.apache.maven.artifact.manager.WagonManager"
 	 */
-
 	protected WagonManager wagonManager;
 
 	protected void setWagonManager(WagonManager value) {
@@ -114,9 +112,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	/**
 	 *
-	 * Server id in settings.xml. username is project identifier, password is API key
+	 * Server id in settings.xml. &lt;username&gt; is project identifier, &lt;password&gt; is API key
 	 *
-	 * @parameter parameter="crowdinServerId"
+	 * @parameter property = "crowdinServerId"
 	 * @required
 	 */
 	protected String crowdinServerId;

@@ -65,7 +65,9 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		treeBuilder = value;
 	}
 
-	/** parameter default-value="${localRepository}" */
+	/**
+	 * @parameter default-value="${localRepository}"
+	 */
 	protected ArtifactRepository localRepository;
 
 	protected void setLocalRepository(ArtifactRepository value) {
@@ -307,9 +309,9 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		getLog().info("Downloading translation status");
 
 		if (statusFile == null) {
-			throw new MojoExecutionException("Parameter statusFile (statusfile at commandline) can not be empty - fetch aborted");
+			throw new MojoExecutionException("Parameter statusFile can not be empty - fetch aborted");
 		} else if ((statusFile.exists() && statusFile.isDirectory()) || statusFile.getName() == null || statusFile.getName().isEmpty()) {
-			throw new MojoExecutionException("Parameter statusFile (statusfile at commandline) must be a file - fetch aborted");
+			throw new MojoExecutionException("Parameter statusFile must be a file - fetch aborted");
 		}
 
 		Document document = crowdinRequestAPI("status", null, null, true);
