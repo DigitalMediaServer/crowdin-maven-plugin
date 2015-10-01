@@ -17,6 +17,21 @@ import org.jdom.Element;
 public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 	/**
+	 * The base language file that should be uploaded to crowdin.
+	 *
+	 * @parameter property = "filename" default-value="messages.properties"
+	 */
+
+	protected String pushFileName;
+
+	/**
+	 * The title of the pushed file to be displayed on crowdin.
+	 *
+	 * @parameter property = "title" default-value="Universal Media Server"
+	 */
+
+	protected String pushFileTitle;
+	/**
 	 * The folder where the downloaded language files should be placed.
 	 *
 	 * @parameter property="confirm"
@@ -24,6 +39,14 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 
 	protected String confirm;
+
+	/**
+	 * The POM name of the current project used for validation.
+	 *
+	 * @parameter default-value="${crowdin-project-name}"
+	 */
+
+	protected String projectName;
 
 	@SuppressWarnings("unused")
 	private void crowdinCreateFolder(String folderName) throws MojoExecutionException {

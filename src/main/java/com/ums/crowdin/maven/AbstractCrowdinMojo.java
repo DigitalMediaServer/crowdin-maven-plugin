@@ -53,6 +53,10 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 	protected MavenProject project;
 
+	protected void setProject(MavenProject value) {
+		project = value;
+	}
+
 	/**
 	 * The folder where the language files are located in the project.
 	 *
@@ -60,6 +64,10 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 
 	protected File languageFilesFolder;
+
+	protected void setLanguageFilesFolder(File value) {
+		languageFilesFolder = value;
+	}
 
 	/**
 	 * The folder where the downloaded language files should be placed.
@@ -69,21 +77,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	protected File downloadFolder;
 
-	/**
-	 * The base language file that should be uploaded to crowdin.
-	 *
-	 * @parameter property = "filename" default-value="messages.properties"
-	 */
-
-	protected String pushFileName;
-
-	/**
-	 * The title of the pushed file to be displayed on crowdin.
-	 *
-	 * @parameter property = "title" default-value="Universal Media Server"
-	 */
-
-	protected String pushFileTitle;
+	protected void setDownloadFolder(File value) {
+		downloadFolder = value;
+	}
 
 	/**
 	 * The file where the translations status/statistics should be stored.
@@ -93,13 +89,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	protected File statusFile;
 
-	/**
-	 * The POM name of the current project used for validation.
-	 *
-	 * @parameter default-value="${crowdin-project-name}"
-	 */
-
-	protected String projectName;
+	protected void setStatusFile(File value) {
+		statusFile = value;
+	}
 
 	/**
 	 * The Maven Wagon manager to use when obtaining server authentication details.
@@ -108,6 +100,10 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 
 	protected WagonManager wagonManager;
+
+	protected void setWagonManager(WagonManager value) {
+		wagonManager = value;
+	}
 
 	/**
 	 * Maven ProjectHelper.
@@ -124,6 +120,10 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 * @required
 	 */
 	protected String crowdinServerId;
+
+	protected void setCrowdinServerId(String value) {
+		crowdinServerId = value;
+	}
 
 	protected DefaultHttpClient client;
 	protected AuthenticationInfo authenticationInfo;
