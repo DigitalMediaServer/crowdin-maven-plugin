@@ -1,22 +1,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-	<parent>
-		<groupId>org.sonatype.oss</groupId>
-		<artifactId>oss-parent</artifactId>
-		<version>7</version>
-	</parent>
-
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.ums.maven</groupId>
 	<artifactId>ums-crowdin-maven-plugin</artifactId>
-	<version>0.1-SNAPSHOT</version>
+	<version>0.1</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>UMS crowdin Maven Plugin</name>
 
 	<description>This plugin allows Maven projects to be translated using crowdin.</description>
-	<url>http://code.google.com/p/crowdin-maven/</url>
+	<url>https://github.com/Nadahar/ums-crowdin</url>
 
 	<licenses>
 		<license>
@@ -27,9 +21,9 @@
 	</licenses>
 
 	<scm>
-		<url>scm:git:git@github.com:glandais/crowdin-maven</url>
-		<connection>scm:git:git@github.com:glandais/crowdin-maven.git</connection>
-		<developerConnection>scm:git:git@github.com:glandais/crowdin-maven.git</developerConnection>
+		<url>scm:git:git@github.com:Nadahar/ums-crowdin</url>
+		<connection>scm:git:git@github.com:Nadahar/ums-crowdin.git</connection>
+		<developerConnection>scm:git:git@github.com:Nadahar/ums-crowdin.git</developerConnection>
 	</scm>
 
 	<developers>
@@ -37,6 +31,11 @@
 			<id>glandais</id>
 			<name>Gabriel Landais</name>
 			<email>gabriel.landais@gmail.com</email>
+		</developer>
+		<developer>
+			<id>Nadahar</id>
+			<timezone>1</timezone>
+			<url>http://github.com/Nadahar</url>
 		</developer>
 	</developers>
 
@@ -81,6 +80,18 @@
 			<version>2.3</version>
 		</dependency>
 	</dependencies>
+	
+	<distributionManagement>
+		<!-- 
+			Repository to be uploaded to during the deploy phase. Ftp, sftp and scp are supported.
+			The "id" parameter must match a "server" entry in Maven configuration (e.g. ~/.m2/settings.xml)
+			where username and password are provided.  
+		-->
+		<repository>
+			<id>superbum.org</id>
+			<url>sftp://sftp.domeneshop.no/home/4/s/superbum/www/downloads/maven</url>
+		</repository>
+	</distributionManagement>
 
 	<!--
 		If you get an "execution not covered by lifecycle configuration: org.apache.maven.plugins:maven-plugin-plugin"
@@ -106,6 +117,22 @@
 				</executions>
 			</plugin>
 		</plugins>
+		<extensions>
+			<!-- 
+				Only one of the wagon providers is needed, depending on the protocol used to upload the plugin
+				to the repository. wagon-ftp supports ftp and wagon-ssh supports sftp and scp. 
+			-->
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-ftp</artifactId>
+				<version>2.10</version>
+			</extension>
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-ssh</artifactId>
+				<version>2.10</version>
+			</extension>
+		</extensions>		
 	</build>
 
 	<profiles>
@@ -122,7 +149,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>1.1</version>
+						<version>1.6</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
@@ -137,6 +164,5 @@
 			</build>
 		</profile>
 	</profiles>
-
 </project>
 
