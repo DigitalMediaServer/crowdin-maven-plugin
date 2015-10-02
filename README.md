@@ -1,79 +1,119 @@
-# crowdin-maven
+# UMS crowdin Maven Plugin
 
-This plugin allows Maven projects to be translated using crowdin.
-
-# Quick start
+This plugin allows Maven projects to be translated using crowdin. It is based on [glandais' crowdin-maven plugin] (https://github.com/glandais/crowdin-maven), but has been adapted for use with the [Universal Media Server project] (https://github.com/UniversalMediaServer/UniversalMediaServer).
 
 ## Configuration
 
-Add a server to your ~/.m2/settings.xml (keeping your API key private)
+To access crowdin this plugin needs a project identifier and an API key from crowdin. This is achieved by specifying a ```server``` in Maven configuration. The API key needs to be kept private, so the best place to put this is in the Maven user settings. This can be achieved by adding a server to your ```~/.m2/settings.xml``` like shown in the example below. If you don't have a ```~/.m2/settings.xml``` file, a template is provided later in this README which can be copy and pasted into an empty xml file.
 
 ```xml
 <settings>
 <!-- ... -->
- <servers>
+  <servers>
+    <!-- ... -->
+    <server>
+      <id>crowdin-ums</id>
+      <username>universalmediaserver<username>
+      <password>API key</password>
+    <server>
+    <!-- ... -->
+  </servers>
   <!-- ... -->
-  <server>
-   <id>crowdin-myproject</id>
-   <username>myproject<username>
-   <password>API key</password>
-  <server>
-  <!-- ... -->
- </servers>
-<!-- ... -->
- <pluginGroups>
-  <!-- ... -->
-  <pluginGroup>com.googlecode.crowdin-maven</pluginGroup>
-  <!-- ... -->
- </pluginGroups>
-<!-- ... -->
 </settings>
 ```
 
-Configure your build for crowdin usage in your project's pom.xml :
+Further parameters need to be configured in your project's ```pom.xml``` so that they are available when requested by the plugin. This plugin doesn't bind to any ```phases``` and must be executed manually, so the changes to the ```pom.xml``` don't affect the build process itself. Below is a typical configuration.
 
 ```xml
 <project>
 <!-- ... -->
- <build>
- <!-- ... -->
-  <plugins>
-   <!-- ... -->
-   <plugin>
-    <groupId>com.googlecode.crowdin-maven</groupId>
-    <artifactId>crowdin-plugin</artifactId>
-    <version>LATEST</version>   
-     <executions>
-      <execution>
-       <goals>
-        <goal>aggregate</goal>
-       </goals>
-      </execution>
-     </executions>
-     <configuration>
-      <crowdinServerId>crowdin-myproject</crowdinServerId>
-     </configuration>
-   </plugin>
-   <!-- ... -->
-  </plugin>
+  <build>
+    <!-- ... -->
+    <pluginManagement>
+      <!-- ... -->
+      <plugins>
+        <!-- ... -->
+        <plugin>
+          <groupId>com.ums.maven</groupId>
+          <artifactId>ums-crowdin-maven-plugin</artifactId>
+          <version>LATEST</version>   
+          <configuration>
+            <project>${project}</project>
+            <languageFilesFolder>${project.basedir}/src/main/resources/i18n</languageFilesFolder>
+            <downloadFolder>${project.basedir}/extras/crowdin</downloadFolder>
+            <statusFile>${project.basedir}/src/main/resources/languages.properties</statusFile>
+            <crowdinServerId>crowdin-ums</crowdinServerId>
+            <pushFileName>messages.properties</pushFileName>
+            <pushFileTitle>Universal Media Server</pushFileTitle>
+            <projectName>Universal Media Server</projectName>
+          </configuration>
+        </plugin>
+        <!-- ... -->
+      </plugins>
+      <!-- ... -->
+    </pluginManagement>
+    <!-- ... -->
+  </build>
   <!-- ... -->
- </build>
- <!-- ... -->
 </project>
 ```
 
-## Pushing translations to crowdin
+## Parameter description
 
-Put your messages files in properties format in src/main/messages.
+* ```languageFilesFolder``` - The folder where the translation ```.properties``` files are located.
+* ```downloadFolder``` - A temporary folder used to store the files downloaded from crowdin.
+* ```statusFile``` - The full path to the ```.properties``` file where the translation status should be written.
+* ```crowdinServerId``` - The ```id``` of the Maven configured ```server``` to be used by the plugin for crowdin authentication.
+* ```pushFileName``` - The name of the file located in ```languageFilesFolder``` that is the _base language_ file that should be uploaded to crowdin during ```push```.
+* ```pushFileTitle``` - The title to be associated with ```pushFileName``` on crowdin.
+* ```projectName``` - The crowdin project name. To avoid pushing the wrong file to crowdin, this must match both the ```pom.xml``` project name and the crowdin project name for the given crowdin project identifier for ```push``` to be executed.
 
-*Goal* | *Description*
---- | ---
-`mvn crowdin:push` | Push the messages files on crowdin.<br>It is a Maven first, files or keys not in Maven will be erased on crowdin.
+## Using the plugin
 
-## Getting translations from crowdin
+Given that the parameters are configured correctly, you can execute a goal with:
 
-*Goal* | *Description*
---- | ---
-`mvn crowdin:export` | Ask crowdin to update the translations on their side.<br>There is a limit of 30 minutes between two exports.
-`mvn crowdin:pull` | Retrieve messages from crowdin in `src/main/crowdin`.<br>`src/main/crowdin` must be considered as a derived resource. Do not edit those files.
-`mvn crowdin:aggregate` | This goal should be executed when the project is built.<br>It aggregates the properties from `src/main/crowdin` in regular Java properties files.<br>Those files are attached to the build, included in the packaging next to the classes.<br>Using the configuration above in project's pom.xml, this goal is executed on Maven `generate-resources`.
+```mvn ums-crowdin:<goal> [-D<property>=<value>]```
+
+The goals are explained below:
+
+### Pushing strings for translation to crowdin
+
+*Goal* | *Command* | *Description*
+---- | ------- | -----------
+**push** | ```mvn ums-crowdin:push -Dconfirm=true``` | Upload the _base language_ file to on crowdin. Any strings already on crowdin that's missing in the uploaded file is deleted from crowdin with all corresponding translations. Because of this, an extra argument ```confirm=true``` is required for ```push```.
+
+### Getting translations from crowdin
+
+*Goal* | *Command* | *Description*
+---- | ------- | -----------
+**build** | ```mvn ums-crowdin:build``` | Ask crowdin to build a downloadable zip file containing all the latest translations. Unpaid projects can only build once every 30 minutes via the API, but it's possible to build from the crowdin web interface at any time. The API replies with status ```skipped``` both if there are no changes since the last build and if the previous build was less than 30 minutes ago, so there's no way to tell the two apart.
+**fetch** | `mvn ums-crowdin:fetch` | Download and extract the last built zip file from crowdin to ```downloadFolder```.
+**apply** | `mvn ums-crowdin:apply` | Copy the downloaded files from ```downloadFolder``` and into their intended locations in accordance with ```languageFilesFolder``` and ```statusFile```.
+**pull** | ```mvn ums-crowdin:pull``` | Perform ```build```, ```fetch``` and ```apply``` in sequence. This is a convenience goal combining the individual steps to get the latest translations from crowdin copied into your local project.
+
+## ```settings.xml``` template
+
+If you're missing the file ```~/.m2/settings.xml```, you can copy and paste the template below:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+	<pluginGroups>
+	</pluginGroups>
+	<proxies>
+	</proxies>
+	<servers>
+	<server>
+		<id>crowdin-ums</id>
+		<username>universalmediaserver<username>
+		<password>API key</password>
+	<server>
+	</servers>
+	<mirrors>
+	</mirrors>
+	<profiles>
+	</profiles>
+</settings>
+```
