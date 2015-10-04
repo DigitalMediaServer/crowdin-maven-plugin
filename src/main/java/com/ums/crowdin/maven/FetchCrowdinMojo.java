@@ -196,10 +196,10 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		}
 	}
 
-	private Map<TranslationFile, byte[]> downloadTranslations() throws MojoExecutionException {
+	private Map<TranslationFile, byte[]> downloadTranslations(String branch) throws MojoExecutionException {
 		try {
-			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName()
-					+ "/download/all.zip?key=";
+			String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/download/all.zip?" +
+			             (branch != null ? "branch=" + branch + "&" : "") + "key=";
 			getLog().debug("Calling " + uri + "<API key>");
 			uri += authenticationInfo.getPassword();
 			HttpGet getMethod = new HttpGet(uri);
@@ -247,8 +247,10 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 				EntityUtils.consumeQuietly(response.getEntity());
 				return translations;
+			} else if (returnCode == 404) {
+				throw new MojoExecutionException("Could not find any files in branch \"" + (branch != null ? branch : rootBranch) + "\" on crowdin");
 			} else {
-				throw new MojoExecutionException("Failed to get translations from crowdin");
+				throw new MojoExecutionException("Failed to get translations from crowdin with return code " + Integer.toString(returnCode));
 			}
 		} catch (Exception e) {
 			throw new MojoExecutionException("Failed to call API", e);
@@ -259,8 +261,9 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		super.execute();
 
+		String branch = getBranch();
 		getLog().info("Downloading translations from crowdin");
-		Map<TranslationFile, byte[]> translations = downloadTranslations();
+		Map<TranslationFile, byte[]> translations = downloadTranslations(branch);
 
 		if (localRepository != null) {
 			Set<Artifact> dependencyArtifacts = getAllDependencies();
@@ -302,7 +305,6 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 			downloadStatus();
 		}
-
 	}
 
 	private void downloadStatus() throws MojoExecutionException {
