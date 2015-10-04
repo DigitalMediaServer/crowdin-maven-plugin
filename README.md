@@ -67,12 +67,15 @@ Further parameters need to be configured in your project's ```pom.xml``` so that
 * ```pushFileName``` - The name of the file located in ```languageFilesFolder``` that is the _base language_ file that should be uploaded to crowdin during ```push```.
 * ```pushFileTitle``` - The title to be associated with ```pushFileName``` on crowdin.
 * ```projectName``` - The crowdin project name. To avoid pushing the wrong file to crowdin, this must match both the ```pom.xml``` project name and the crowdin project name for the given crowdin project identifier for ```push``` to be executed.
+* ```rootBranch``` - The git branch that should be considered root on crowdin (that is, not exist in a branch folder). The default value is ```master```. This parameter can be specified in ```pom.xml```, from the command line with ```-DrootBranch=``` or left to it's default. Any git branch not matching this parameter will push to and fetch from a branch folder at crowdin.
 
 ## Using the plugin
 
 Given that the parameters are configured correctly, you can execute a goal with:
 
 ```mvn ums-crowdin:<goal> [-D<property>=<value>]```
+
+This plugin requires git to be installed to work, and will automatically look up the current git branch and use that as the crowdin branch unless the current git branch matches to ```rootBranch``` parameter. If no git branch is found (e.g. checked out to a tag) all goals but ```apply``` will fail. For further information about versions management and branches on crowdin, see the [crowdin documentation] (https://support.crowdin.com/articles/versions-management/).
 
 The goals are explained below:
 
