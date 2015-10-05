@@ -89,7 +89,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 			File pushFile = new File(languageFilesFolder, pushFileName);
 			if (pushFile.exists()) {
-				if (pushFileTitle == null || pushFileTitle.trim().isEmpty()) {
+				if (pushFileTitle == null || pushFileTitle.trim().equals("")) {
 					pushFileTitle = pushFileName;
 				}
 

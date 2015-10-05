@@ -312,7 +312,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 		if (statusFile == null) {
 			throw new MojoExecutionException("Parameter statusFile can not be empty - fetch aborted");
-		} else if ((statusFile.exists() && statusFile.isDirectory()) || statusFile.getName() == null || statusFile.getName().isEmpty()) {
+		} else if ((statusFile.exists() && statusFile.isDirectory()) || statusFile.getName() == null || statusFile.getName().equals("")) {
 			throw new MojoExecutionException("Parameter statusFile must be a file - fetch aborted");
 		}
 
@@ -327,7 +327,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		SortedProperties statusProperties = new SortedProperties();
 		for (Object child : document.getRootElement().getChildren("language")) {
 			Element childElement = (Element) child;
-			if (!childElement.getChildTextTrim("code").isEmpty()) {
+			if (!childElement.getChildTextTrim("code").equals("")) {
 				String languageTag = CodeConversion.crowdinCodeToLanguageTag(childElement.getChildTextNormalize("code"));
 				statusProperties.put(languageTag + ".name", childElement.getChildTextNormalize("name"));
 				statusProperties.put(languageTag + ".phrases", childElement.getChildTextNormalize("phrases"));

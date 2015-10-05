@@ -392,7 +392,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 		getLog().info("Determining git branch");
 		String branch = GitUtil.getBranch(project.getBasedir(), getLog());
-		if (branch == null || branch.trim().isEmpty()) {
+		if (branch == null || branch.trim().equals("")) {
 			throw new MojoExecutionException("Could not determine current git branch");
 		}
 		if (branch.equals(rootBranch)) {
