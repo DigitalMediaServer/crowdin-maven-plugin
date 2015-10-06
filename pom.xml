@@ -4,13 +4,13 @@
 
 	<groupId>com.ums.maven</groupId>
 	<artifactId>ums-crowdin-maven-plugin</artifactId>
-	<version>0.2-SNAPSHOT</version>
+	<version>0.2</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>UMS crowdin Maven Plugin</name>
 
-	<description>This plugin allows Maven projects to be translated using crowdin.</description>
-	<url>https://github.com/Nadahar/ums-crowdin</url>
+	<description>This plugin allows Maven projects to be translated using crowdin and has been tailored to use for the Universal Media Server project.</description>
+	<url>http://github.com/UniversalMediaServer/ums-crowdin</url>
 
 	<licenses>
 		<license>
@@ -21,9 +21,9 @@
 	</licenses>
 
 	<scm>
-		<url>scm:git:git@github.com:Nadahar/ums-crowdin</url>
-		<connection>scm:git:git@github.com:Nadahar/ums-crowdin.git</connection>
-		<developerConnection>scm:git:git@github.com:Nadahar/ums-crowdin.git</developerConnection>
+		<url>http://github.com/UniversalMediaServer/ums-crowdin</url>
+		<connection>https://github.com/UniversalMediaServer/ums-crowdin.git</connection>
+		<developerConnection>scm:git:git://github.com:UniversalMediaServer/ums-crowdin.git</developerConnection>
 	</scm>
 
 	<developers>
