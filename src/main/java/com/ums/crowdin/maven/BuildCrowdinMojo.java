@@ -19,9 +19,11 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		super.execute();
 
+		String branch = getBranch();
 		getLog().info("Asking crowdin to build translations");
 
-		String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/export?key=";
+		String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/export?" +
+		             (branch != null ? "branch=" + branch + "&": "") + "key=";
 		getLog().debug("Calling " + uri + "<API Key>");
 		uri += authenticationInfo.getPassword();
 

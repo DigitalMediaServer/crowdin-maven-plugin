@@ -2,6 +2,7 @@ package com.ums.crowdin.maven;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,6 +30,7 @@ import org.apache.maven.wagon.authentication.AuthenticationInfo;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
+import com.ums.crowdin.maven.tool.GitUtil;
 
 public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
@@ -93,10 +95,22 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	/**
+	 * The git branch that should be treated as root in crowdin versions management.
+	 *
+	 * @parameter property="rootBranch" default-value="master"
+	 */
+	protected String rootBranch;
+
+	protected void setRootBranch(String value) {
+		rootBranch = value;
+	}
+
+	/**
 	 * The Maven Wagon manager to use when obtaining server authentication details.
 	 *
 	 * @component role="org.apache.maven.artifact.manager.WagonManager"
 	 */
+
 	protected WagonManager wagonManager;
 
 	protected void setWagonManager(WagonManager value) {
@@ -172,7 +186,10 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	}
 
-	protected boolean crowdinContainsFile(Element files, String fileName, boolean folder) {
+	protected boolean crowdinContainsFile(Element files, String fileName, boolean folder, boolean branch) throws MojoExecutionException {
+		if (folder && branch) {
+			throw new MojoExecutionException("fileitem can't be both folder and branch!");
+		}
 		getLog().debug("Check that crowdin project contains " + fileName);
 		@SuppressWarnings("unchecked")
 		List<Element> items = files.getChildren("item");
@@ -181,13 +198,19 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			if (folder) {
 				Element folderElement = crowdinGetFolder(items, fileName);
 				if (folderElement != null) {
-					getLog().debug("Crowdin project contains " + fileName);
+					getLog().debug("Crowdin project contains folder " + fileName);
+					return true;
+				}
+			} else if (branch) {
+				Element branchElement = crowdinGetBranch(items, fileName);
+				if (branchElement != null) {
+					getLog().debug("Crowdin project contains branch " + fileName);
 					return true;
 				}
 			} else {
 				for (Element item : items) {
 					if (fileName.equals(item.getChildTextNormalize("name"))) {
-						getLog().debug("Crowdin project contains " + fileName);
+						getLog().debug("Crowdin project contains file " + fileName);
 						return true;
 					}
 				}
@@ -198,25 +221,39 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			Element folderElement = crowdinGetFolder(items, folderName);
 			if (folderElement != null) {
 				Element subFiles = folderElement.getChild("files");
-				return crowdinContainsFile(subFiles, subPath, folder);
+				return crowdinContainsFile(subFiles, subPath, folder, branch);
 			}
 		}
-		getLog().debug("Crowdin project does not contain " + fileName);
+		getLog().debug("Crowdin project doesn't contain " + (folder ? "folder " : branch ? "branch " : "file ") + fileName);
 		return false;
 	}
 
-	protected boolean crowdinContainsFile(Element files, String fileName) {
-		return crowdinContainsFile(files, fileName, false);
+	protected boolean crowdinContainsFile(Element files, String fileName) throws MojoExecutionException {
+		return crowdinContainsFile(files, fileName, false, false);
 	}
 
-	protected boolean crowdinContainsFolder(Element files, String fileName) {
-		return crowdinContainsFile(files, fileName, true);
+	protected boolean crowdinContainsFolder(Element files, String fileName) throws MojoExecutionException {
+		return crowdinContainsFile(files, fileName, true, false);
+	}
+
+	protected boolean crowdinContainsBranch(Element files, String fileName) throws MojoExecutionException {
+		return crowdinContainsFile(files, fileName, false, true);
 	}
 
 	protected Element crowdinGetFolder(List<Element> items, String fileName) {
+		return crowdinGetFolder(items, fileName, false);
+	}
+
+	protected Element crowdinGetBranch(List<Element> items, String fileName) {
+		return crowdinGetFolder(items, fileName, true);
+	}
+
+	protected Element crowdinGetFolder(List<Element> items, String fileName, boolean branch) {
 		for (Element item : items) {
 			if (fileName.equals(item.getChildTextNormalize("name"))) {
-				if (crowdinIsFolder(item)) {
+				if (branch && crowdinIsBranch(item)) {
+					return item;
+				} else if (!branch && crowdinIsFolder(item)) {
 					return item;
 				}
 			}
@@ -225,8 +262,28 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	protected boolean crowdinIsFolder(Element item) {
-		return item.getChild("node_type") != null && "directory".equals(item.getChildTextNormalize("node_type"));
+		return item.getChild("node_type") != null && item.getChildTextNormalize("node_type").equalsIgnoreCase("directory");
 	}
+
+	protected boolean crowdinIsBranch(Element item) {
+		return item.getChild("node_type") != null && item.getChildTextNormalize("node_type").equalsIgnoreCase("branch");
+	}
+
+	protected void crowdinCreateFolder(String folderName) throws MojoExecutionException {
+		getLog().info("Creating " + folderName + " folder on crowdin");
+		Map<String, String> parameters = new HashMap<String, String>();
+		parameters.put("name", folderName);
+		crowdinRequestAPI("add-directory", parameters, null, true);
+	}
+
+	protected void crowdinCreateBranch(String branchName) throws MojoExecutionException {
+		getLog().info("Creating " + branchName + " branch on crowdin");
+		Map<String, String> parameters = new HashMap<String, String>();
+		parameters.put("name", branchName);
+		parameters.put("is_branch", "1");
+		crowdinRequestAPI("add-directory", parameters, null, true);
+	}
+
 
 	protected Document crowdinRequestAPI(String method, Map<String, String> parameters, Map<String, File> files,
 			boolean mustSucceed) throws MojoExecutionException {
@@ -295,8 +352,58 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		}
 	}
 
+	/**
+	 * Requests project information including all files and returns the files element.
+	 * Branch may be <code>null</code> in which case the root files <code>Element</code> is returned
+	 * @param branch The branch name
+	 * @return The relevant files <code>Element</code>
+	 * @throws MojoExecutionException
+	 */
+	protected Element getCrowdinFiles(String branch, Document projectDetails) throws MojoExecutionException {
+
+		if (projectDetails == null) {
+			// Retrieve project informations
+			getLog().info("Retrieving crowdin project information");
+			projectDetails = crowdinRequestAPI("info", null, null, true);
+		}
+
+		// Get crowdin files
+		if (branch != null) {
+			@SuppressWarnings("unchecked")
+			Element branchElement = crowdinGetBranch(projectDetails.getRootElement().getChild("files").getChildren() , branch);
+			if (branchElement == null || !crowdinIsBranch(branchElement)) {
+				throw new MojoExecutionException("Can't find branch \"" + branch + "\" in crowdin project information");
+			}
+			return branchElement.getChild("files");
+		} else {
+			return projectDetails.getRootElement().getChild("files");
+		}
+	}
+
 	protected String getMavenId(Artifact artifact) {
 		return artifact.getGroupId() + "." + artifact.getArtifactId();
 	}
 
+	protected String getBranch() throws MojoExecutionException {
+		return getBranch(false, null);
+	}
+
+	protected String getBranch(boolean create, Document projectDetails) throws MojoExecutionException {
+
+		getLog().info("Determining git branch");
+		String branch = GitUtil.getBranch(project.getBasedir(), getLog());
+		if (branch == null || branch.trim().equals("")) {
+			throw new MojoExecutionException("Could not determine current git branch");
+		}
+		if (branch.equals(rootBranch)) {
+			return null;
+		} else if (crowdinContainsBranch(getCrowdinFiles(null, projectDetails), branch)) {
+			return branch;
+		} else if (create) {
+			crowdinCreateBranch(branch);
+			return branch;
+		} else {
+			throw new MojoExecutionException("Crowdin project doesn't contain branch \"" + branch + "\". Please push this branch first.");
+		}
+	}
 }

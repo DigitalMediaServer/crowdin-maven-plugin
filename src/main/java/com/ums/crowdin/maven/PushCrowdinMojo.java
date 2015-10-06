@@ -33,16 +33,6 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	protected String pushFileTitle;
 
 	/**
-	 * A parameter that must be <code>true</code> for push to execute. If this
-	 * is not specified in the POM file, <code>-Dconfirm=true</code> is required
-	 * as a command line argument for the push to execute.
-	 *
-	 * @parameter property="confirm"
-	 * @required
-	 */
-	protected String confirm;
-
-	/**
 	 * This parameter must match the POM name of the current project in is used
 	 * to prevent pushing from the wrong project.
 	 *
@@ -51,13 +41,15 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	protected String projectName;
 
-	@SuppressWarnings("unused")
-	private void crowdinCreateFolder(String folderName) throws MojoExecutionException {
-		getLog().info("Creating " + folderName + " folder on crowdin");
-		Map<String, String> parameters = new HashMap<String, String>();
-		parameters.put("name", folderName);
-		crowdinRequestAPI("add-directory", parameters, null, true);
-	}
+	/**
+	 * This parameter must be <code>true</code> for push to execute. If this
+	 * isn't specified in the POM file, <code>-Dconfirm=true</code> is required
+	 * as a command line argument for the push to execute.
+	 *
+	 * @parameter property="confirm"
+	 * @required
+	 */
+	protected String confirm;
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -73,24 +65,31 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 		super.execute();
 		if (languageFilesFolder.exists()) {
 
-			// Retrieve project informations
-			getLog().info("Retrieving project information");
-			Document projectDetails = crowdinRequestAPI("info", null, null, false);
+			// Retrieve project information
+			getLog().info("Retrieving crowdin project information");
+			Document projectDetails = crowdinRequestAPI("info", null, null, true);
 
 			String crowdinProjectName = projectDetails.getRootElement().getChild("details").getChild("name").getText();
 			if (!crowdinProjectName.equals(projectName)) {
 				throw new MojoExecutionException("crowdin project name (" + crowdinProjectName + ") differs from \"projectName\" parameter (" + projectName + ") - push aborted!");
 			}
 
+			String branch = getBranch(true, projectDetails);
+
+			// Update project information in case the branch was created in the previous step
+			if (branch != null && !crowdinContainsBranch(projectDetails.getRootElement().getChild("files"), branch)) {
+				projectDetails = crowdinRequestAPI("info", null, null, true);
+			}
+
 			// Get crowdin files
-			Element filesElement = projectDetails.getRootElement().getChild("files");
+			Element filesElement = getCrowdinFiles(branch, projectDetails);
 
 			// Get language file
 			getLog().debug("Retrieving message file " + pushFileName);
 
 			File pushFile = new File(languageFilesFolder, pushFileName);
 			if (pushFile.exists()) {
-				if (pushFileTitle == null || pushFileTitle.trim().isEmpty()) {
+				if (pushFileTitle == null || pushFileTitle.trim().equals("")) {
 					pushFileTitle = pushFileName;
 				}
 
@@ -112,6 +111,9 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					// update
 					getLog().info("Updating " + pushFileName + " on crowdin");
 					Map<String, String> parameters = new HashMap<String, String>();
+					if (branch != null) {
+						parameters.put("branch", branch);
+					}
 					parameters.put("update_option", "update_as_unapproved");
 					parameters.put("escape_quotes", "0");
 					crowdinRequestAPI("update-file", parameters, fileMap, titleMap, patternMap, true);
@@ -120,6 +122,9 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					// add
 					getLog().info("Adding " + pushFileName + " to crowdin");
 					Map<String, String> parameters = new HashMap<String, String>();
+					if (branch != null) {
+						parameters.put("branch", branch);
+					}
 					parameters.put("type", "properties");
 					parameters.put("escape_quotes", "0");
 					crowdinRequestAPI("add-file", parameters, fileMap, titleMap, patternMap, true);

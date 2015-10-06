@@ -65,6 +65,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		BuildCrowdinMojo build = new BuildCrowdinMojo();
 		build.setCrowdinServerId(crowdinServerId);
 		build.setProject(project);
+		build.setRootBranch(rootBranch);
 		build.setWagonManager(wagonManager);
 		build.setLog(getLog());
 		build.execute();
@@ -74,6 +75,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		fetch.setCrowdinServerId(crowdinServerId);
 		fetch.setDownloadFolder(downloadFolder);
 		fetch.setProject(project);
+		fetch.setRootBranch(rootBranch);
 		fetch.setStatusFile(statusFile);
 		fetch.setWagonManager(wagonManager);
 		fetch.setLog(getLog());

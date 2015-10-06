@@ -28,7 +28,7 @@ public class LineList<E> {
 		public String toString() {
 			String result = "";
 			for (GroupStruct group : groups) {
-				if (!result.isEmpty()) {
+				if (!result.equals("")) {
 					result += "." + group.name;
 				} else {
 					result = group.name;
