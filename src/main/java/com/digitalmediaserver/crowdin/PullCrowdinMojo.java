@@ -1,4 +1,4 @@
-package com.ums.crowdin.maven;
+package com.digitalmediaserver.crowdin;
 
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;

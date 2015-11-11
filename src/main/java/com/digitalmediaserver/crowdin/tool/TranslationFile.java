@@ -1,4 +1,4 @@
-package com.ums.crowdin.maven.tool;
+package com.digitalmediaserver.crowdin.tool;
 
 public class TranslationFile {
 	private String language;

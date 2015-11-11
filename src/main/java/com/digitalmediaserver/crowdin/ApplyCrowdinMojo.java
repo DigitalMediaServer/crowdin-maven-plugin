@@ -1,4 +1,4 @@
-package com.ums.crowdin.maven;
+package com.digitalmediaserver.crowdin;
 
 import java.io.File;
 import java.io.FileFilter;

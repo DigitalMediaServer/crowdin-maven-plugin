@@ -2,12 +2,12 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.ums.maven</groupId>
-	<artifactId>ums-crowdin-maven-plugin</artifactId>
+	<groupId>com.universalmediaserver</groupId>
+	<artifactId>crowdin-maven-plugin</artifactId>
 	<version>0.3-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
-	<name>UMS crowdin Maven Plugin</name>
+	<name>Crowdin Maven Plugin</name>
 
 	<description>This plugin allows Maven projects to be translated using crowdin and has been tailored to use for the Universal Media Server project.</description>
 	<url>http://github.com/UniversalMediaServer/ums-crowdin</url>
@@ -21,23 +21,32 @@
 	</licenses>
 
 	<scm>
+		<connection>scm:git:git@github.com:UniversalMediaServer/ums-crowdin.git</connection>
+		<developerConnection>scm:git:git@github.com:UniversalMediaServer/ums-crowdin.git</developerConnection>
 		<url>http://github.com/UniversalMediaServer/ums-crowdin</url>
-		<connection>https://github.com/UniversalMediaServer/ums-crowdin.git</connection>
-		<developerConnection>scm:git:git://github.com:UniversalMediaServer/ums-crowdin.git</developerConnection>
 	</scm>
 
 	<developers>
-		<developer>
-			<id>glandais</id>
-			<name>Gabriel Landais</name>
-			<email>gabriel.landais@gmail.com</email>
-		</developer>
 		<developer>
 			<id>Nadahar</id>
 			<timezone>1</timezone>
 			<url>http://github.com/Nadahar</url>
 		</developer>
 	</developers>
+	<contributors>
+		<contributor>
+			<name>Gabriel Landais</name>
+			<email>gabriel.landais@gmail.com</email>
+			<roles>
+				<role>Original developer</role>
+			</roles>
+		</contributor>
+	</contributors>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/UniversalMediaServer/ums-crowdin/issues</url>
+	</issueManagement>    
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -114,7 +123,7 @@
 				<artifactId>maven-plugin-plugin</artifactId>
 				<version>3.3</version>
 				<configuration>
-					<goalPrefix>ums-crowdin</goalPrefix>
+					<goalPrefix>crowdin</goalPrefix>
 				</configuration>
 				<executions>
 					<execution>

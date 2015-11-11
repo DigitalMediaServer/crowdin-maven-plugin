@@ -1,4 +1,4 @@
-package com.ums.crowdin.maven;
+package com.digitalmediaserver.crowdin;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,10 +32,10 @@ import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
 import org.apache.maven.shared.dependency.tree.traversal.CollectingDependencyNodeVisitor;
 import org.jdom.Document;
 import org.jdom.Element;
-import com.ums.crowdin.maven.tool.CodeConversion;
-import com.ums.crowdin.maven.tool.SortedProperties;
-import com.ums.crowdin.maven.tool.SpecialArtifact;
-import com.ums.crowdin.maven.tool.TranslationFile;
+import com.digitalmediaserver.crowdin.tool.CodeConversion;
+import com.digitalmediaserver.crowdin.tool.SortedProperties;
+import com.digitalmediaserver.crowdin.tool.SpecialArtifact;
+import com.digitalmediaserver.crowdin.tool.TranslationFile;
 
 /**
  *Fetch crowdin translations in this project, looking dependencies

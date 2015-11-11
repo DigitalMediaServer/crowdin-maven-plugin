@@ -1,4 +1,4 @@
-package com.ums.crowdin.maven;
+package com.digitalmediaserver.crowdin;
 
 import java.io.File;
 import java.io.InputStream;
@@ -30,7 +30,7 @@ import org.apache.maven.wagon.authentication.AuthenticationInfo;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
-import com.ums.crowdin.maven.tool.GitUtil;
+import com.digitalmediaserver.crowdin.tool.GitUtil;
 
 public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
