@@ -62,7 +62,8 @@ public class LineList<E> {
 		}
 	}
 
-	Pattern pattern = Pattern.compile("^\\s*((?:[\\w-_]+\\.)*\\w+)");
+	private Pattern pattern = Pattern.compile("^\\s*((?:[\\w-_]+\\.)*\\w+)");
+	private Object listLock = new Object();
 	private List<LineStruct> lines = new ArrayList<LineStruct>();
 
     public void add(E e) {
@@ -85,7 +86,7 @@ public class LineList<E> {
 		}
 		line.line = e;
 
-    	synchronized(this) {
+    	synchronized(listLock) {
     		lines.add(line);
     	}
     }
@@ -94,20 +95,26 @@ public class LineList<E> {
         return new Enumeration<E>() {
             int count = 0;
 
-            public synchronized boolean hasMoreElements() {
-                return count < lines.size();
+            public boolean hasMoreElements() {
+            	synchronized (listLock) {
+            		return count < lines.size();
+            	}
             }
 
-            public synchronized E nextElement() {
-                if (count < lines.size()) {
-                    return lines.get(count++).line;
-                }
+            public E nextElement() {
+            	synchronized (listLock) {
+	                if (count < lines.size()) {
+	                    return lines.get(count++).line;
+	                }
+            	}
                 throw new NoSuchElementException("LineList Enumeration");
             }
         };
     }
 
-    public synchronized void sort() {
-    	Collections.sort(lines, new LineComparator());
+    public void sort() {
+    	synchronized (listLock) {
+    		Collections.sort(lines, new LineComparator());
+    	}
     }
 }

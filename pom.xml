@@ -4,7 +4,7 @@
 
 	<groupId>com.ums.maven</groupId>
 	<artifactId>ums-crowdin-maven-plugin</artifactId>
-	<version>0.2</version>
+	<version>0.3-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>UMS crowdin Maven Plugin</name>
@@ -88,9 +88,9 @@
 	
 	<distributionManagement>
 		<!-- 
-			Repository to be uploaded to during the deploy phase. Ftp, sftp and scp are supported.
-			The "id" parameter must match a "server" entry in Maven configuration (e.g. ~/.m2/settings.xml)
-			where username and password are provided.  
+		Repository to be uploaded to during the deploy phase. Ftp, sftp and scp are supported.
+		The "id" parameter must match a "server" entry in Maven configuration (e.g. ~/.m2/settings.xml)
+		where username and password are provided.  
 		-->
 		<!-- <repository>
 			<id>superbum.org</id>

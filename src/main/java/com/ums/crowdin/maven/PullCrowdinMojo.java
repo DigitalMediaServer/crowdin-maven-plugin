@@ -58,6 +58,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	protected ArtifactCollector artifactCollector;
 
+	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		getLog().info("Executing build, fetch and apply goals");
 

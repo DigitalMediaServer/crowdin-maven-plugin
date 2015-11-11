@@ -19,6 +19,7 @@ import org.apache.maven.plugin.MojoFailureException;
 
 public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 
+	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		if (downloadFolder.exists()) {
 			if (languageFilesFolder.exists()) {
