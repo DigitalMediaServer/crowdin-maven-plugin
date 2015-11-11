@@ -421,7 +421,6 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 				rootNode.accept(visitor);
 
-				@SuppressWarnings("unchecked")
 				List<DependencyNode> nodes = visitor.getNodes();
 				for (DependencyNode dependencyNode : nodes) {
 					int state = dependencyNode.getState();

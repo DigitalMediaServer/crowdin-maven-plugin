@@ -1,13 +1,13 @@
 package com.digitalmediaserver.crowdin.tool;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import edu.emory.mathcs.backport.java.util.Collections;
 
 /**
  * This is a helper class to sort the files according to .properties files' groups/name
