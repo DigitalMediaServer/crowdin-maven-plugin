@@ -44,7 +44,7 @@ public class LineList<E> {
 			int j = 0;
 			while (i == 0) {
 				if (o1.groups.size() > j && o2.groups.size() > j) {
-					i = Integer.valueOf(o1.groups.get(j).num).compareTo(Integer.valueOf(o2.groups.get(j).num));
+					i = Integer.compare(o1.groups.get(j).num, o2.groups.get(j).num);
 					if (i == 0) {
 						i = o1.groups.get(j).name.compareTo(o2.groups.get(j).name);
 					}
@@ -77,7 +77,7 @@ public class LineList<E> {
 				GroupStruct groupStruct = new GroupStruct();
 				groupStruct.name = group;
 				try {
-					groupStruct.num = Integer.valueOf(group);
+					groupStruct.num = Integer.parseInt(group);
 				} catch (NumberFormatException e1) {
 					// Nothing to do, default value applies
 				}

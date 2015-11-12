@@ -110,12 +110,14 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	private void cleanFolders(Set<TranslationFile> translationFiles) {
 		if (downloadFolder.exists()) {
 			File[] languageFolders = downloadFolder.listFiles();
-			for (File languageFolder : languageFolders) {
-				if (!languageFolder.getName().startsWith(".") && languageFolder.isDirectory()) {
-					if (!containsLanguage(translationFiles, languageFolder.getName())) {
-						deleteFolder(languageFolder, true);
-					} else {
-						cleanLanguageFolder(languageFolder, translationFiles);
+			if (languageFolders != null) {
+				for (File languageFolder : languageFolders) {
+					if (!languageFolder.getName().startsWith(".") && languageFolder.isDirectory()) {
+						if (!containsLanguage(translationFiles, languageFolder.getName())) {
+							deleteFolder(languageFolder, true);
+						} else {
+							cleanLanguageFolder(languageFolder, translationFiles);
+						}
 					}
 				}
 			}
@@ -124,20 +126,22 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 	private void cleanLanguageFolder(File languageFolder, Set<TranslationFile> translationFiles) {
 		File[] entries = languageFolder.listFiles();
-		for (File entry : entries) {
-			if (!entry.getName().startsWith(".")) {
-				if (entry.isDirectory()) {
-					if (!containsMavenId(translationFiles, entry.getName())) {
-						deleteFolder(entry, true);
+		if (entries != null) {
+			for (File entry : entries) {
+				if (!entry.getName().startsWith(".")) {
+					if (entry.isDirectory()) {
+						if (!containsMavenId(translationFiles, entry.getName())) {
+							deleteFolder(entry, true);
+						} else {
+							deleteFolder(entry, false);
+						}
 					} else {
-						deleteFolder(entry, false);
-					}
-				} else {
-					if (!isLanguageFile(translationFiles, entry)) {
-						if (entry.delete() && getLog().isDebugEnabled()) {
-							getLog().debug("Deleted " + entry);
-						} else if (getLog().isDebugEnabled()) {
-							getLog().debug("Failed to delete " + entry);
+						if (!isLanguageFile(translationFiles, entry)) {
+							if (entry.delete() && getLog().isDebugEnabled()) {
+								getLog().debug("Deleted " + entry);
+							} else if (getLog().isDebugEnabled()) {
+								getLog().debug("Failed to delete " + entry);
+							}
 						}
 					}
 				}
@@ -212,36 +216,37 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 				Map<TranslationFile, byte[]> translations = new HashMap<TranslationFile, byte[]>();
 
 				InputStream responseBodyAsStream = response.getEntity().getContent();
-				ZipInputStream zis = new ZipInputStream(responseBodyAsStream);
-				ZipEntry entry;
-				while ((entry = zis.getNextEntry()) != null) {
-					if (!entry.isDirectory()) {
+				try (ZipInputStream zis = new ZipInputStream(responseBodyAsStream)) {
+					ZipEntry entry;
+					while ((entry = zis.getNextEntry()) != null) {
+						if (!entry.isDirectory()) {
 
-						String name = entry.getName();
-						getLog().debug("Processing " + name);
-						int slash = name.indexOf('/');
-						String language = name.substring(0, slash);
-						name = name.substring(slash + 1);
-						slash = name.indexOf('/');
-						String mavenId = null;
-						if (slash > 0) {
-							mavenId = name.substring(0, slash);
+							String name = entry.getName();
+							getLog().debug("Processing " + name);
+							int slash = name.indexOf('/');
+							String language = name.substring(0, slash);
 							name = name.substring(slash + 1);
-						}
-						if (name.matches("messages_.*\\.properties")) {
-							name = "messages_" + CodeConversion.crowdinCodeToFileTag(language) + ".properties";
-						}
-						TranslationFile translationFile = new TranslationFile(CodeConversion.crowdinCodeToLanguageTag(language), mavenId, name);
-
-						ByteArrayOutputStream bos = new ByteArrayOutputStream();
-						while (zis.available() > 0) {
-							int read = zis.read();
-							if (read != -1) {
-								bos.write(read);
+							slash = name.indexOf('/');
+							String mavenId = null;
+							if (slash > 0) {
+								mavenId = name.substring(0, slash);
+								name = name.substring(slash + 1);
 							}
+							if (name.matches("messages_.*\\.properties")) {
+								name = "messages_" + CodeConversion.crowdinCodeToFileTag(language) + ".properties";
+							}
+							TranslationFile translationFile = new TranslationFile(CodeConversion.crowdinCodeToLanguageTag(language), mavenId, name);
+
+							ByteArrayOutputStream bos = new ByteArrayOutputStream();
+							while (zis.available() > 0) {
+								int read = zis.read();
+								if (read != -1) {
+									bos.write(read);
+								}
+							}
+							bos.close();
+							translations.put(translationFile, bos.toByteArray());
 						}
-						bos.close();
-						translations.put(translationFile, bos.toByteArray());
 					}
 				}
 
@@ -252,7 +257,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			} else {
 				throw new MojoExecutionException("Failed to get translations from crowdin with return code " + Integer.toString(returnCode));
 			}
-		} catch (Exception e) {
+		} catch (IOException e) {
 			throw new MojoExecutionException("Failed to call API", e);
 		}
 	}
@@ -312,7 +317,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 		if (statusFile == null) {
 			throw new MojoExecutionException("Parameter statusFile can not be empty - fetch aborted");
-		} else if ((statusFile.exists() && statusFile.isDirectory()) || statusFile.getName() == null || statusFile.getName().equals("")) {
+		} else if (statusFile.exists() && statusFile.isDirectory() || statusFile.getName() == null || statusFile.getName().equals("")) {
 			throw new MojoExecutionException("Parameter statusFile must be a file - fetch aborted");
 		}
 
@@ -377,17 +382,15 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			}
 
 			File languageFolder = new File(downloadFolder, translationFile.getLanguage());
-			if (!languageFolder.exists()) {
-				if (!languageFolder.mkdirs()) {
-					throw new MojoExecutionException("Could not create folder " + languageFolder.getAbsolutePath());
-				}
+			if (!languageFolder.exists() && !languageFolder.mkdirs()) {
+				throw new MojoExecutionException("Could not create folder " + languageFolder.getAbsolutePath());
 			}
 
 			File targetFile;
 			if (translationFile.getMavenId() != null) {
 				File mavenIdFolder = new File(languageFolder, translationFile.getMavenId());
-				if (!mavenIdFolder.exists()) {
-					mavenIdFolder.mkdirs();
+				if (!mavenIdFolder.exists() && !mavenIdFolder.mkdirs()) {
+					throw new MojoExecutionException("Could not create folder \"" + mavenIdFolder.getAbsolutePath() + "\"");
 				}
 				targetFile = new File(mavenIdFolder, translationFile.getName());
 			} else {

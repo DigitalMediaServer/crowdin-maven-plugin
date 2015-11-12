@@ -1,6 +1,7 @@
 package com.digitalmediaserver.crowdin;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -25,10 +26,10 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.wagon.authentication.AuthenticationInfo;
 import org.jdom.Document;
 import org.jdom.Element;
+import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 import com.digitalmediaserver.crowdin.tool.GitUtil;
 
@@ -118,17 +119,10 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Maven ProjectHelper.
-	 *
-	 * @component
-	 */
-	protected MavenProjectHelper projectHelper;
-
-	/**
 	 *
 	 * Server id in settings.xml. &lt;username&gt; is project identifier, &lt;password&gt; is API key
 	 *
-	 * @parameter property = "crowdinServerId"
+	 * @parameter property="crowdinServerId"
 	 * @required
 	 */
 	protected String crowdinServerId;
@@ -347,7 +341,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 				throw new MojoExecutionException("Failed to call API - " + code + " - " + message);
 			}
 			return document;
-		} catch (Exception e) {
+		} catch (IOException e) {
+			throw new MojoExecutionException("Failed to call API", e);
+		} catch (JDOMException e) {
 			throw new MojoExecutionException("Failed to call API", e);
 		}
 	}
@@ -355,9 +351,11 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * Requests project information including all files and returns the files element.
 	 * Branch may be <code>null</code> in which case the root files <code>Element</code> is returned
+	 *
 	 * @param branch The branch name
+	 * @param projectDetails the project details
 	 * @return The relevant files <code>Element</code>
-	 * @throws MojoExecutionException
+	 * @throws MojoExecutionException the mojo execution exception
 	 */
 	protected Element getCrowdinFiles(String branch, Document projectDetails) throws MojoExecutionException {
 

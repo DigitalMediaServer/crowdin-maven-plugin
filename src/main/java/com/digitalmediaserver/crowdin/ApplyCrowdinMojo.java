@@ -27,39 +27,47 @@ public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 
 				File[] folderEntries = downloadFolder.listFiles();
 
-				getLog().debug("Checking folder " + downloadFolder.getAbsolutePath());
-				for (File entry : folderEntries) {
-					if (!entry.getName().startsWith(".")) {
-						if (entry.isDirectory()) {
-							getLog().debug("Checking subfolder " + entry.getName());
-							File[] entryFiles = entry.listFiles(new FileFilter() {
-								public boolean accept(File pathname) {
-									return pathname.isFile() && !pathname.getName().startsWith(".") &&
-									       pathname.getName().toLowerCase(Locale.US).endsWith(".properties");
+				if (folderEntries != null) {
+					getLog().debug("Checking folder " + downloadFolder.getAbsolutePath());
+					for (File entry : folderEntries) {
+						if (!entry.getName().startsWith(".")) {
+							if (entry.isDirectory()) {
+								getLog().debug("Checking subfolder " + entry.getName());
+								File[] entryFiles = entry.listFiles(new FileFilter() {
+									public boolean accept(File pathname) {
+										return pathname.isFile() && !pathname.getName().startsWith(".") &&
+										       pathname.getName().toLowerCase(Locale.US).endsWith(".properties");
+									}
+								});
+								if (entryFiles != null) {
+									for (File file : entryFiles) {
+										getLog().info("Copying file " + file.getName() + " to " + languageFilesFolder.getAbsolutePath());
+										try {
+											copyFile(file, new File(languageFilesFolder, file.getName()), true);
+										} catch (IOException e) {
+											throw new MojoExecutionException("Error copying file " + file.getName(), e);
+										}
+									}
+								} else {
+									getLog().debug("Subfolder " + entry.getName() + " is empty");
 								}
-							});
-							for (File file : entryFiles) {
-								getLog().info("Copying file " + file.getName() + " to " + languageFilesFolder.getAbsolutePath());
-								try {
-									copyFile(file, new File(languageFilesFolder, file.getName()), true);
-								} catch (IOException e) {
-									throw new MojoExecutionException("Error copying file " + file.getName(), e);
-								}
-							}
 
-						} else {
-							if (entry.getName().equals(statusFile.getName())) {
-								getLog().info("Copying file " + entry.getName() + " to " + statusFile.getParent());
-								try {
-									copyFile(entry, statusFile, true);
-								} catch (IOException e) {
-									throw new MojoExecutionException("Error copying file " + entry.getName(), e);
-								}
 							} else {
-								getLog().warn("Unexpected file (" + entry.getAbsolutePath() + ") encountered, skipping");
+								if (entry.getName().equals(statusFile.getName())) {
+									getLog().info("Copying file " + entry.getName() + " to " + statusFile.getParent());
+									try {
+										copyFile(entry, statusFile, true);
+									} catch (IOException e) {
+										throw new MojoExecutionException("Error copying file " + entry.getName(), e);
+									}
+								} else {
+									getLog().warn("Unexpected file (" + entry.getAbsolutePath() + ") encountered, skipping");
+								}
 							}
 						}
 					}
+				} else {
+					getLog().warn("No files found for application");
 				}
 			} else {
 				throw new MojoExecutionException("Language files folder (" + languageFilesFolder + ") does not exist.");
@@ -70,12 +78,8 @@ public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 	}
 
 	private void copyFile(File sourceFile, File destinationFile, boolean overwrite) throws IOException {
-		if(!destinationFile.exists()) {
-			if (overwrite) {
-				destinationFile.createNewFile();
-			} else {
-				throw new IOException("File \"" + destinationFile.getAbsolutePath() + "\" already exists");
-			}
+		if(!overwrite && destinationFile.exists()) {
+			throw new IOException("File \"" + destinationFile.getAbsolutePath() + "\" already exists");
 		}
 
 		FileInputStream source = new FileInputStream(sourceFile);
@@ -85,7 +89,9 @@ public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 			try {
 				long count = 0;
 				long size = source.getChannel().size();
-				while((count += destination.getChannel().transferFrom(source.getChannel(), count, size-count)) < size);
+				while(count < size) {
+					count += destination.getChannel().transferFrom(source.getChannel(), count, size-count);
+				}
 			} finally {
 				destination.close();
 			}

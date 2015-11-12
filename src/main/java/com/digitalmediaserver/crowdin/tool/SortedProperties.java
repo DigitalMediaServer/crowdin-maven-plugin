@@ -76,7 +76,7 @@ public class SortedProperties extends Properties {
 			char aChar = theString.charAt(x);
 			// Handle common case first, selecting largest block that
 			// avoids the specials below
-			if ((aChar > 61) && (aChar < 127)) {
+			if (aChar > 61 && aChar < 127) {
 				if (aChar == '\\') {
 					outBuffer.append('\\');
 					outBuffer.append('\\');
@@ -115,7 +115,7 @@ public class SortedProperties extends Properties {
 				outBuffer.append(aChar);
 				break;*/
 			default:
-				if (((aChar < 0x0020) || (aChar > 0x007e)) & escapeUnicode) {
+				if ((aChar < 0x0020 || aChar > 0x007e) & escapeUnicode) {
 					outBuffer.append('\\');
 					outBuffer.append('u');
 					outBuffer.append(toHex((aChar >> 12) & 0xF));
@@ -154,9 +154,9 @@ public class SortedProperties extends Properties {
 					if (c == '\r' && current != len - 1 && comments.charAt(current + 1) == '\n') {
 						current++;
 					}
-					if (current == len - 1
-							|| (comments.charAt(current + 1) != '#' && comments.charAt(current + 1) != '!'))
+					if (current == len - 1 || comments.charAt(current + 1) != '#' && comments.charAt(current + 1) != '!') {
 						bw.write("#");
+					}
 				}
 				last = current + 1;
 			}
@@ -174,7 +174,7 @@ public class SortedProperties extends Properties {
 	 *            the nibble to convert.
 	 */
 	private static char toHex(int nibble) {
-		return hexDigit[(nibble & 0xF)];
+		return hexDigit[nibble & 0xF];
 	}
 
 	/** A table of hex digits */

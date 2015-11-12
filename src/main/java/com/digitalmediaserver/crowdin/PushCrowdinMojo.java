@@ -19,7 +19,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	/**
 	 * The base language file that should be uploaded to crowdin.
 	 *
-	 * @parameter property = "filename"
+	 * @parameter property="filename"
 	 * @required
 	 */
 	protected String pushFileName;
@@ -27,7 +27,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	/**
 	 * The title of the pushed file to be displayed on crowdin.
 	 *
-	 * @parameter property = "title"
+	 * @parameter property="title"
 	 * @required
 	 */
 	protected String pushFileTitle;
