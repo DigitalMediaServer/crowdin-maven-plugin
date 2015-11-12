@@ -4,7 +4,7 @@
 
 	<groupId>com.universalmediaserver</groupId>
 	<artifactId>crowdin-maven-plugin</artifactId>
-	<version>0.3-SNAPSHOT</version>
+	<version>0.3</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>Crowdin Maven Plugin</name>
