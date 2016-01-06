@@ -15,7 +15,7 @@ To access crowdin this plugin needs a project identifier and an API key from cro
       <id>crowdin-ums</id>
       <username>universalmediaserver<username>
       <password>API key</password>
-    <server>
+    </server>
     <!-- ... -->
   </servers>
   <!-- ... -->
@@ -108,11 +108,11 @@ If you're missing the file ```~/.m2/settings.xml```, you can copy and paste the 
 	<proxies>
 	</proxies>
 	<servers>
-	<server>
-		<id>crowdin-ums</id>
-		<username>universalmediaserver<username>
-		<password>API key</password>
-	<server>
+		<server>
+			<id>crowdin-ums</id>
+			<username>universalmediaserver<username>
+			<password>API key</password>
+		</server>
 	</servers>
 	<mirrors>
 	</mirrors>
