@@ -4,7 +4,7 @@
 
 	<groupId>org.digitalmediaserver</groupId>
 	<artifactId>crowdin-maven-plugin</artifactId>
-	<version>0.4-SNAPSHOT</version>
+	<version>0.4</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>Crowdin Maven Plugin</name>
