@@ -22,12 +22,16 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		String branch = getBranch();
 		getLog().info("Asking crowdin to build translations");
 
-		String uri = "http://api.crowdin.net/api/project/" + authenticationInfo.getUserName() + "/export?" +
-		             (branch != null ? "branch=" + branch + "&": "") + "key=";
-		getLog().debug("Calling " + uri + "<API Key>");
-		uri += authenticationInfo.getPassword();
+		StringBuilder url = new StringBuilder(API_URL);
+		url.append(authenticationInfo.getUserName()).append("/export?");
+		if (branch != null) {
+			url.append("branch=").append(branch).append("&");
+		}
+		url.append("key=");
+		getLog().debug("Calling " + url + "<API Key>");
+		url.append(authenticationInfo.getPassword());
 
-		HttpGet getMethod = new HttpGet(uri);
+		HttpGet getMethod = new HttpGet(url.toString());
 		HttpResponse response = null;
 		try {
 			response = client.execute(getMethod);
@@ -39,7 +43,7 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		InputStream responseBodyAsStream;
 		try {
 			responseBodyAsStream = response.getEntity().getContent();
-			document = saxBuilder.build(responseBodyAsStream);
+			document = SAX_BUILDER.build(responseBodyAsStream);
 		} catch (Exception e) {
 			throw new MojoExecutionException("Failed to call API", e);
 		}
@@ -52,7 +56,10 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 
 		String status = document.getRootElement().getAttributeValue("status");
 		if (status.equals("skipped")) {
-			getLog().warn("crowdin build skipped either because the files are up to date or because the last build was less than 30 minutes ago");
+			getLog().warn(
+				"crowdin build skipped either because the files are up to " +
+				"date or because the last build was less than 30 minutes ago"
+			);
 		} else if (status.equals("built")) {
 			getLog().info("crowdin translations successfully built");
 		} else {

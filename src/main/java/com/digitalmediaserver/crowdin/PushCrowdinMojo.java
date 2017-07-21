@@ -7,9 +7,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.jdom.Document;
 import org.jdom.Element;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 
 /**
- * Push Maven translations of this project to crowdin
+ * Pushes Maven translations of this project to crowdin.
  *
  * @goal push
  * @threadSafe
@@ -42,9 +44,9 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	protected String projectName;
 
 	/**
-	 * This parameter must be <code>true</code> for push to execute. If this
-	 * isn't specified in the POM file, <code>-Dconfirm=true</code> is required
-	 * as a command line argument for the push to execute.
+	 * This parameter must be {@code true} for push to execute. If this isn't
+	 * specified in the POM file, {@code -Dconfirm=true} is required as a
+	 * command line argument for the push to execute.
 	 *
 	 * @parameter property="confirm"
 	 * @required
@@ -52,14 +54,17 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	protected String confirm;
 
 	@Override
+	@SuppressFBWarnings({ "NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD" })
 	public void execute() throws MojoExecutionException, MojoFailureException {
 
 		if (!confirm.equalsIgnoreCase("confirm") && !confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("true")) {
-			throw new MojoExecutionException("Push is not confirmed - aborted!");
+			throw new MojoExecutionException("Push is not confirmed - aborting!");
 		}
 
 		if (!project.getName().equals(projectName)) {
-			throw new MojoExecutionException("POM name (" + project.getName() + ") differs from \"projectName\" parameter (" + projectName + ") - push aborted!");
+			throw new MojoExecutionException(
+				"POM name (" + project.getName() + ") differs from \"projectName\" parameter (" + projectName + ") - push aborted!"
+			);
 		}
 
 		super.execute();
@@ -71,12 +76,17 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 			String crowdinProjectName = projectDetails.getRootElement().getChild("details").getChild("name").getText();
 			if (!crowdinProjectName.equals(projectName)) {
-				throw new MojoExecutionException("crowdin project name (" + crowdinProjectName + ") differs from \"projectName\" parameter (" + projectName + ") - push aborted!");
+				throw new MojoExecutionException(
+					"crowdin project name (" + crowdinProjectName +
+					") differs from the \"projectName\" parameter (" + projectName +
+					") - push aborted!"
+				);
 			}
 
 			String branch = getBranch(true, projectDetails);
 
-			// Update project information in case the branch was created in the previous step
+			// Update project information in case the branch was created in the
+			// previous step
 			if (branch != null && !crowdinContainsBranch(projectDetails.getRootElement().getChild("files"), branch)) {
 				projectDetails = crowdinRequestAPI("info", null, null, true);
 			}

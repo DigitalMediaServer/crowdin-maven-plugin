@@ -10,10 +10,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * This is a helper class to sort the files according to .properties files' groups/name
+ * This is a helper class to sort the files according to .properties files'
+ * groups/names.
  *
+ * @param <E> The line type.
  * @author Nadahar
  */
+@SuppressWarnings("checkstyle:VisibilityModifier")
 public class LineList<E> {
 
 	private class GroupStruct {
@@ -25,6 +28,7 @@ public class LineList<E> {
 		E line = null;
 		List<GroupStruct> groups = new ArrayList<GroupStruct>();
 
+		@Override
 		public String toString() {
 			String result = "";
 			for (GroupStruct group : groups) {
@@ -39,12 +43,13 @@ public class LineList<E> {
 	}
 
 	private class LineComparator implements Comparator<LineStruct> {
+		@Override
 		public int compare(LineStruct o1, LineStruct o2) {
 			int i = 0;
 			int j = 0;
 			while (i == 0) {
 				if (o1.groups.size() > j && o2.groups.size() > j) {
-					i = Integer.compare(o1.groups.get(j).num, o2.groups.get(j).num);
+					i = o1.groups.get(j).num - o2.groups.get(j).num;
 					if (i == 0) {
 						i = o1.groups.get(j).name.compareTo(o2.groups.get(j).name);
 					}
@@ -66,10 +71,15 @@ public class LineList<E> {
 	private Object listLock = new Object();
 	private List<LineStruct> lines = new ArrayList<LineStruct>();
 
-    public void add(E e) {
-    	LineStruct line = new LineStruct();
+	/**
+	 * Adds a new line.
+	 *
+	 * @param e the line to add.
+	 */
+	public void add(E e) {
+		LineStruct line = new LineStruct();
 
-    	String key = (String) e;
+		String key = (String) e;
 		Matcher m = pattern.matcher(key);
 		if (m.find()) {
 			String[] groups = m.group(1).split("\\.");
@@ -86,35 +96,43 @@ public class LineList<E> {
 		}
 		line.line = e;
 
-    	synchronized(listLock) {
-    		lines.add(line);
-    	}
-    }
+		synchronized (listLock) {
+			lines.add(line);
+		}
+	}
 
-    public Enumeration<E> elements() {
-        return new Enumeration<E>() {
-            int count = 0;
+	/**
+	 * @return An {@link Enumeration} of the current lines.
+	 */
+	public Enumeration<E> lines() {
+		return new Enumeration<E>() {
+			int count = 0;
 
-            public boolean hasMoreElements() {
-            	synchronized (listLock) {
-            		return count < lines.size();
-            	}
-            }
+			@Override
+			public boolean hasMoreElements() {
+				synchronized (listLock) {
+					return count < lines.size();
+				}
+			}
 
-            public E nextElement() {
-            	synchronized (listLock) {
-	                if (count < lines.size()) {
-	                    return lines.get(count++).line;
-	                }
-            	}
-                throw new NoSuchElementException("LineList Enumeration");
-            }
-        };
-    }
+			@Override
+			public E nextElement() {
+				synchronized (listLock) {
+					if (count < lines.size()) {
+						return lines.get(count++).line;
+					}
+				}
+				throw new NoSuchElementException("LineList Enumeration");
+			}
+		};
+	}
 
-    public void sort() {
-    	synchronized (listLock) {
-    		Collections.sort(lines, new LineComparator());
-    	}
-    }
+	/**
+	 * Sorts the lines.
+	 */
+	public void sort() {
+		synchronized (listLock) {
+			Collections.sort(lines, new LineComparator());
+		}
+	}
 }

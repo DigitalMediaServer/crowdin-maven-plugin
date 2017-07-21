@@ -7,8 +7,27 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Repository;
 
+/**
+ * A utility class containing Git operations.
+ *
+ * @author Nadahar
+ */
 public class GitUtil {
 
+	/**
+	 * Not to be instantiated.
+	 */
+	private GitUtil() {
+	}
+
+	/**
+	 * Get the current Git branch.
+	 *
+	 * @param projectBasedir the project "root" folder.
+	 * @param log the {@link Log} to use for logging.
+	 * @return The name of the current Git branch or {@code null} if it couldn't
+	 *         be estabilished.
+	 */
 	public static String getBranch(File projectBasedir, Log log) {
 		if (!projectBasedir.exists()) {
 			log.warn("Project basedir (" + projectBasedir + ") doesn't exist - cannot determine git branch");
@@ -25,7 +44,7 @@ public class GitUtil {
 			Repository repo = git.getRepository();
 			try {
 				String branch = repo.getBranch();
-				if (repo.getRef(Constants.HEAD).getTarget().getName().endsWith(branch)) {
+				if (repo.findRef(Constants.HEAD).getTarget().getName().endsWith(branch)) {
 					log.debug("Git branch determined to be \"" + branch + "\"");
 					return branch;
 				}

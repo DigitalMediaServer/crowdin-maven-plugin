@@ -2,15 +2,15 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.universalmediaserver</groupId>
+	<groupId>org.digitalmediaserver</groupId>
 	<artifactId>crowdin-maven-plugin</artifactId>
 	<version>0.4-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>Crowdin Maven Plugin</name>
 
-	<description>This plugin allows Maven projects to be translated using crowdin and has been tailored to use for the Universal Media Server project.</description>
-	<url>http://github.com/UniversalMediaServer/ums-crowdin</url>
+	<description>This plugin allows Maven projects to be translated using crowdin and has been tailored to use for the Digital Media Server project.</description>
+	<url>http://github.com/DigitalMediaServer/dms-crowdin</url>
 
 	<licenses>
 		<license>
@@ -21,9 +21,9 @@
 	</licenses>
 
 	<scm>
-		<connection>scm:git:git@github.com:UniversalMediaServer/ums-crowdin.git</connection>
-		<developerConnection>scm:git:git@github.com:UniversalMediaServer/ums-crowdin.git</developerConnection>
-		<url>http://github.com/UniversalMediaServer/ums-crowdin</url>
+		<connection>scm:git:git@github.com:DigitalMediaServer/dms-crowdin.git</connection>
+		<developerConnection>scm:git:git@github.com:DigitalMediaServer/dms-crowdin.git</developerConnection>
+		<url>http://github.com/DigitalMediaServer/dms-crowdin</url>
 	</scm>
 
 	<developers>
@@ -45,15 +45,15 @@
 
 	<issueManagement>
 		<system>GitHub</system>
-		<url>https://github.com/UniversalMediaServer/ums-crowdin/issues</url>
+		<url>https://github.com/DigitalMediaServer/dms-crowdin/issues</url>
 	</issueManagement>    
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<pluginPluginVersion>3.3</pluginPluginVersion>
-		<javadocPluginVersion>2.10.3</javadocPluginVersion>
-		<apacheHttpClientVersion>4.2.6</apacheHttpClientVersion>
+		<pluginPluginVersion>3.5</pluginPluginVersion>
+		<javadocPluginVersion>2.10.4</javadocPluginVersion>
+		<apacheHttpClientVersion>4.5.3</apacheHttpClientVersion>
 	</properties>
 
 	<dependencies>
@@ -65,7 +65,7 @@
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-plugin-api</artifactId>
-			<version>3.3.3</version>
+			<version>3.5.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jdom</groupId>
@@ -85,7 +85,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.4</version>
+			<version>2.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.plugins</groupId>
@@ -95,13 +95,18 @@
 		<dependency>
 			<groupId>org.eclipse.jgit</groupId>
 			<artifactId>org.eclipse.jgit</artifactId>
-			<version>4.1.0.201509280440-r</version>
+			<version>4.8.0.201706111038-r</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>annotations</artifactId>
+			<version>3.0.1u2</version>
 		</dependency>
 	</dependencies>
 	
 	<distributionManagement>
 	<!-- 
-		Repository to be uploaded to during the deploy phase. Ftp, sftp and scp are supported.
+		Repository to upload to during the deploy phase. Ftp, sftp and scp are supported. 
 		The "id" parameter must match a "server" entry in Maven configuration (e.g. ~/.m2/settings.xml)
 		where username and password are provided.  
 	-->
@@ -145,14 +150,14 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-project-info-reports-plugin</artifactId>
-				<version>2.8.1</version>
+				<version>2.9</version>
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${pluginPluginVersion}</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.6</source>
+					<target>1.6</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -163,7 +168,7 @@
 			<plugin>
 				<groupId>org.sonatype.plugins</groupId>
 				<artifactId>nexus-staging-maven-plugin</artifactId>
-				<version>1.6.6</version>
+				<version>1.6.8</version>
 				<extensions>true</extensions>
 				<configuration>
 					<serverId>ossrh</serverId>
@@ -181,12 +186,12 @@
 			<extension>
 				<groupId>org.apache.maven.wagon</groupId>
 				<artifactId>wagon-ftp</artifactId>
-				<version>2.10</version>
+				<version>2.12</version>
 			</extension>
 			<extension>
 				<groupId>org.apache.maven.wagon</groupId>
 				<artifactId>wagon-ssh</artifactId>
-				<version>2.10</version>
+				<version>2.12</version>
 			</extension>
 		</extensions>		
 	</build>
@@ -199,7 +204,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
-						<version>2.4</version>
+						<version>3.0.1</version>
 						<executions>
 							<execution>
 								<id>attach-sources</id>
@@ -273,12 +278,12 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-pmd-plugin</artifactId>
-				<version>3.3</version>
+				<version>3.8</version>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>findbugs-maven-plugin</artifactId>
-				<version>3.0.2</version>
+				<version>3.0.4</version>
 				<configuration>
 					<excludeFilterFile>${basedir}/FindBugsExcludeFilter.xml</excludeFilterFile>
 				</configuration>

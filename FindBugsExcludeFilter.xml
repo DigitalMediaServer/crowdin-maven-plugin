@@ -1,18 +1,18 @@
 <FindBugsFilter>
 	<Match>
 		<!-- Exclude because FindBugs doesn't understand the special Mojo initialization -->		
-		<Class name="com.universalmediaserver.crowdin.PushCrowdinMojo" />
+		<Class name="org.digitalmediaserver.crowdin.PushCrowdinMojo" />
 		<Method name="execute" />
 		<Bug pattern="NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD" />	
 	</Match>
 	<Match>
 		<!-- Exclude because FindBugs doesn't understand the special Mojo initialization -->		
-		<Class name="com.universalmediaserver.crowdin.PushCrowdinMojo" />
+		<Class name="org.digitalmediaserver.crowdin.PushCrowdinMojo" />
 		<Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD" />	
 	</Match>
 	<Match>
 		<!-- Exclude because FindBugs doesn't understand the special Mojo initialization -->		
-		<Class name="com.universalmediaserver.crowdin.HelpMojo" />
+		<Class name="org.digitalmediaserver.crowdin.HelpMojo" />
 		<Bug pattern="UWF_UNWRITTEN_FIELD" />	
 	</Match>
 </FindBugsFilter>

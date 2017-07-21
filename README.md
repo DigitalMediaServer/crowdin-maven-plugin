@@ -1,6 +1,6 @@
-# UMS crowdin Maven Plugin
+# DMS crowdin Maven Plugin
 
-This plugin allows Maven projects to be translated using crowdin. It is based on [glandais' crowdin-maven plugin] (https://github.com/glandais/crowdin-maven), but has been adapted for use with the [Universal Media Server project] (https://github.com/UniversalMediaServer/UniversalMediaServer).
+This plugin allows Maven projects to be translated using crowdin. It is based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has been adapted for use with the [Digital Media Server project](https://github.com/DigitalMediaServer/DigitalMediaServer).
 
 ## Configuration
 
@@ -12,8 +12,8 @@ To access crowdin this plugin needs a project identifier and an API key from cro
   <servers>
     <!-- ... -->
     <server>
-      <id>crowdin-ums</id>
-      <username>universalmediaserver<username>
+      <id>crowdin-dms</id>
+      <username>DigitalMediaServer<username>
       <password>API key</password>
     </server>
     <!-- ... -->
@@ -34,18 +34,18 @@ Further parameters need to be configured in your project's ```pom.xml``` so that
       <plugins>
         <!-- ... -->
         <plugin>
-          <groupId>com.ums.maven</groupId>
-          <artifactId>ums-crowdin-maven-plugin</artifactId>
+          <groupId>org.digitalmediaserver</groupId>
+          <artifactId>crowdin-maven-plugin</artifactId>
           <version>LATEST</version>   
           <configuration>
             <project>${project}</project>
             <languageFilesFolder>${project.basedir}/src/main/resources/i18n</languageFilesFolder>
             <downloadFolder>${project.basedir}/extras/crowdin</downloadFolder>
             <statusFile>${project.basedir}/src/main/resources/languages.properties</statusFile>
-            <crowdinServerId>crowdin-ums</crowdinServerId>
+            <crowdinServerId>crowdin-dms</crowdinServerId>
             <pushFileName>messages.properties</pushFileName>
-            <pushFileTitle>Universal Media Server</pushFileTitle>
-            <projectName>Universal Media Server</projectName>
+            <pushFileTitle>Digital Media Server</pushFileTitle>
+            <projectName>Digital Media Server</projectName>
           </configuration>
         </plugin>
         <!-- ... -->
@@ -73,7 +73,7 @@ Further parameters need to be configured in your project's ```pom.xml``` so that
 
 Given that the parameters are configured correctly, you can execute a goal with:
 
-```mvn ums-crowdin:<goal> [-D<property>=<value>]```
+```mvn dms-crowdin:<goal> [-D<property>=<value>]```
 
 This plugin requires git to be installed to work, and will automatically look up the current git branch and use that as the crowdin branch unless the current git branch matches to ```rootBranch``` parameter. If no git branch is found (e.g. checked out to a tag) all goals but ```apply``` will fail. For further information about versions management and branches on crowdin, see the [crowdin documentation] (https://support.crowdin.com/articles/versions-management/).
 
@@ -83,16 +83,16 @@ The goals are explained below:
 
 *Goal* | *Command* | *Description*
 ---- | ------- | -----------
-**push** | ```mvn ums-crowdin:push -Dconfirm=true``` | Upload the _base language_ file to on crowdin. Any strings already on crowdin that's missing in the uploaded file is deleted from crowdin with all corresponding translations. Because of this, an extra argument ```confirm=true``` is required for ```push```.
+**push** | ```mvn dms-crowdin:push -Dconfirm=true``` | Upload the _base language_ file to on crowdin. Any strings already on crowdin that's missing in the uploaded file is deleted from crowdin with all corresponding translations. Because of this, an extra argument ```confirm=true``` is required for ```push```.
 
 ### Getting translations from crowdin
 
 *Goal* | *Command* | *Description*
 ---- | ------- | -----------
-**build** | ```mvn ums-crowdin:build``` | Ask crowdin to build a downloadable zip file containing all the latest translations. Unpaid projects can only build once every 30 minutes via the API, but it's possible to build from the crowdin web interface at any time. The API replies with status ```skipped``` both if there are no changes since the last build and if the previous build was less than 30 minutes ago, so there's no way to tell the two apart.
-**fetch** | `mvn ums-crowdin:fetch` | Download and extract the last built zip file from crowdin to ```downloadFolder```.
-**apply** | `mvn ums-crowdin:apply` | Copy the downloaded files from ```downloadFolder``` and into their intended locations in accordance with ```languageFilesFolder``` and ```statusFile```.
-**pull** | ```mvn ums-crowdin:pull``` | Perform ```build```, ```fetch``` and ```apply``` in sequence. This is a convenience goal combining the individual steps to get the latest translations from crowdin copied into your local project.
+**build** | ```mvn dms-crowdin:build``` | Ask crowdin to build a downloadable zip file containing all the latest translations. Unpaid projects can only build once every 30 minutes via the API, but it's possible to build from the crowdin web interface at any time. The API replies with status ```skipped``` both if there are no changes since the last build and if the previous build was less than 30 minutes ago, so there's no way to tell the two apart.
+**fetch** | `mvn dms-crowdin:fetch` | Download and extract the last built zip file from crowdin to ```downloadFolder```.
+**apply** | `mvn dms-crowdin:apply` | Copy the downloaded files from ```downloadFolder``` and into their intended locations in accordance with ```languageFilesFolder``` and ```statusFile```.
+**pull** | ```mvn dms-crowdin:pull``` | Perform ```build```, ```fetch``` and ```apply``` in sequence. This is a convenience goal combining the individual steps to get the latest translations from crowdin copied into your local project.
 
 ## ```settings.xml``` template
 
@@ -109,8 +109,8 @@ If you're missing the file ```~/.m2/settings.xml```, you can copy and paste the 
 	</proxies>
 	<servers>
 		<server>
-			<id>crowdin-ums</id>
-			<username>universalmediaserver<username>
+			<id>crowdin-dms</id>
+			<username>DigitalMediaServer<username>
 			<password>API key</password>
 		</server>
 	</servers>

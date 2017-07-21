@@ -2,9 +2,22 @@ package com.digitalmediaserver.crowdin.tool;
 
 import java.util.Locale;
 
+/**
+ * An class for converting crowdin language codes to project language
+ * codes.
+ *
+ * @author Nadahar
+ */
 public class CodeConversion {
 
-	public static String crowdinCodeToLanguageTag(String code) {
+	/**
+	 * Converts a crowdin language code to the corresponding project language
+	 * code.
+	 *
+	 * @param code the crowdin language code to convert.
+	 * @return The corresponding project language code.
+	 */
+	public String crowdinCodeToLanguageTag(String code) {
 		String lcCode = code.toLowerCase(Locale.US);
 		if (lcCode.equals("es-es")) {
 			return "es";
@@ -22,7 +35,14 @@ public class CodeConversion {
 		return code;
 	}
 
-	public static String crowdinCodeToFileTag(String code) {
+	/**
+	 * Converts a crowding language code to the corresponding code to append to
+	 * file names.
+	 *
+	 * @param code the crowdin language code to convert.
+	 * @return The corresponding project file name tag code.
+	 */
+	public String crowdinCodeToFileTag(String code) {
 		return crowdinCodeToLanguageTag(code).replace("-",	"_");
 	}
 }

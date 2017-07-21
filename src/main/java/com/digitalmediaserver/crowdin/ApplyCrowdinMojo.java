@@ -9,14 +9,14 @@ import java.util.Locale;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 
+
 /**
- * Apply (copy) the translations of this project from the crowdin download
- * folder to the language files location.
+ * This class applies (copies) the translations of this project from the crowdin
+ * download folder to the language files location.
  *
  * @goal apply
  * @threadSafe
  */
-
 public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override
@@ -34,9 +34,11 @@ public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 							if (entry.isDirectory()) {
 								getLog().debug("Checking subfolder " + entry.getName());
 								File[] entryFiles = entry.listFiles(new FileFilter() {
+									@Override
 									public boolean accept(File pathname) {
-										return pathname.isFile() && !pathname.getName().startsWith(".") &&
-										       pathname.getName().toLowerCase(Locale.US).endsWith(".properties");
+										return
+											pathname.isFile() && !pathname.getName().startsWith(".") &&
+											pathname.getName().toLowerCase(Locale.US).endsWith(".properties");
 									}
 								});
 								if (entryFiles != null) {
@@ -77,8 +79,8 @@ public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 		}
 	}
 
-	private void copyFile(File sourceFile, File destinationFile, boolean overwrite) throws IOException {
-		if(!overwrite && destinationFile.exists()) {
+	private static void copyFile(File sourceFile, File destinationFile, boolean overwrite) throws IOException {
+		if (!overwrite && destinationFile.exists()) {
 			throw new IOException("File \"" + destinationFile.getAbsolutePath() + "\" already exists");
 		}
 
@@ -89,14 +91,13 @@ public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
 			try {
 				long count = 0;
 				long size = source.getChannel().size();
-				while(count < size) {
-					count += destination.getChannel().transferFrom(source.getChannel(), count, size-count);
+				while (count < size) {
+					count += destination.getChannel().transferFrom(source.getChannel(), count, size - count);
 				}
 			} finally {
 				destination.close();
 			}
-		}
-		finally {
+		} finally {
 			source.close();
 		}
 	}
