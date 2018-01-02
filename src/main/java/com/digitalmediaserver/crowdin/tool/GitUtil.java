@@ -26,7 +26,7 @@ public class GitUtil {
 	 * @param projectBasedir the project "root" folder.
 	 * @param log the {@link Log} to use for logging.
 	 * @return The name of the current Git branch or {@code null} if it couldn't
-	 *         be estabilished.
+	 *         be established.
 	 */
 	public static String getBranch(File projectBasedir, Log log) {
 		if (!projectBasedir.exists()) {
@@ -44,7 +44,7 @@ public class GitUtil {
 			Repository repo = git.getRepository();
 			try {
 				String branch = repo.getBranch();
-				if (repo.findRef(Constants.HEAD).getTarget().getName().endsWith(branch)) {
+				if (repo.getRef(Constants.HEAD).getTarget().getName().endsWith(branch)) {
 					log.debug("Git branch determined to be \"" + branch + "\"");
 					return branch;
 				}

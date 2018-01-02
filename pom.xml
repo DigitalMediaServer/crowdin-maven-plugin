@@ -4,7 +4,7 @@
 
 	<groupId>org.digitalmediaserver</groupId>
 	<artifactId>crowdin-maven-plugin</artifactId>
-	<version>0.4</version>
+	<version>0.4.1</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>Crowdin Maven Plugin</name>
@@ -94,8 +94,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jgit</groupId>
-			<artifactId>org.eclipse.jgit</artifactId>
-			<version>4.8.0.201706111038-r</version>
+			<artifactId>org.eclipse.jgit.java7</artifactId>
+			<version>3.7.1.201504261725-r</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
@@ -156,8 +156,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${pluginPluginVersion}</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>1.7</source>
+					<target>1.7</target>
 				</configuration>
 			</plugin>
 			<plugin>
