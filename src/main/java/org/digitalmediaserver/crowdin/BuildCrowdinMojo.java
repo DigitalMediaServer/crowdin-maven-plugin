@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin;
+package org.digitalmediaserver.crowdin;
 
 import java.io.InputStream;
 import org.apache.http.client.methods.HttpGet;

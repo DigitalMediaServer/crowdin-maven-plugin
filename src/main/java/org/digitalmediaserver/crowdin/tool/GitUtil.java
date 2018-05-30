@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin.tool;
+package org.digitalmediaserver.crowdin.tool;
 
 import java.io.File;
 import java.io.IOException;

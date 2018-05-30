@@ -75,7 +75,7 @@ Given that the parameters are configured correctly, you can execute a goal with:
 
 ```mvn dms-crowdin:<goal> [-D<property>=<value>]```
 
-This plugin requires git to be installed to work, and will automatically look up the current git branch and use that as the crowdin branch unless the current git branch matches to ```rootBranch``` parameter. If no git branch is found (e.g. checked out to a tag) all goals but ```apply``` will fail. For further information about versions management and branches on crowdin, see the [crowdin documentation] (https://support.crowdin.com/articles/versions-management/).
+This plugin requires git to be installed to work, and will automatically look up the current git branch and use that as the crowdin branch unless the current git branch matches to ```rootBranch``` parameter. If no git branch is found (e.g. checked out to a tag) all goals but ```deploy``` will fail. For further information about versions management and branches on crowdin, see the [crowdin documentation] (https://support.crowdin.com/articles/versions-management/).
 
 The goals are explained below:
 
@@ -91,8 +91,8 @@ The goals are explained below:
 ---- | ------- | -----------
 **build** | ```mvn dms-crowdin:build``` | Ask crowdin to build a downloadable zip file containing all the latest translations. Unpaid projects can only build once every 30 minutes via the API, but it's possible to build from the crowdin web interface at any time. The API replies with status ```skipped``` both if there are no changes since the last build and if the previous build was less than 30 minutes ago, so there's no way to tell the two apart.
 **fetch** | `mvn dms-crowdin:fetch` | Download and extract the last built zip file from crowdin to ```downloadFolder```.
-**apply** | `mvn dms-crowdin:apply` | Copy the downloaded files from ```downloadFolder``` and into their intended locations in accordance with ```languageFilesFolder``` and ```statusFile```.
-**pull** | ```mvn dms-crowdin:pull``` | Perform ```build```, ```fetch``` and ```apply``` in sequence. This is a convenience goal combining the individual steps to get the latest translations from crowdin copied into your local project.
+**deploy** | `mvn dms-crowdin:deploy` | Copy the downloaded files from ```downloadFolder``` and into their intended locations in accordance with ```languageFilesFolder``` and ```statusFile```.
+**pull** | ```mvn dms-crowdin:pull``` | Perform ```build```, ```fetch``` and ```deploy``` in sequence. This is a convenience goal combining the individual steps to get the latest translations from crowdin copied into your local project.
 
 ## ```settings.xml``` template
 

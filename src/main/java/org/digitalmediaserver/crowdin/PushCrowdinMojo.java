@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin;
+package org.digitalmediaserver.crowdin;
 
 import java.io.File;
 import java.util.HashMap;

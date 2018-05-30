@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin;
+package org.digitalmediaserver.crowdin;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -14,16 +14,16 @@ import org.apache.maven.plugin.MojoFailureException;
  * This class applies (copies) the translations of this project from the crowdin
  * download folder to the language files location.
  *
- * @goal apply
+ * @goal deploy
  * @threadSafe
  */
-public class ApplyCrowdinMojo extends AbstractCrowdinMojo {
+public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		if (downloadFolder.exists()) {
 			if (languageFilesFolder.exists()) {
-				getLog().info("Applying all translation files");
+				getLog().info("Deploying all translation files");
 
 				File[] folderEntries = downloadFolder.listFiles();
 

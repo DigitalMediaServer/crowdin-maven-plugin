@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin;
+package org.digitalmediaserver.crowdin;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,11 +29,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.wagon.authentication.AuthenticationInfo;
+import org.digitalmediaserver.crowdin.tool.GitUtil;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
-import com.digitalmediaserver.crowdin.tool.GitUtil;
 
 /**
  * The abstract crowdin Mojo base class.

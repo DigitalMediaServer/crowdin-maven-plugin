@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin;
+package org.digitalmediaserver.crowdin;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,12 +30,12 @@ import org.apache.maven.shared.dependency.tree.DependencyNode;
 import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
 import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
 import org.apache.maven.shared.dependency.tree.traversal.CollectingDependencyNodeVisitor;
+import org.digitalmediaserver.crowdin.tool.CodeConversion;
+import org.digitalmediaserver.crowdin.tool.SortedProperties;
+import org.digitalmediaserver.crowdin.tool.SpecialArtifact;
+import org.digitalmediaserver.crowdin.tool.TranslationFile;
 import org.jdom.Document;
 import org.jdom.Element;
-import com.digitalmediaserver.crowdin.tool.CodeConversion;
-import com.digitalmediaserver.crowdin.tool.SortedProperties;
-import com.digitalmediaserver.crowdin.tool.SpecialArtifact;
-import com.digitalmediaserver.crowdin.tool.TranslationFile;
 
 
 /**

@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin.tool;
+package org.digitalmediaserver.crowdin.tool;
 
 /**
  * A class representing a local translation file.

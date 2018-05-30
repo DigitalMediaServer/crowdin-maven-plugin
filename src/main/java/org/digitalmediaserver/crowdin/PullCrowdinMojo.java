@@ -1,4 +1,4 @@
-package com.digitalmediaserver.crowdin;
+package org.digitalmediaserver.crowdin;
 
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
@@ -10,7 +10,7 @@ import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
 
 /**
  * Pull is a convenience Mojo that executes {@link BuildCrowdinMojo},
- * {@link FetchCrowdinMojo} and {@link ApplyCrowdinMojo} in that order.
+ * {@link FetchCrowdinMojo} and {@link DeployCrowdinMojo} in that order.
  * This effectively downloads the latest translations from Crowdin
  * and writes them into the local project files.
  *
@@ -60,7 +60,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		getLog().info("Executing build, fetch and apply goals");
+		getLog().info("Executing build, fetch and deploy goals");
 
 		getLog().debug("Executing build");
 		BuildCrowdinMojo build = new BuildCrowdinMojo();
@@ -87,13 +87,13 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		fetch.setTreeBuilder(treeBuilder);
 		fetch.execute();
 
-		getLog().debug("Executing apply");
-		ApplyCrowdinMojo apply = new ApplyCrowdinMojo();
-		apply.setDownloadFolder(downloadFolder);
-		apply.setLanguageFilesFolder(languageFilesFolder);
-		apply.setStatusFile(statusFile);
-		apply.setLog(getLog());
-		apply.execute();
+		getLog().debug("Executing deploy");
+		DeployCrowdinMojo deploy = new DeployCrowdinMojo();
+		deploy.setDownloadFolder(downloadFolder);
+		deploy.setLanguageFilesFolder(languageFilesFolder);
+		deploy.setStatusFile(statusFile);
+		deploy.setLog(getLog());
+		deploy.execute();
 
 		getLog().info("Pull sequence completed");
 	}
