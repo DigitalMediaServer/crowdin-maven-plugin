@@ -1,76 +1,65 @@
 package org.digitalmediaserver.crowdin;
 
-import java.io.InputStream;
-import org.apache.http.client.methods.HttpGet;
+import java.io.IOException;
+import java.util.HashMap;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.http.HttpResponse;
-import org.digitalmediaserver.crowdin.tool.Constants;
+import org.digitalmediaserver.crowdin.tool.CrowdinAPI;
 import org.jdom2.Document;
 
 /**
- * Build crowdin translations for this project to include the latest changes.
+ * Asks Crowdin to build/prepare the latest translations for download.
  *
  * @goal build
- * @threadSafe
  */
 public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override
-	public void execute() throws MojoExecutionException, MojoFailureException {
-		super.execute();
+	public void execute() throws MojoExecutionException {
+		createClient();
+		initializeServer();
+		doExecute();
+	}
 
+	/**
+	 * Performs the actual task. Requires that:
+	 * <ul>
+	 * <li>{@link #createClient()} has been called first</li>
+	 * <li>{@link #initializeServer()} has been called first</li>
+	 * </ul>
+	 *
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	public void doExecute() throws MojoExecutionException {
 		String branch = getBranch();
-		getLog().info("Asking crowdin to build translations");
-
-		StringBuilder url = new StringBuilder(Constants.API_URL);
-		url.append(server.getUsername()).append("/export?");
-		if (branch != null) {
-			url.append("branch=").append(branch).append("&");
+		if (branch == null) {
+			getLog().info("Asking Crowdin to build translations");
+		} else {
+			getLog().info("Asking Crowdin to build translations for branch \"" + branch + "\"");
 		}
-		url.append("key=");
-		getLog().debug("Calling " + url + "<API Key>");
-		url.append(server.getPassword());
 
-		HttpGet getMethod = new HttpGet(url.toString());
-		HttpResponse response = null;
-		try {
-			response = client.execute(getMethod);
-		} catch (Exception e) {
-			throw new MojoExecutionException("Failed to call API", e);
+		HashMap<String, String> parameters = null;
+		if (branch != null) {
+			parameters = new HashMap<>();
+			parameters.put("branch", branch);
 		}
 
 		Document document;
-		InputStream responseBodyAsStream;
 		try {
-			responseBodyAsStream = response.getEntity().getContent();
-			document = Constants.SAX_BUILDER.build(responseBodyAsStream);
-		} catch (Exception e) {
-			throw new MojoExecutionException("Failed to call API", e);
-		}
-
-		if (!document.getRootElement().getName().equals("success")) {
-			String code = document.getRootElement().getChildTextNormalize("code");
-			String message = document.getRootElement().getChildTextNormalize("message");
-			throw new MojoExecutionException("Failed to call API - " + code + " - " + message);
+			document = CrowdinAPI.requestGetDocument(client, server, "export", parameters, getLog());
+		} catch (IOException e) {
+			throw new MojoExecutionException("Failed to build translations at Crowdin: " + e.getMessage(), e);
 		}
 
 		String status = document.getRootElement().getAttributeValue("status");
 		if (status.equals("skipped")) {
 			getLog().warn(
-				"crowdin build skipped either because the files are up to " +
+				"Crowdin build skipped either because the files are up to " +
 				"date or because the last build was less than 30 minutes ago"
 			);
 		} else if (status.equals("built")) {
-			getLog().info("crowdin translations successfully built");
+			getLog().info("Crowdin successfully built translations");
 		} else {
-			getLog().warn("crowdin replied to build request with unexpected status: " + status);
-		}
-
-		int returnCode = response.getStatusLine().getStatusCode();
-		getLog().debug("Return code : " + returnCode);
-		if (returnCode != 200) {
-			throw new MojoExecutionException("Failed to build translations at crowdin with return code " + returnCode);
+			getLog().warn("Crowdin replied to build request with an unexpected status: \"" + status + "\"");
 		}
 	}
 }

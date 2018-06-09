@@ -1,49 +1,27 @@
 package org.digitalmediaserver.crowdin;
 
-import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
-import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
+import org.digitalmediaserver.crowdin.configuration.StatusFile;
+import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
+
 
 /**
- * Pull is a convenience Mojo that executes {@link BuildCrowdinMojo},
- * {@link FetchCrowdinMojo} and {@link DeployCrowdinMojo} in that order.
- * This effectively downloads the latest translations from Crowdin
- * and writes them into the local project files.
+ * Executes {@link BuildCrowdinMojo}, {@link FetchCrowdinMojo} and
+ * {@link DeployCrowdinMojo} in that order. This effectively downloads the
+ * latest translations from Crowdin and deploys them to the local project.
  *
  * @goal pull
- * @threadSafe
  */
-
 public class PullCrowdinMojo extends AbstractCrowdinMojo {
 
-	/*
-	 * The parameters below is a copy of local parameters from FetchCrowdinMojo.
-	 * Any changes must be made both places.
-	 */
-
-	/**
-	 * @parameter default-value="${localRepository}"
-	 */
-	protected ArtifactRepository localRepository;
-
-	/**
-	 * @component
-	 * @required
-	 * @readonly
-	 */
-	protected ArtifactFactory artifactFactory;
-
-	/**
-	 * @component
-	 * @required
-	 * @readonly
-	 */
-	protected ArtifactMetadataSource artifactMetadataSource;
-
 	@Override
-	public void execute() throws MojoExecutionException, MojoFailureException {
+	public void execute() throws MojoExecutionException {
+		initializeParameters();
+		createClient();
+		initializeServer();
+		TranslationFileSet.initialize(translationFileSets);
+		StatusFile.initialize(statusFiles);
+
 		getLog().info("Executing build, fetch and deploy goals");
 
 		getLog().debug("Executing build");
@@ -51,26 +29,29 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		build.setCrowdinServerId(crowdinServerId);
 		build.setProject(project);
 		build.setRootBranch(rootBranch);
-		build.server = server;
+		build.setServer(server);
+		build.setClient(client);
 		build.setLog(getLog());
-		build.execute();
+		build.doExecute();
 
 		getLog().debug("Executing fetch");
 		FetchCrowdinMojo fetch = new FetchCrowdinMojo();
 		fetch.setCrowdinServerId(crowdinServerId);
-		fetch.setDownloadFolder(downloadFolder);
+		fetch.setDownloadFolder(downloadFolderPath);
 		fetch.setProject(project);
 		fetch.setRootBranch(rootBranch);
-		fetch.setStatusFile(statusFile);
-		fetch.server = server;
+		fetch.setServer(server);
+		fetch.setClient(client);
+		fetch.setTranslationFileSets(translationFileSets);
+		fetch.setStatusFiles(statusFiles);
 		fetch.setLog(getLog());
-		fetch.execute();
+		fetch.doExecute();
 
 		getLog().debug("Executing deploy");
 		DeployCrowdinMojo deploy = new DeployCrowdinMojo();
-		deploy.setDownloadFolder(downloadFolder);
-		deploy.setLanguageFilesFolder(languageFilesFolder);
-		deploy.setStatusFile(statusFile);
+		deploy.setDownloadFolder(downloadFolderPath);
+		deploy.setTranslationFileSets(translationFileSets);
+		deploy.setStatusFiles(statusFiles);
 		deploy.setLog(getLog());
 		deploy.execute();
 

@@ -2,56 +2,46 @@ package org.digitalmediaserver.crowdin;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
+import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import javax.annotation.Nullable;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.NTCredentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Server;
+import org.apache.maven.settings.Settings;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
-import org.digitalmediaserver.crowdin.tool.Constants;
+import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
+import org.digitalmediaserver.crowdin.tool.CrowdinAPI;
+import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.digitalmediaserver.crowdin.tool.GitUtil;
 import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * The abstract crowdin Mojo base class.
+ * The abstract base class for the Crowdin {@link Mojo}s.
  *
  * @author Nadahar
  */
+@SuppressFBWarnings({
+	"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+	"URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+	"UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD",
+	"UWF_UNWRITTEN_FIELD"
+})
 public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
-	private static final String HTTP_AUTH_NTLM_DOMAIN = "http.auth.ntlm.domain";
-
-	private static final String HTTP_PROXY_PASSWORD = "http.proxyPassword";
-
-	private static final String HTTP_PROXY_USER = "http.proxyUser";
-
-	private static final String HTTP_PROXY_PORT = "http.proxyPort";
-
-	private static final String HTTP_PROXY_HOST = "http.proxyHost";
+	/**
+	* The Maven Session object.
+	*
+	* @parameter default-value="${session}"
+	* @readonly
+	* @required
+	*/
+	protected MavenSession mavenSession;
 
 	/**
 	 * The current Maven project
@@ -72,23 +62,6 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	/**
-	 * The folder where the language files are located in the project.
-	 *
-	 * @parameter
-	 * @required
-	 */
-	protected File languageFilesFolder;
-
-	/**
-	 * Sets the {@link #languageFilesFolder} value.
-	 *
-	 * @param folder the {@link File} representing a folder to set.
-	 */
-	protected void setLanguageFilesFolder(File folder) {
-		languageFilesFolder = folder;
-	}
-
-	/**
 	 * The folder where the downloaded language files should be placed.
 	 *
 	 * @parameter
@@ -97,32 +70,52 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	protected File downloadFolder;
 
 	/**
-	 * Sets the {@link #downloadFolder} value.
+	 * The folder where the downloaded language files should be places as a
+	 * {@link Path}. Since Maven doesn't seem to be able to handle {@link Path}
+	 * as a parameter, the {@link File} {@link #downloadFolder} is used as an
+	 * intermediate.
+	 */
+	protected Path downloadFolderPath;
+
+	/**
+	 * Sets the {@link #downloadFolder} and {@link #downloadFolderPath} values.
+	 *
+	 * @param folder the {@link Path} representing a folder to set.
+	 */
+	protected void setDownloadFolder(Path folder) {
+		downloadFolder = folder.toFile();
+		downloadFolderPath = folder;
+	}
+
+	/**
+	 * Sets the {@link #downloadFolder} and {@link #downloadFolderPath} values.
 	 *
 	 * @param folder the {@link File} representing a folder to set.
 	 */
 	protected void setDownloadFolder(File folder) {
 		downloadFolder = folder;
+		downloadFolderPath = folder.toPath();
 	}
 
 	/**
-	 * The file where the translations status/statistics should be stored.
+	 * The custom comment header to add to translation files if
+	 * {@link TranslationFileSet#addComment} is {@code true}. If not configured,
+	 * a generic "do not modify" comment will be added.
 	 *
 	 * @parameter
 	 */
-	protected File statusFile;
+	protected String comment;
 
 	/**
-	 * Sets the {@link #statusFile} value.
+	 * The string to use as line separator. Specify {@code \n}, {@code \r} or
+	 * {@code \r\n} as needed. If not specified, the default will be used.
 	 *
-	 * @param statusFile the status {@link File} to set.
+	 * @parameter
 	 */
-	protected void setStatusFile(File statusFile) {
-		this.statusFile = statusFile;
-	}
+	protected String lineSeparator;
 
 	/**
-	 * The git branch that should be treated as root in crowdin versions
+	 * The git branch that should be treated as root in Crowdin versions
 	 * management.
 	 *
 	 * @parameter property="rootBranch" default-value="master"
@@ -158,7 +151,25 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	/**
-	 * A list of {@link StatusFile} elements that defines a status file.
+	 * A list of {@link TranslationFileSet} elements that defines a set of
+	 * translation files.
+	 *
+	 * @parameter
+	 * @required
+	 */
+	protected List<TranslationFileSet> translationFileSets;
+
+	/**
+	 * Sets the {@link TranslationFileSet}s.
+	 *
+	 * @param translationFileSets the {@link TranslationFileSet}s to set.
+	 */
+	protected void setTranslationFileSets(List<TranslationFileSet> translationFileSets) {
+		this.translationFileSets = translationFileSets;
+	}
+
+	/**
+	 * A list of {@link StatusFile} elements that defines status files.
 	 *
 	 * @parameter
 	 * @required
@@ -177,426 +188,149 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/** The HTTP client */
 	protected CloseableHttpClient client;
 
-	/** The {@link Server} to use for crowdin credentials */
+	/**
+	 * Sets the {@link CloseableHttpClient}.
+	 *
+	 * @param client the {@link CloseableHttpClient} to set.
+	 */
+	protected void setClient(CloseableHttpClient client) {
+		this.client = client;
+	}
+
+	/** The {@link Server} to use for Crowdin credentials */
 	protected Server server;
 
-	@Override
-	public void execute() throws MojoExecutionException, MojoFailureException {
-		HttpClientBuilder clientBuilder = HttpClientBuilder.create();
-		if (System.getProperty(HTTP_PROXY_HOST) != null) {
-			String host = System.getProperty(HTTP_PROXY_HOST);
-			String port = System.getProperty(HTTP_PROXY_PORT);
-
-			if (port == null) {
-				throw new MojoExecutionException("http.proxyHost without http.proxyPort");
-			}
-			RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
-			HttpHost proxy = new HttpHost(host, Integer.parseInt(port));
-			requestConfigBuilder.setProxy(proxy);
-			Credentials credentials = null;
-
-			String user = System.getProperty(HTTP_PROXY_USER);
-			String password = System.getProperty(HTTP_PROXY_PASSWORD);
-
-			if (System.getProperty(HTTP_AUTH_NTLM_DOMAIN) != null) {
-				String domain = System.getProperty(HTTP_AUTH_NTLM_DOMAIN);
-				if (user == null || password == null) {
-					throw new MojoExecutionException(
-							"http.auth.ntlm.domain without http.proxyUser and http.proxyPassword");
-				}
-				credentials = new NTCredentials(user, password, host, domain);
-			} else {
-				if (user != null || password != null) {
-					if (user == null || password == null) {
-						throw new MojoExecutionException("http.proxyUser and http.proxyPassword go together");
-					}
-					credentials = new UsernamePasswordCredentials(user, password);
-				}
-			}
-			if (credentials != null) {
-				CredentialsProvider credsProvider = new BasicCredentialsProvider();
-				credsProvider.setCredentials(
-					new AuthScope(host, Integer.parseInt(port)),
-					credentials
-				);
-				clientBuilder.setDefaultCredentialsProvider(credsProvider);
-			}
-			clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
-		}
-		client = clientBuilder.build();
+	/**
+	 * Sets the {@link Server} to use for Crowdin credentials.
+	 *
+	 * @param server the Server to set.
+	 */
+	protected void setServer(Server server) {
+		this.server = server;
 	}
 
 	/**
-	 * Checks if the given {@link Element} contains the specified file, folder
-	 * or branch.
+	 * Initializes {@link #server} by retrieving the appropriate {@link Server}
+	 * instance from the Maven settings and validating its settings.
 	 *
-	 * @param files the {@link Element} to check.
-	 * @param fileName the file name to look for.
-	 * @param folder whether the check is for a folder instead of a file.
-	 * @param branch whether the check is for a branch instead of a file.
-	 * @return {@code true} if the file, folder or branch exists in
-	 *         {@code files}, {@code false} otherwise.
-	 * @throws MojoExecutionException If an error occurs.
+	 * @throws MojoExecutionException If a required parameter is missing or the
+	 *             specified {@code crowdinServerId} isn't configured.
 	 */
-	protected boolean crowdinContainsFile(Element files, String fileName, boolean folder, boolean branch) throws MojoExecutionException {
-		if (folder && branch) {
-			throw new MojoExecutionException("fileName can't be both folder and branch!");
-		}
-		getLog().debug("Check if crowdin project contains " + fileName);
-		List<Element> items = files.getChildren("item");
-		int slash = fileName.indexOf('/');
-		if (slash == -1) {
-			if (folder) {
-				Element folderElement = crowdinGetFolder(items, fileName);
-				if (folderElement != null) {
-					getLog().debug("Crowdin project contains folder " + fileName);
-					return true;
-				}
-			} else if (branch) {
-				Element branchElement = crowdinGetBranch(items, fileName);
-				if (branchElement != null) {
-					getLog().debug("Crowdin project contains branch " + fileName);
-					return true;
-				}
-			} else {
-				for (Element item : items) {
-					if (fileName.equals(item.getChildTextNormalize("name"))) {
-						getLog().debug("Crowdin project contains file " + fileName);
-						return true;
-					}
-				}
+	protected void initializeServer() throws MojoExecutionException {
+		if (server == null) {
+			if (isBlank(crowdinServerId)) {
+				throw new MojoExecutionException("Parameter \"crowdinServerId\" must be specified");
 			}
-		} else {
-			String folderName = fileName.substring(0, slash);
-			String subPath = fileName.substring(slash + 1);
-			Element folderElement = crowdinGetFolder(items, folderName);
-			if (folderElement != null) {
-				Element subFiles = folderElement.getChild("files");
-				return crowdinContainsFile(subFiles, subPath, folder, branch);
+			if (mavenSession == null) {
+				throw new MojoExecutionException("Parameter \"mavenSession\" is null");
+			}
+			Settings settings = mavenSession.getSettings();
+			if (settings != null) {
+				server = settings.getServer(crowdinServerId);
 			}
 		}
-		getLog().debug("Crowdin project doesn't contain " + (folder ? "folder " : branch ? "branch " : "file ") + fileName);
-		return false;
-	}
-
-	/**
-	 * Checks if the given {@link Element} contains the specified file.
-	 *
-	 * @param files the {@link Element} to check.
-	 * @param fileName the file name to look for.
-	 * @return {@code true} if the file exists in {@code files}, {@code false}
-	 *         otherwise.
-	 * @throws MojoExecutionException If an error occurs.
-	 */
-	protected boolean crowdinContainsFile(Element files, String fileName) throws MojoExecutionException {
-		return crowdinContainsFile(files, fileName, false, false);
-	}
-
-	/**
-	 * Checks if the given {@link Element} contains the specified folder.
-	 *
-	 * @param files the {@link Element} to check.
-	 * @param folderName the folder name to look for.
-	 * @return {@code true} if the folder exists in {@code files}, {@code false}
-	 *         otherwise.
-	 * @throws MojoExecutionException If an error occurs.
-	 */
-	protected boolean crowdinContainsFolder(Element files, String folderName) throws MojoExecutionException {
-		return crowdinContainsFile(files, folderName, true, false);
-	}
-
-	/**
-	 * Checks if the given {@link Element} contains the specified branch.
-	 *
-	 * @param files the {@link Element} to check.
-	 * @param branchName the file name to look for.
-	 * @return {@code true} if the branch exists in {@code files}, {@code false}
-	 *         otherwise.
-	 * @throws MojoExecutionException If an error occurs.
-	 */
-	protected boolean crowdinContainsBranch(Element files, String branchName) throws MojoExecutionException {
-		return crowdinContainsFile(files, branchName, false, true);
-	}
-
-	/**
-	 * Extracts the folder {@link Element} with the given name.
-	 *
-	 * @param items the {@link List} of {@link Element}s to extract from.
-	 * @param folderName the folder name.
-	 * @return The matching {@link Element} or {@code null}.
-	 */
-	protected Element crowdinGetFolder(List<Element> items, String folderName) {
-		return crowdinGetFolder(items, folderName, false);
-	}
-
-	/**
-	 * Extracts the branch {@link Element} with the given name.
-	 *
-	 * @param items the {@link List} of {@link Element}s to extract from.
-	 * @param branchName the branch name.
-	 * @return The matching {@link Element} or {@code null}.
-	 */
-	protected Element crowdinGetBranch(List<Element> items, String branchName) {
-		return crowdinGetFolder(items, branchName, true);
-	}
-
-	/**
-	 * Extracts the folder or branch {@link Element} with the given name.
-	 *
-	 * @param items the {@link List} of {@link Element}s to extract from.
-	 * @param folderName the branch or folder name.
-	 * @param branch whether to look for a branch instead of a folder.
-	 * @return The matching {@link Element} or {@code null}.
-	 */
-	protected Element crowdinGetFolder(List<Element> items, String folderName, boolean branch) {
-		for (Element item : items) {
-			if (folderName.equals(item.getChildTextNormalize("name"))) {
-				if (branch && crowdinIsBranch(item)) {
-					return item;
-				} else if (!branch && crowdinIsFolder(item)) {
-					return item;
-				}
-			}
+		if (server == null) {
+			throw new MojoExecutionException(
+				"Failed to find server setting with ID " + crowdinServerId + " in the Maven settings (~/.m2/settings.xml)"
+			);
 		}
-		return null;
+		if (isBlank(server.getUsername())) {
+			throw new MojoExecutionException(
+				"No username is configured for the server setting with ID " + crowdinServerId
+			);
+		}
+		if (isBlank(server.getPassword())) {
+			throw new MojoExecutionException(
+				"No password is configured for the server setting with ID " + crowdinServerId
+			);
+		}
 	}
 
 	/**
-	 * Verifies whether a given {@link Element} is a crowdin folder.
+	 * Initializes {@link #client} with a new {@link CloseableHttpClient}
+	 * instance unless one has already been created.
 	 *
-	 * @param item the {@link Element} to check.
-	 * @return true if {@code item} is a crowdin folder, {@code false}
-	 *         otherwise.
-	 */
-	protected boolean crowdinIsFolder(Element item) {
-		return item.getChild("node_type") != null && item.getChildTextNormalize("node_type").equalsIgnoreCase("directory");
-	}
-
-	/**
-	 * Verifies whether a given {@link Element} is a crowdin branch.
-	 *
-	 * @param item the {@link Element} to check.
-	 * @return true if {@code item} is a crowdin branch, {@code false}
-	 *         otherwise.
-	 */
-	protected boolean crowdinIsBranch(Element item) {
-		return item.getChild("node_type") != null && item.getChildTextNormalize("node_type").equalsIgnoreCase("branch");
-	}
-
-	/**
-	 * Creates a new folder at crowdin.
-	 *
-	 * @param folderName the name of the new folder.
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
-	protected void crowdinCreateFolder(String folderName) throws MojoExecutionException {
-		getLog().info("Creating " + folderName + " folder on crowdin");
-		Map<String, String> parameters = new HashMap<String, String>();
-		parameters.put("name", folderName);
-		crowdinRequestAPI("add-directory", parameters, null, true);
-	}
-
-	/**
-	 * Creates a new branch at crowdin.
-	 *
-	 * @param branchName the name of the new branch.
-	 * @throws MojoExecutionException If an error occurs during the operation.
-	 */
-	protected void crowdinCreateBranch(String branchName) throws MojoExecutionException {
-		getLog().info("Creating " + branchName + " branch on crowdin");
-		Map<String, String> parameters = new HashMap<String, String>();
-		parameters.put("name", branchName);
-		parameters.put("is_branch", "1");
-		crowdinRequestAPI("add-directory", parameters, null, true);
-	}
-
-
-	/**
-	 * Makes a request to the crowdin API and returns the result as a
-	 * {@link Document}.
-	 *
-	 * @param method the API method to use.
-	 * @param parameters the {@link Map} of API parameters to use.
-	 * @param files the {@link Map} of files to use.
-	 * @param mustSucceed whether to throw a {@link MojoExecutionException} if
-	 *            the returned {@link Document} contains an error code.
-	 * @return The retrieved {@link Document}.
-	 * @throws MojoExecutionException If an error occurs during the operation.
-	 */
-	protected Document crowdinRequestAPI(
-		String method,
-		Map<String, String> parameters,
-		Map<String, File> files,
-		boolean mustSucceed
-	) throws MojoExecutionException {
-		return crowdinRequestAPI(method, parameters, files, null, null, mustSucceed);
-	}
-
-	/**
-	 * Makes a request to the crowdin API and returns the result as a
-	 * {@link Document}.
-	 *
-	 * @param method the API method to use.
-	 * @param parameters the {@link Map} of API parameters to use.
-	 * @param files the {@link Map} of files to use.
-	 * @param titles the {@link Map} of titles to use.
-	 * @param patterns the {@link Map} of patterns to use.
-	 * @param mustSucceed whether to throw a {@link MojoExecutionException} if
-	 *            the returned {@link Document} contains an error code.
-	 * @return The retrieved {@link Document}.
-	 * @throws MojoExecutionException If an error occurs during the operation.
-	 */
-	protected Document crowdinRequestAPI(
-		String method,
-		Map<String, String> parameters,
-		Map<String, File> files,
-		Map<String, String> titles,
-		Map<String, String> patterns,
-		boolean mustSucceed
-	) throws MojoExecutionException {
+	protected void createClient() throws MojoExecutionException {
+		if (client != null) {
+			return;
+		}
 		try {
-			StringBuilder url = new StringBuilder(Constants.API_URL);
-			url.append(server.getUsername()).append("/").append(method).append("?key=");
-			getLog().debug("Calling " + url + "<API Key>");
-			url.append(server.getPassword());
-			HttpPost postMethod = new HttpPost(url.toString());
-
-			MultipartEntityBuilder reqEntityBuilder = MultipartEntityBuilder.create();
-
-			if (parameters != null) {
-				Set<Entry<String, String>> entrySetParameters = parameters.entrySet();
-				for (Entry<String, String> entryParameter : entrySetParameters) {
-					reqEntityBuilder.addTextBody(entryParameter.getKey(), entryParameter.getValue());
-				}
-			}
-			if (files != null) {
-				Set<Entry<String, File>> entrySetFiles = files.entrySet();
-				for (Entry<String, File> entryFile : entrySetFiles) {
-					String key = "files[" + entryFile.getKey() + "]";
-					reqEntityBuilder.addPart(key, new FileBody(entryFile.getValue()));
-				}
-			}
-
-			if (titles != null) {
-				Set<Entry<String, String>> entrySetTitles = titles.entrySet();
-				for (Entry<String, String> entryTitle : entrySetTitles) {
-					reqEntityBuilder.addTextBody("titles[" + entryTitle.getKey() + "]", entryTitle.getValue());
-				}
-			}
-
-			if (patterns != null) {
-				Set<Entry<String, String>> entrySetPatterns = patterns.entrySet();
-				for (Entry<String, String> entryPattern : entrySetPatterns) {
-					reqEntityBuilder.addTextBody("export_patterns[" + entryPattern.getKey() + "]", entryPattern.getValue());
-				}
-			}
-
-			postMethod.setEntity(reqEntityBuilder.build());
-
-			// getLog().debug("Sent request : ");
-			// ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			// reqEntity.writeTo(bos);
-			// getLog().debug(bos.toString());
-
-			HttpResponse response = client.execute(postMethod);
-			int returnCode = response.getStatusLine().getStatusCode();
-			getLog().debug("Return code : " + returnCode);
-			InputStream responseBodyAsStream = response.getEntity().getContent();
-			Document document = Constants.SAX_BUILDER.build(responseBodyAsStream);
-			if (mustSucceed && document.getRootElement().getName().equals("error")) {
-				String code = document.getRootElement().getChildTextNormalize("code");
-				String message = document.getRootElement().getChildTextNormalize("message");
-				throw new MojoExecutionException("Failed to call API - " + code + " - " + message);
-			}
-			return document;
+			client = CrowdinAPI.createHTTPClient();
 		} catch (IOException e) {
-			throw new MojoExecutionException("Failed to call API: " + e.getMessage(), e);
-		} catch (JDOMException e) {
-			throw new MojoExecutionException("Failed to call API: " + e.getMessage(), e);
+			throw new MojoExecutionException("An error occurred while creating the HTTP client: " + e.getMessage(), e);
 		}
 	}
 
 	/**
-	 * Requests project information including all files and returns the files
-	 * element. Branch may be {@code null} in which case the root files
-	 * {@link Element} is returned.
+	 * Initializes the {@link Mojo} parameters since they are set via reflection
+	 * and can't be handled in the constructor.
 	 *
-	 * @param branch the branch name.
-	 * @param projectDetails the project details.
-	 * @return The relevant files {@link Element}.
-	 * @throws MojoExecutionException If an error occurs during the operation.
+	 * @throws MojoExecutionException If an error occurs during initialization.
 	 */
-	protected Element getCrowdinFiles(String branch, Document projectDetails) throws MojoExecutionException {
-
-		if (projectDetails == null) {
-			// Retrieve project informations
-			getLog().info("Retrieving crowdin project information");
-			projectDetails = crowdinRequestAPI("info", null, null, true);
-		}
-
-		// Get crowdin files
-		if (branch != null) {
-			Element branchElement = crowdinGetBranch(projectDetails.getRootElement().getChild("files").getChildren(), branch);
-			if (branchElement == null || !crowdinIsBranch(branchElement)) {
-				throw new MojoExecutionException("Can't find branch \"" + branch + "\" in crowdin project information");
-			}
-			return branchElement.getChild("files");
-		}
-		return projectDetails.getRootElement().getChild("files");
+	protected void initializeParameters() throws MojoExecutionException {
+		downloadFolderPath = downloadFolder != null ?  downloadFolder.toPath() : null;
 	}
 
 	/**
-	 * Gets the Maven id from the given {@link Artifact}.
-	 *
-	 * @param artifact the {@link Artifact} whose Maven id to return.
-	 * @return The Maven id.
-	 */
-	protected String getMavenId(Artifact artifact) {
-		return artifact.getGroupId() + "." + artifact.getArtifactId();
-	}
-
-	/**
-	 * Gets the crowdin branch name that matches the name of the current Git
+	 * Gets the Crowdin branch name that matches the name of the current Git
 	 * branch.
 	 *
 	 * @return The branch name or {@code null} if the current git branch is the
-	 *         crowdin root.
+	 *         Crowdin root.
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
+	@Nullable
 	protected String getBranch() throws MojoExecutionException {
 		return getBranch(false, null);
 	}
 
 	/**
-	 * Creates or gets the crowdin branch name that matches the name of the
+	 * Creates or gets the Crowdin branch name that matches the name of the
 	 * current Git branch.
 	 *
-	 * @param create whether the branch should be created at crowdin if it
+	 * @param create whether the branch should be created at Crowdin if it
 	 *            doesn't exist.
 	 * @param projectDetails the {@link Document} containing the project
 	 *            details. If {@code null} the project details will be retrieved
-	 *            from crowdin.
+	 *            from Crowdin.
 	 * @return The branch name or {@code null} if the current git branch is the
-	 *         crowdin root.
+	 *         Crowdin root.
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
-	protected String getBranch(boolean create, Document projectDetails) throws MojoExecutionException {
-
-		getLog().info("Determining git branch");
+	@Nullable
+	protected String getBranch(boolean create, @Nullable Document projectDetails) throws MojoExecutionException {
+		getLog().info("Determining git branch..");
 		String branch = GitUtil.getBranch(project.getBasedir(), getLog());
-		if (branch == null || branch.trim().equals("")) {
+		if (isBlank(branch)) {
 			throw new MojoExecutionException("Could not determine current git branch");
 		}
+		getLog().info("Git branch is \"" + branch + "\"");
 		if (branch.equals(rootBranch)) {
 			return null;
-		} else if (crowdinContainsBranch(getCrowdinFiles(null, projectDetails), branch)) {
-			return branch;
-		} else if (create) {
-			crowdinCreateBranch(branch);
-			return branch;
-		} else {
-			throw new MojoExecutionException("Crowdin project doesn't contain branch \"" + branch + "\". Please push this branch first.");
 		}
+		try {
+			if (CrowdinFileSystem.containsBranch(
+				CrowdinAPI.getFiles(client, server, null, projectDetails, getLog()),
+				branch,
+				getLog()
+			)) {
+				getLog().info("Found branch \"" + branch + "\" on Crowdin");
+				return branch;
+			} else if (create) {
+				CrowdinFileSystem.createBranch(client, server, branch, getLog());
+				return branch;
+			}
+		} catch (IOException e) {
+			throw new MojoExecutionException(
+				"An error occured while trying to resolve Crowdin branch: " + e.getMessage(),
+				e
+			);
+		}
+		throw new MojoExecutionException(
+			"Crowdin project doesn't contain branch \"" + branch + "\". Please push this branch first."
+		);
 	}
 
 	/**
@@ -616,7 +350,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			return true;
 		}
 		for (int i = 0; i < strLen; i++) {
-			if (Character.isWhitespace(cs.charAt(i)) == false) {
+			if (!Character.isWhitespace(cs.charAt(i))) {
 				return false;
 			}
 		}
