@@ -6,11 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -118,55 +115,6 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			}
 		} catch (IOException e) {
 			throw new MojoExecutionException("Failed to call API: " + e.getMessage(), e);
-		}
-	}
-
-	private void cleanDownloadFolder() throws MojoExecutionException {
-		if (Files.exists(downloadFolderPath)) {
-			getLog().info("Deleting the content of \"" + downloadFolderPath.toAbsolutePath() + "\"");
-			try {
-				Files.walkFileTree(downloadFolderPath, new FileVisitor<Path>() {
-
-					@Override
-					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-						return FileVisitResult.CONTINUE;
-					}
-
-					@Override
-					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-						Files.delete(file);
-						return FileVisitResult.CONTINUE;
-					}
-
-					@Override
-					public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-						throw exc;
-					}
-
-					@Override
-					public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-						if (!downloadFolderPath.equals(dir)) {
-							Files.delete(dir);
-						}
-						return FileVisitResult.CONTINUE;
-					}
-				});
-			} catch (IOException e) {
-				throw new MojoExecutionException(
-					"Could not delete \"" + downloadFolderPath.toAbsolutePath() + "\": " + e.getMessage(),
-					e
-				);
-			}
-		} else {
-			getLog().info("Creating download folder \"" + downloadFolderPath.toAbsolutePath() + "\"");
-			try {
-				Files.createDirectories(downloadFolderPath);
-			} catch (IOException e) {
-				throw new MojoExecutionException(
-					"Couldn't create folder \"" + downloadFolderPath.toAbsolutePath() + "\": " + e.getMessage(),
-					e
-				);
-			}
 		}
 	}
 
