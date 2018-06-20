@@ -12,21 +12,21 @@
 
 	<name>Crowdin Maven Plugin</name>
 
-	<description>This plugin allows Maven projects to be translated using crowdin and has been tailored to use for the Digital Media Server project.</description>
-	<url>http://github.com/DigitalMediaServer/dms-crowdin</url>
+	<description>This Maven plugin allows project translation files to be synchronized with the crowdin.com API.</description>
+	<url>https://github.com/DigitalMediaServer/crowdin-maven-plugin</url>
 
 	<licenses>
 		<license>
-			<name>The Apache Software License, Version 2.0</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<name>GNU Lesser General Public License, Version 3</name>
+			<url>http://www.gnu.org/licenses/lgpl-3.0.txt</url>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
 
 	<scm>
-		<connection>scm:git:git@github.com:DigitalMediaServer/dms-crowdin.git</connection>
-		<developerConnection>scm:git:git@github.com:DigitalMediaServer/dms-crowdin.git</developerConnection>
-		<url>http://github.com/DigitalMediaServer/dms-crowdin</url>
+		<connection>scm:git:git@github.com:DigitalMediaServer/crowdin-maven-plugin.git</connection>
+		<developerConnection>scm:git:git@github.com:DigitalMediaServer/crowdin-maven-plugin.git</developerConnection>
+		<url>http://github.com/DigitalMediaServer/crowdin-maven-plugin</url>
 	</scm>
 
 	<developers>
@@ -36,19 +36,10 @@
 			<url>http://github.com/Nadahar</url>
 		</developer>
 	</developers>
-	<contributors>
-		<contributor>
-			<name>Gabriel Landais</name>
-			<email>gabriel.landais@gmail.com</email>
-			<roles>
-				<role>Original developer</role>
-			</roles>
-		</contributor>
-	</contributors>
 
 	<issueManagement>
 		<system>GitHub</system>
-		<url>https://github.com/DigitalMediaServer/dms-crowdin/issues</url>
+		<url>https://github.com/DigitalMediaServer/crowdin-maven-plugin/issues</url>
 	</issueManagement>    
 
 	<properties>
