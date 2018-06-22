@@ -23,17 +23,16 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.manager.WagonManager;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.wagon.authentication.AuthenticationInfo;
+import org.apache.maven.settings.Server;
 import org.digitalmediaserver.crowdin.tool.GitUtil;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
 
 /**
  * The abstract crowdin Mojo base class.
@@ -144,22 +143,6 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	/**
-	 * The Maven Wagon manager to use when obtaining server authentication details.
-	 *
-	 * @component role="org.apache.maven.artifact.manager.WagonManager"
-	 */
-	protected WagonManager wagonManager;
-
-	/**
-	 * Sets the {@link #wagonManager} value.
-	 *
-	 * @param wagonManager the {@link WagonManager} to set.
-	 */
-	protected void setWagonManager(WagonManager wagonManager) {
-		this.wagonManager = wagonManager;
-	}
-
-	/**
 	 * Server id in settings.xml. {@code <username>} is project identifier,
 	 * {@code <password>} is API key.
 	 *
@@ -181,18 +164,11 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/** The HTTP client */
 	protected CloseableHttpClient client;
 
-	/** The {@link AuthenticationInfo} */
-	protected AuthenticationInfo authenticationInfo;
+	/** The {@link Server} to use for crowdin credentials */
+	protected Server server;
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		authenticationInfo = wagonManager.getAuthenticationInfo(crowdinServerId);
-		if (authenticationInfo == null || authenticationInfo.getUserName() == null || authenticationInfo.getPassword() == null) {
-			throw new MojoExecutionException(
-				"Failed to find server with id " + crowdinServerId + " in Maven settings (~/.m2/settings.xml)"
-			);
-		}
-
 		HttpClientBuilder clientBuilder = HttpClientBuilder.create();
 		if (System.getProperty(HTTP_PROXY_HOST) != null) {
 			String host = System.getProperty(HTTP_PROXY_HOST);
@@ -467,9 +443,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	) throws MojoExecutionException {
 		try {
 			StringBuilder url = new StringBuilder(API_URL);
-			url.append(authenticationInfo.getUserName()).append("/").append(method).append("?key=");
+			url.append(server.getUsername()).append("/").append(method).append("?key=");
 			getLog().debug("Calling " + url + "<API Key>");
-			url.append(authenticationInfo.getPassword());
+			url.append(server.getPassword());
 			HttpPost postMethod = new HttpPost(url.toString());
 
 			MultipartEntityBuilder reqEntityBuilder = MultipartEntityBuilder.create();

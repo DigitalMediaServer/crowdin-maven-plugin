@@ -3,10 +3,8 @@ package org.digitalmediaserver.crowdin;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
 import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.resolver.ArtifactCollector;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
 
 /**
  * Pull is a convenience Mojo that executes {@link BuildCrowdinMojo},
@@ -24,13 +22,6 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 	 * The parameters below is a copy of local parameters from FetchCrowdinMojo.
 	 * Any changes must be made both places.
 	 */
-
-	/**
-	 * @component
-	 * @required
-	 * @readonly
-	 */
-	protected DependencyTreeBuilder treeBuilder;
 
 	/**
 	 * @parameter default-value="${localRepository}"
@@ -51,13 +42,6 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	protected ArtifactMetadataSource artifactMetadataSource;
 
-	/**
-	 * @component
-	 * @required
-	 * @readonly
-	 */
-	protected ArtifactCollector artifactCollector;
-
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		getLog().info("Executing build, fetch and deploy goals");
@@ -67,7 +51,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		build.setCrowdinServerId(crowdinServerId);
 		build.setProject(project);
 		build.setRootBranch(rootBranch);
-		build.setWagonManager(wagonManager);
+		build.server = server;
 		build.setLog(getLog());
 		build.execute();
 
@@ -78,13 +62,8 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		fetch.setProject(project);
 		fetch.setRootBranch(rootBranch);
 		fetch.setStatusFile(statusFile);
-		fetch.setWagonManager(wagonManager);
+		fetch.server = server;
 		fetch.setLog(getLog());
-		fetch.setArtifactCollector(artifactCollector);
-		fetch.setArtifactFactory(artifactFactory);
-		fetch.setArtifactMetadataSource(artifactMetadataSource);
-		fetch.setLocalRepository(localRepository);
-		fetch.setTreeBuilder(treeBuilder);
 		fetch.execute();
 
 		getLog().debug("Executing deploy");

@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -17,25 +16,16 @@ import java.util.zip.ZipInputStream;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
 import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.resolver.ArtifactCollector;
-import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
-import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.shared.dependency.tree.DependencyNode;
-import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
-import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
-import org.apache.maven.shared.dependency.tree.traversal.CollectingDependencyNodeVisitor;
 import org.digitalmediaserver.crowdin.tool.CodeConversion;
 import org.digitalmediaserver.crowdin.tool.SortedProperties;
-import org.digitalmediaserver.crowdin.tool.SpecialArtifact;
 import org.digitalmediaserver.crowdin.tool.TranslationFile;
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 
 /**
@@ -55,22 +45,6 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	 * The parameters below are duplicated in PullCrowdinMojo. Any changes must
 	 * be made in both places.
 	 */
-
-	/**
-	 * @component
-	 * @required
-	 * @readonly
-	 */
-	protected DependencyTreeBuilder treeBuilder;
-
-	/**
-	 * Sets the {@link DependencyTreeBuilder} value.
-	 *
-	 * @param value the {@link DependencyTreeBuilder}.
-	 */
-	protected void setTreeBuilder(DependencyTreeBuilder value) {
-		treeBuilder = value;
-	}
 
 	/**
 	 * @parameter default-value="${localRepository}"
@@ -117,22 +91,6 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	protected void setArtifactMetadataSource(ArtifactMetadataSource value) {
 		artifactMetadataSource = value;
-	}
-
-	/**
-	 * @component
-	 * @required
-	 * @readonly
-	 */
-	protected ArtifactCollector artifactCollector;
-
-	/**
-	 * Sets the {@link ArtifactCollector}.
-	 *
-	 * @param value the {@link ArtifactCollector} to set.
-	 */
-	protected void setArtifactCollector(ArtifactCollector value) {
-		artifactCollector = value;
 	}
 
 	private void cleanFolders(Set<TranslationFile> translationFiles) {
@@ -231,13 +189,13 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		CodeConversion conversion = getCodeConversion();
 		try {
 			StringBuilder url = new StringBuilder(API_URL);
-			url.append(authenticationInfo.getUserName()).append("/download/all.zip?");
+			url.append(server.getUsername()).append("/download/all.zip?");
 			if (branch != null) {
 				url.append("branch=").append(branch).append("&");
 			}
 			url.append("key=");
 			getLog().debug("Calling " + url + "<API key>");
-			url.append(authenticationInfo.getPassword());
+			url.append(server.getPassword());
 			HttpGet getMethod = new HttpGet(url.toString());
 			HttpResponse response = client.execute(getMethod);
 			int returnCode = response.getStatusLine().getStatusCode();
@@ -314,11 +272,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		Map<TranslationFile, byte[]> translations = downloadTranslations(branch);
 
 		if (localRepository != null) {
-			Set<Artifact> dependencyArtifacts = getAllDependencies();
 			Set<String> mavenIds = new HashSet<String>();
-			for (Artifact artifact : dependencyArtifacts) {
-				mavenIds.add(getMavenId(artifact));
-			}
 
 			Map<TranslationFile, byte[]> usedTranslations = new HashMap<TranslationFile, byte[]>();
 			usedTranslations.putAll(translations);
@@ -452,34 +406,6 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 				out.close();
 			}
 		}
-	}
-
-	private Set<Artifact> getAllDependencies() throws MojoExecutionException {
-		Set<Artifact> result = new HashSet<Artifact>();
-		try {
-			ArtifactFilter artifactFilter = new ScopeArtifactFilter(null);
-
-			if (localRepository != null) {
-				DependencyNode rootNode = treeBuilder.buildDependencyTree(project, localRepository, artifactFactory,
-						artifactMetadataSource, artifactFilter, artifactCollector);
-
-				CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
-
-				rootNode.accept(visitor);
-
-				List<DependencyNode> nodes = visitor.getNodes();
-				for (DependencyNode dependencyNode : nodes) {
-					int state = dependencyNode.getState();
-					Artifact artifact = dependencyNode.getArtifact();
-					if (state == DependencyNode.INCLUDED) {
-						result.add(new SpecialArtifact(artifact));
-					}
-				}
-			}
-		} catch (DependencyTreeBuilderException e) {
-			throw new MojoExecutionException("Failed to get dependencies", e);
-		}
-		return result;
 	}
 
 	/**

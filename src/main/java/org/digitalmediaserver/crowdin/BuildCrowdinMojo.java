@@ -5,7 +5,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.http.HttpResponse;
-import org.jdom.Document;
+import org.jdom2.Document;
 
 /**
  * Build crowdin translations for this project to include the latest changes.
@@ -23,13 +23,13 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		getLog().info("Asking crowdin to build translations");
 
 		StringBuilder url = new StringBuilder(API_URL);
-		url.append(authenticationInfo.getUserName()).append("/export?");
+		url.append(server.getUsername()).append("/export?");
 		if (branch != null) {
 			url.append("branch=").append(branch).append("&");
 		}
 		url.append("key=");
 		getLog().debug("Calling " + url + "<API Key>");
-		url.append(authenticationInfo.getPassword());
+		url.append(server.getPassword());
 
 		HttpGet getMethod = new HttpGet(url.toString());
 		HttpResponse response = null;

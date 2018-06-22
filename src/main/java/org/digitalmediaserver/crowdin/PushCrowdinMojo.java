@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
