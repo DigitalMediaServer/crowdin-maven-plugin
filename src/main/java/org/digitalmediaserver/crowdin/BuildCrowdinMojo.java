@@ -5,6 +5,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.http.HttpResponse;
+import org.digitalmediaserver.crowdin.tool.Constants;
 import org.jdom2.Document;
 
 /**
@@ -22,7 +23,7 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		String branch = getBranch();
 		getLog().info("Asking crowdin to build translations");
 
-		StringBuilder url = new StringBuilder(API_URL);
+		StringBuilder url = new StringBuilder(Constants.API_URL);
 		url.append(server.getUsername()).append("/export?");
 		if (branch != null) {
 			url.append("branch=").append(branch).append("&");
@@ -43,7 +44,7 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		InputStream responseBodyAsStream;
 		try {
 			responseBodyAsStream = response.getEntity().getContent();
-			document = SAX_BUILDER.build(responseBodyAsStream);
+			document = Constants.SAX_BUILDER.build(responseBodyAsStream);
 		} catch (Exception e) {
 			throw new MojoExecutionException("Failed to call API", e);
 		}

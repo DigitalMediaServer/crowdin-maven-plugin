@@ -22,6 +22,7 @@ import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.digitalmediaserver.crowdin.tool.CodeConversion;
+import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.SortedProperties;
 import org.digitalmediaserver.crowdin.tool.TranslationFile;
 import org.jdom2.Document;
@@ -188,7 +189,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	private Map<TranslationFile, byte[]> downloadTranslations(String branch) throws MojoExecutionException {
 		CodeConversion conversion = getCodeConversion();
 		try {
-			StringBuilder url = new StringBuilder(API_URL);
+			StringBuilder url = new StringBuilder(Constants.API_URL);
 			url.append(server.getUsername()).append("/download/all.zip?");
 			if (branch != null) {
 				url.append("branch=").append(branch).append("&");

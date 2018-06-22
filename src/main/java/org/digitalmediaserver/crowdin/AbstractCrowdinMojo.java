@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -28,11 +29,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Server;
+import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.GitUtil;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
-import org.jdom2.input.SAXBuilder;
 
 /**
  * The abstract crowdin Mojo base class.
@@ -50,12 +51,6 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	private static final String HTTP_PROXY_PORT = "http.proxyPort";
 
 	private static final String HTTP_PROXY_HOST = "http.proxyHost";
-
-	/** The static {@link SAXBuilder} instance */
-	protected static final SAXBuilder SAX_BUILDER = new SAXBuilder();
-
-	/** The crowdin API URL */
-	protected static final String API_URL = "https://api.crowdin.com/api/project/";
 
 	/**
 	 * The current Maven project
@@ -442,7 +437,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		boolean mustSucceed
 	) throws MojoExecutionException {
 		try {
-			StringBuilder url = new StringBuilder(API_URL);
+			StringBuilder url = new StringBuilder(Constants.API_URL);
 			url.append(server.getUsername()).append("/").append(method).append("?key=");
 			getLog().debug("Calling " + url + "<API Key>");
 			url.append(server.getPassword());
@@ -489,7 +484,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			int returnCode = response.getStatusLine().getStatusCode();
 			getLog().debug("Return code : " + returnCode);
 			InputStream responseBodyAsStream = response.getEntity().getContent();
-			Document document = SAX_BUILDER.build(responseBodyAsStream);
+			Document document = Constants.SAX_BUILDER.build(responseBodyAsStream);
 			if (mustSucceed && document.getRootElement().getName().equals("error")) {
 				String code = document.getRootElement().getChildTextNormalize("code");
 				String message = document.getRootElement().getChildTextNormalize("message");
@@ -584,5 +579,29 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		} else {
 			throw new MojoExecutionException("Crowdin project doesn't contain branch \"" + branch + "\". Please push this branch first.");
 		}
+	}
+
+	/**
+	 * Evaluates if the specified character sequence is {@code null}, empty or
+	 * only consists of whitespace.
+	 *
+	 * @param cs the {@link CharSequence} to evaluate.
+	 * @return true if {@code cs} is {@code null}, empty or only consists of
+	 *         whitespace, {@code false} otherwise.
+	 */
+	public static boolean isBlank(@Nullable CharSequence cs) {
+		if (cs == null) {
+			return true;
+		}
+		int strLen = cs.length();
+		if (strLen == 0) {
+			return true;
+		}
+		for (int i = 0; i < strLen; i++) {
+			if (Character.isWhitespace(cs.charAt(i)) == false) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
