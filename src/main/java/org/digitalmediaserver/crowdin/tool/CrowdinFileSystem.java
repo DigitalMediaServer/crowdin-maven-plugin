@@ -23,6 +23,7 @@ import static org.digitalmediaserver.crowdin.tool.CrowdinAPI.*;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +34,7 @@ import javax.annotation.Nullable;
 import org.apache.http.client.HttpClient;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
+import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.jdom2.Element;
 
 
@@ -401,6 +403,41 @@ public class CrowdinFileSystem {
 		item = item == null ? null : item.getParentElement();
 		item = item == null ? null : item.getParentElement();
 		return item;
+	}
+
+	/**
+	 * Determines and returns the push file folder by taking
+	 * {@link TranslationFileSet#crowdinPath} (optionally) and any folders in
+	 * {@link TranslationFileSet#baseFileName} into account.
+	 *
+	 * @param fileSet the {@link TranslationFileSet} for which to find the
+	 *            Crowdin push folder.
+	 * @param includeCrowdinPath {@code true} to include
+	 *            {@link TranslationFileSet#crowdinPath} in the returned path,
+	 *            {@code false} otherwise.
+	 * @return The Crowdin push folder path or an empty string if the
+	 *         {@link TranslationFileSet} is placed in the Crowdin root.
+	 */
+	@Nonnull
+	public static String getPushFolder(@Nonnull TranslationFileSet fileSet, boolean includeCrowdinPath) {
+		ArrayList<String> folders = new ArrayList<String>();
+		if (includeCrowdinPath && !isBlank(fileSet.getCrowdinPath())) {
+			folders.addAll(Arrays.asList(fileSet.getCrowdinPath().split("/")));
+		}
+		if (!isBlank(fileSet.getBaseFileName())) {
+			folders.addAll(Arrays.asList(fileSet.getBaseFileName().split("/")));
+		}
+		if (folders.size() > 0) {
+			folders.remove(folders.size() - 1);
+		}
+		StringBuilder sb = new StringBuilder();
+		for (String folder : folders) {
+			if (sb.length() > 0) {
+				sb.append("/");
+			}
+			sb.append(folder);
+		}
+		return sb.toString();
 	}
 
 	/**

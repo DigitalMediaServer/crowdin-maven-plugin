@@ -29,6 +29,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Server;
+import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.GitUtil;
 import org.jdom2.Document;
@@ -154,6 +155,23 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 	protected void setCrowdinServerId(String serverId) {
 		crowdinServerId = serverId;
+	}
+
+	/**
+	 * A list of {@link StatusFile} elements that defines a status file.
+	 *
+	 * @parameter
+	 * @required
+	 */
+	protected List<StatusFile> statusFiles;
+
+	/**
+	 * Sets the {@link StatusFile}s.
+	 *
+	 * @param statusFiles the {@link StatusFile}s to set.
+	 */
+	protected void setStatusFiles(List<StatusFile> statusFiles) {
+		this.statusFiles = statusFiles;
 	}
 
 	/** The HTTP client */
