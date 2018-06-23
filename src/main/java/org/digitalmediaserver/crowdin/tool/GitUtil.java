@@ -2,6 +2,8 @@ package org.digitalmediaserver.crowdin.tool;
 
 import java.io.File;
 import java.io.IOException;
+import javax.annotation.Nonnull;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Constants;
@@ -24,39 +26,55 @@ public class GitUtil {
 	 * Get the current Git branch.
 	 *
 	 * @param projectBasedir the project "root" folder.
-	 * @param log the {@link Log} to use for logging.
+	 * @param logger the {@link Log} to use for logging.
 	 * @return The name of the current Git branch or {@code null} if it couldn't
 	 *         be established.
+	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
-	public static String getBranch(File projectBasedir, Log log) {
+	public static String getBranch(@Nonnull File projectBasedir, Log logger) throws MojoExecutionException {
 		if (!projectBasedir.exists()) {
-			log.warn("Project basedir (" + projectBasedir + ") doesn't exist - cannot determine git branch");
+			if (logger != null) {
+				logger.warn("Project basedir (" + projectBasedir + ") doesn't exist - cannot determine git branch");
+			}
 			return null;
 		} else if (!projectBasedir.isDirectory()) {
-			log.warn("Project basedir (" + projectBasedir + ") must be a folder - cannot determine git branch");
+			if (logger != null) {
+				logger.warn("Project basedir (" + projectBasedir + ") must be a folder - cannot determine git branch");
+			}
 			return null;
 		}
 
 		Git git;
 		try {
-			log.debug("Trying to read \"" + projectBasedir + "\" with git");
+			if (logger != null) {
+				logger.debug("Trying to read \"" + projectBasedir + "\" with git");
+			}
 			git = Git.open(projectBasedir);
 			Repository repo = git.getRepository();
 			try {
 				String branch = repo.getBranch();
 				if (repo.getRef(Constants.HEAD).getTarget().getName().endsWith(branch)) {
-					log.debug("Git branch determined to be \"" + branch + "\"");
+					if (logger != null) {
+						logger.debug("Git branch determined to be \"" + branch + "\"");
+					}
 					return branch;
 				}
-				log.warn("Git branch was reported to be \"" + branch + "\" which means that HEAD is detached");
+				if (logger != null) {
+					logger.error("Git branch was reported to be \"" + branch + "\" which means that HEAD is detached");
+				}
 			} catch (IOException e) {
-				log.warn("An error occurred while reading git branch: " + e.getMessage());
+				throw new MojoExecutionException("An error occurred while reading git branch: " + e.getMessage(), e);
 			}
 		} catch (IOException e) {
-			log.warn("An error occurred while opening project basedir with git: " + e.getMessage());
+			throw new MojoExecutionException(
+				"An error occurred while opening project basedir with git: " + e.getMessage(),
+				e
+			);
 		}
 
-		log.warn("Cannot determine git branch");
+		if (logger != null) {
+			logger.error("Can't determine git branch");
+		}
 		return null;
 	}
 }
