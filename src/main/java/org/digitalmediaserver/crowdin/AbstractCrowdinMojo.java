@@ -129,12 +129,30 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	protected String comment;
 
 	/**
+	 * Sets the {@link #comment} value.
+	 *
+	 * @param comment the comment to set.
+	 */
+	protected void setComment(String comment) {
+		this.comment = comment;
+	}
+
+	/**
 	 * The string to use as line separator. Specify {@code \n}, {@code \r} or
 	 * {@code \r\n} as needed. If not specified, the default will be used.
 	 *
 	 * @parameter
 	 */
 	protected String lineSeparator;
+
+	/**
+	 * Sets the {@link #lineSeparator} value.
+	 *
+	 * @param lineSeparator the line-separator to set.
+	 */
+	protected void setLineSeparator(String lineSeparator) {
+		this.lineSeparator = lineSeparator;
+	}
 
 	/**
 	 * The git branch that should be treated as root in Crowdin versions

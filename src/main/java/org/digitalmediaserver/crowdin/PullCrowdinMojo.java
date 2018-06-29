@@ -70,6 +70,8 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		deploy.setDownloadFolder(downloadFolderPath);
 		deploy.setTranslationFileSets(translationFileSets);
 		deploy.setStatusFiles(statusFiles);
+		deploy.setLineSeparator(lineSeparator);
+		deploy.setComment(comment);
 		deploy.setLog(getLog());
 		deploy.execute();
 
