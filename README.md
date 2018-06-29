@@ -1,5 +1,7 @@
 # Crowdin Maven Plugin
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin)
+
 This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin API. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository since Git branches are translated to Crowdin branches.
 
 ## Table of Contents
