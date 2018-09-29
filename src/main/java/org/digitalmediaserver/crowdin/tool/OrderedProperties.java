@@ -489,9 +489,9 @@ public abstract class OrderedProperties implements Iterable<Entry<String, String
 
 	/**
 	 * Reads in a "logical line" from an {@link InputStream} or {@link Reader},
-	 * skip all comment and blank lines and filter out those leading whitespace
-	 * characters ( , and ) from the beginning of a "natural line". Method
-	 * returns the char length of the "logical line" and stores the line in
+	 * skips all comment and blank lines and filters out leading whitespace
+	 * characters from the beginning of a "natural line". This method returns
+	 * the character length of the "logical line" and stores the line in
 	 * "lineBuf".
 	 */
 	protected static class LineReader {

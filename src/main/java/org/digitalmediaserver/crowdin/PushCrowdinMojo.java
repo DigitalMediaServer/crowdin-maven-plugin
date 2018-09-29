@@ -19,14 +19,22 @@
 package org.digitalmediaserver.crowdin;
 
 import static org.digitalmediaserver.crowdin.tool.CrowdinFileSystem.*;
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.content.AbstractContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.digitalmediaserver.crowdin.configuration.FileType;
 import org.digitalmediaserver.crowdin.configuration.UpdateOption;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.digitalmediaserver.crowdin.tool.CrowdinAPI;
+import org.digitalmediaserver.crowdin.tool.NSISUtil;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -145,8 +153,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 		// Set values
 		for (TranslationFileSet fileSet : translationFileSets) {
-			File pushFile = new File(fileSet.getLanguageFilesFolder(), fileSet.getBaseFileName());
-			if (pushFile.exists()) {
+			Path pushFile = fileSet.getLanguageFilesFolder().toPath().resolve(fileSet.getBaseFileName());
+			if (Files.exists(pushFile)) {
 				String pushFolder = getPushFolder(fileSet, true);
 				if (!isBlank(pushFolder) && !containsFolder(filesElement, pushFolder, getLog())) {
 					try {
@@ -159,7 +167,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					}
 				}
 
-				Map<String, File> fileMap = new HashMap<String, File>();
+				Map<String, AbstractContentBody> fileMap = new HashMap<String, AbstractContentBody>();
 				Map<String, String> titleMap = new HashMap<String, String>();
 				Map<String, String> patternMap = new HashMap<String, String>();
 
@@ -168,7 +176,44 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					formatPath(fileSet.getCrowdinPath(), true) + fileSet.getBaseFileName();
 				boolean update = containsFile(filesElement, pushName, getLog());
 
-				fileMap.put(pushName, pushFile);
+				try {
+					Path pushFileName = pushFile.getFileName();
+					fileMap.put(
+						pushName,
+						fileSet.getType() == FileType.nsh ?
+							new InputStreamBody(
+								new NSISUtil.NSISInputStream(pushFile),
+								ContentType.DEFAULT_BINARY,
+								pushFileName == null ? null : pushFileName.toString()
+							) :
+							new FileBody(pushFile.toFile())
+					);
+				} catch (FileNotFoundException e) {
+					if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
+						getLog().warn(
+							"\"" + pushFile.toAbsolutePath() + "\" not found - upload skipped for fileset \"" +
+							fileSet.getTitle() + "\": " + e.getMessage()
+						);
+					} else {
+						getLog().warn(
+							"\"" + pushFile.toAbsolutePath() + "\" not found - upload skipped: " + e.getMessage()
+						);
+					}
+					continue;
+				} catch (IOException e) {
+					if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
+						getLog().error(
+							"An error occurred while reading \"" + pushFile.toAbsolutePath() +
+							"\" - upload skipped for fileset \"" + fileSet.getTitle() + "\": " + e.getMessage()
+						);
+					} else {
+						getLog().error(
+							"An error occurred while reading \"" + pushFile.toAbsolutePath() +
+							"\" - upload skipped: " + e.getMessage()
+						);
+					}
+					continue;
+				}
 				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
 					titleMap.put(pushName, fileSet.getTitle());
 				}
@@ -226,14 +271,28 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 						e
 					);
 				}
+				if (!fileMap.isEmpty()) {
+					for (AbstractContentBody contentBody : fileMap.values()) {
+						if (contentBody instanceof InputStreamBody) {
+							InputStreamBody inputStreamBody = (InputStreamBody) contentBody;
+							if (inputStreamBody.getInputStream() != null) {
+								try {
+									inputStreamBody.getInputStream().close();
+								} catch (IOException e) {
+									getLog().warn("Couldn't close \"" + pushFile + "\" after reading");
+								}
+							}
+						}
+					}
+				}
 			} else {
 				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
 					getLog().warn(
-						"\"" + pushFile.getAbsolutePath() + "\" not found - upload skipped for fileset \"" +
+						"\"" + pushFile.toAbsolutePath() + "\" not found - upload skipped for fileset \"" +
 						fileSet.getTitle() + "\""
 					);
 				} else {
-					getLog().warn("\"" + pushFile.getAbsolutePath() + "\" not found - upload skipped");
+					getLog().warn("\"" + pushFile.toAbsolutePath() + "\" not found - upload skipped");
 				}
 			}
 		}

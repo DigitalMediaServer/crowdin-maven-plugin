@@ -20,7 +20,6 @@ package org.digitalmediaserver.crowdin.tool;
 
 import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
 import static org.digitalmediaserver.crowdin.tool.Constants.*;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -40,7 +39,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -247,7 +246,7 @@ public class CrowdinAPI {
 		@Nonnull Server server,
 		@Nonnull String method,
 		@Nullable Map<String, String> parameters,
-		@Nullable Map<String, File> files,
+		@Nullable Map<String, AbstractContentBody> files,
 		boolean mustSucceed,
 		@Nullable Log logger
 	) throws IOException {
@@ -278,7 +277,7 @@ public class CrowdinAPI {
 		@Nonnull Server server,
 		@Nonnull String method,
 		@Nullable Map<String, String> parameters,
-		@Nullable Map<String, File> files,
+		@Nullable Map<String, AbstractContentBody> files,
 		@Nullable Map<String, String> titles,
 		@Nullable Map<String, String> patterns,
 		boolean mustSucceed,
@@ -295,7 +294,7 @@ public class CrowdinAPI {
 			if (mustSucceed && document.getRootElement().getName().equals("error")) {
 				String code = document.getRootElement().getChildTextNormalize("code");
 				String message = document.getRootElement().getChildTextNormalize("message");
-				throw new IOException("Failed to call API - " + code + " - " + message);
+				throw new IOException("Failed to call API (" + returnCode + "): " + code + " - " + message);
 			}
 			return document;
 		} catch (JDOMException e) {
@@ -349,7 +348,7 @@ public class CrowdinAPI {
 		@Nonnull Server server,
 		@Nonnull String method,
 		@Nullable Map<String, String> parameters,
-		@Nullable Map<String, File> files,
+		@Nullable Map<String, AbstractContentBody> files,
 		@Nullable Map<String, String> titles,
 		@Nullable Map<String, String> patterns,
 		@Nullable Log logger
@@ -375,10 +374,9 @@ public class CrowdinAPI {
 			}
 		}
 		if (files != null && !files.isEmpty()) {
-			Set<Entry<String, File>> entrySetFiles = files.entrySet();
-			for (Entry<String, File> entryFile : entrySetFiles) {
+			for (Entry<String, AbstractContentBody> entryFile : files.entrySet()) {
 				String key = "files[" + entryFile.getKey() + "]";
-				reqEntityBuilder.addPart(key, new FileBody(entryFile.getValue()));
+				reqEntityBuilder.addPart(key, entryFile.getValue());
 			}
 		}
 

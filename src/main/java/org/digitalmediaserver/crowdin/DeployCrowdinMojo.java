@@ -52,6 +52,7 @@ import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.digitalmediaserver.crowdin.tool.FIFOProperties;
 import org.digitalmediaserver.crowdin.tool.GroupSortedProperties;
 import org.digitalmediaserver.crowdin.tool.ISO639;
+import org.digitalmediaserver.crowdin.tool.NSISUtil;
 import org.digitalmediaserver.crowdin.tool.OrderedProperties;
 import org.jdom2.Comment;
 import org.jdom2.Document;
@@ -246,7 +247,8 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 							if (
 								!fileSet.getCharset().equals(StandardCharsets.UTF_8) ||
 								Boolean.TRUE.equals(fileSet.getAddComment()) ||
-								currentLineSeparator != null
+								currentLineSeparator != null ||
+								fileSet.getType() == FileType.nsh
 							) {
 								// "Manual" copy
 								try (
@@ -268,6 +270,9 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 									}
 
 									for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+										if (fileSet.getType() == FileType.nsh) {
+											line = NSISUtil.convertLineToNSIS(line);
+										}
 										writer.write(line);
 										OrderedProperties.writeNewLine(writer, currentLineSeparator);
 									}

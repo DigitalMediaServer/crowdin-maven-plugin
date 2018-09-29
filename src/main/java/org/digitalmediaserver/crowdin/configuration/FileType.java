@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @author Nadahar
  */
 public enum FileType {
+
 	/** Try to detect file type by extension or MIME type */
 	auto,
 
@@ -40,7 +41,7 @@ public enum FileType {
 	macosx("strings"),
 
 	/** .NET, Windows Phone */
-	resx("resx"),
+	resx("resx", "resw"),
 
 	/** Java */
 	properties("properties"),
