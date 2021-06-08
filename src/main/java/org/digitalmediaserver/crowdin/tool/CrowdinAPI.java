@@ -196,8 +196,7 @@ public class CrowdinAPI {
 		url.append(server.getPassword());
 
 		HttpGet getMethod = new HttpGet(url.toString());
-		HttpResponse response = null;
-		response = httpClient.execute(getMethod);
+		HttpResponse response = httpClient.execute(getMethod);
 
 		int returnCode = response.getStatusLine().getStatusCode();
 		if (logger != null) {

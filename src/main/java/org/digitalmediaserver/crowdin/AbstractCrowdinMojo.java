@@ -379,7 +379,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	protected void cleanDownloadFolder() throws MojoExecutionException {
-		if (Files.exists(downloadFolderPath)) {
+		if (downloadFolderPath != null && Files.exists(downloadFolderPath)) {
 			getLog().info("Deleting the content of \"" + downloadFolderPath.toAbsolutePath() + "\"");
 			try {
 				Files.walkFileTree(downloadFolderPath, new FileVisitor<Path>() {

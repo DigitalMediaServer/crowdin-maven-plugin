@@ -405,7 +405,7 @@ public abstract class OrderedProperties implements Iterable<Entry<String, String
 				outBuffer.append(aChar);
 				break;
 			default:
-				if ((aChar < 0x0020 || aChar > 0x007e) & escapeUnicode) {
+				if ((aChar < 0x0020 || aChar > 0x007e) && escapeUnicode) {
 					outBuffer.append('\\').append('u').append(toHex((aChar >> 12) & 0xF))
 						.append(toHex((aChar >> 8) & 0xF)).append(toHex((aChar >> 4) & 0xF))
 						.append(toHex(aChar & 0xF));
@@ -461,7 +461,7 @@ public abstract class OrderedProperties implements Iterable<Entry<String, String
 					if (c == '\r' && current != len - 1 && comment.charAt(current + 1) == '\n') {
 						current++;
 					}
-					if (current == len - 1 || comment.charAt(current + 1) != '#' && comment.charAt(current + 1) != '!') {
+					if (current == len - 1 || (comment.charAt(current + 1) != '#' && comment.charAt(current + 1) != '!')) {
 						bw.write("#");
 					}
 				}

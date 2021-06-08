@@ -1591,7 +1591,6 @@ public enum ISO639 {
 	@Nonnull
 	private final List<String> names;
 
-
 	@Nullable
 	private final String iso639Part1;
 
@@ -1622,7 +1621,7 @@ public enum ISO639 {
 		@Nonnull String part2T
 	) {
 		this.type = type;
-		this.names = Arrays.asList(Constants.SEMICOLON.split(names));
+		this.names = Collections.unmodifiableList(Arrays.asList(Constants.SEMICOLON.split(names)));
 		this.iso639Part1 = part1;
 		this.iso639Part2B = part2B;
 		this.iso639Part2T = part2T;
