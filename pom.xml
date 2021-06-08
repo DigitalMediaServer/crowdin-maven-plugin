@@ -47,7 +47,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<pluginPluginVersion>3.5.2</pluginPluginVersion>
 		<javadocPluginVersion>3.0.1</javadocPluginVersion>
-		<apacheHttpClientVersion>4.5.6</apacheHttpClientVersion>
+		<apacheHttpClientVersion>4.5.13</apacheHttpClientVersion>
 		<plexusComponentJavadocVersion>1.7.1</plexusComponentJavadocVersion>
 	</properties>
 
@@ -56,19 +56,19 @@
 		<dependency>
 			<groupId>org.apache.maven.plugin-tools</groupId>
 			<artifactId>maven-plugin-annotations</artifactId>
-			<version>3.5.2</version>
+			<version>3.6.1</version>
 			<!-- annotations are not used at runtime because @Retention(value=CLASS), they are needed only to build the plugin -->
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-core</artifactId>
-			<version>3.5.4</version>		
+			<version>3.8.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-plugin-api</artifactId>
-			<version>3.5.4</version>
+			<version>3.8.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jdom</groupId>
@@ -86,10 +86,27 @@
 			<version>${apacheHttpClientVersion}</version>
 		</dependency>
 		<dependency>
+			<!-- 
+				The last version of org.eclipse.jgit that supports Java 7
+				depends on version 0.1.50 of this artifact which suffers from
+				CVE-2016-5725. Declaring it specifically and excluding it from
+				org.eclipse.jgit is to get around this.
+			 -->
+			<groupId>com.jcraft</groupId>
+			<artifactId>jsch</artifactId>
+			<version>0.1.54</version>
+		</dependency>
+		<dependency>
 			<groupId>org.eclipse.jgit</groupId>
 			<artifactId>org.eclipse.jgit</artifactId>
 			<!-- Don't upgrade - last version that supports Java 7 -->
 			<version>3.7.1.201504261725-r</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.jcraft</groupId>
+					<artifactId>jsch</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
@@ -134,14 +151,58 @@
 					<artifactId>maven-release-plugin</artifactId>
 					<version>2.5.3</version>
 				</plugin>
+				<plugin>
+					<!--
+						This plugin's configuration is used to store Eclipse M2E settings only.
+						It has no influence on the Maven build itself.
+					-->
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<lifecycleMappings>
+								<lifecycleMapping>
+									<packagingType>maven-plugin</packagingType>
+									<lifecycleMappingId>org.eclipse.m2e.jdt.JarLifecycleMapping</lifecycleMappingId>
+								</lifecycleMapping>
+							</lifecycleMappings>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-plugin-plugin</artifactId>
+										<versionRange>[2.3,)</versionRange>
+										<goals>
+											<goal>descriptor</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnIncremental>false</runOnIncremental>
+										</execute>
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-plugin-plugin</artifactId>
+										<versionRange>[2.3,)</versionRange>
+										<goals>
+											<goal>helpmojo</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
-			<!--
-				If you get an "execution not covered by lifecycle configuration: org.apache.maven.plugins:maven-plugin-plugin"
-				below in Eclipse, the solution is to go to Preferences -> Maven -> Discovery -> Open Catalog and install
-				"Eclipse Plug-in Development Environment"
-			 -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
