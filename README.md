@@ -69,7 +69,7 @@ If you're missing the file ```~/.m2/settings.xml```, you can copy and paste the 
   <servers>
     <server>
       <id>crowdin</id>
-      <username>Your project identifier<username>
+      <username>Your project identifier</username>
       <password>Your API key</password>
     </server>
   </servers>
