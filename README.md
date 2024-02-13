@@ -149,6 +149,7 @@ Here is a skeleton project configuration showing the location of all configurati
                 <title></title>
                 <type></type>
                 <updateOption></updateOption>
+                <writeBOM></writeBOM>
                 <conversions>
                   <conversion><from></from><to></to></conversion>
                   <!-- ... -->
@@ -215,7 +216,7 @@ Here is a skeleton project configuration showing the location of all configurati
 
 |<sub>Name</sub>|<sub>Type</sub>|<sub>Req.</sub>|<sub>Default</sub>|<sub>Description</sub>|
 |--|:--:|:--:|:--:|--|
-|<sub>`addComment`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`true`</sub>|<sub>Sets whether or not a comment should be added at the top of translation files when deploying.</sub>|
+|<sub>`addComment`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`true`</sub>|<sub>Whether or not a comment should be added at the top of translation files when deploying.</sub>|
 |<sub>`baseFileName`</sub>|<sub>String</sub>|<sub>Yes</sub>| |<sub>The name or path to the "base language file" that should be uploaded to Crowdin for translation, relative to `languageFilesFolder`.</sub>|
 |<sub>`comment`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>The comment to add at the top of translation files. If defined, this parameter overrides the corresponding global parameter.</sub>|
 |<sub>`commentTag`</sub>|<sub>String</sub>|<sub>No</sub>|<sub>`#`</sub>|<sub>The character (sequence) to use if a comment is added during the `deploy` goal. This is not used for `Properties`, `HTML` or `XML` files.</sub>|
@@ -231,6 +232,7 @@ Here is a skeleton project configuration showing the location of all configurati
 |<sub>`title`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>The title of this file as it should appear to translators at Crowdin.</sub>|
 |<sub>`type`</sub>|<sub>Enum</sub>|<sub>No</sub>|<sub>Auto</sub>|<sub>The file type to use both when uploading to Crowdin and when processing files during the `deploy` goal. See [separate definition](#1226-crowdin-file-types). If not specified, auto-detection will be attempted based on the file extension.</sub>|
 |<sub>`updateOption`</sub>|<sub>Enum</sub>|<sub>No</sub>|<sub>Delete</sub>|<sub>The `update_option` [Crowdin API parameter](https://support.crowdin.com/api/update-file/). See [separate definition](#1225-updateoption-options). This is not used by this plugin, and is merely passed on to Crowdin. If defined, this parameter overrides the corresponding global parameter.</sub>|
+|<sub>`writeBOM`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`false`</sub>|<sub>Whether or not to write a [BOM](https://en.wikipedia.org/wiki/Byte_order_mark) (Byte Order Mark) at the beginning of the file when deploying translations files. This is only applicable to Unicode encodings, and generally isn't recommended for `UTF-8`. Despite this, some systems, like NSIS, requires a `UTF-8` BOM to be present to interpret the file as UTF-8. In such cases, set this parameter to `true`.</sub>|
 |<sub>`conversions`</sub>|<sub>List</sub>|<sub>No</sub>| |<sub>A list of one or more `conversion` elements. A `conversion` element represents a "find and replace operation" that will be executed during deployment. It applies to placeholders only and must match the complete placeholder. The content of any placeholders that match will be replaced. See [separate definition](#1223-conversion-parameter-description).</sub>|
 |<sub>`excludes`</sub>|<sub>List</sub>|<sub>No</sub>| |<sub>A list of one or more translation files to exclude. This is a basic filter that works on the file names exported from Crowdin, before any conversions are performed. It works like most file system searches, where the only wildcard characters are `*` and `?`.</sub>|
 |<sub>`includes`</sub>|<sub>List</sub>|<sub>No</sub>| |<sub>A list of one or more translation files to include. This is a basic filter that works on the file names exported from Crowdin, before any conversions are performed. It works like most file system searches, where the only wildcard characters are `*` and `?`. If one or more `include` elements are defined, any paths that aren't included are excluded (it becomes a white-list).</sub>|
@@ -322,9 +324,6 @@ Here is a skeleton project configuration showing the location of all configurati
 |`%crowdin_code%`|Crowdin language code (i.e `en-GB` or `da`).|
 |`%crowdin_code_with_underscore%`|Crowdin language code with underscore (i.e `en_GB` or `da`).|
 |`%shortest_iso639_code%`|The shortest `ISO 639` language code (i.e `en` or `ceb`).|
-|`%language%`|Language name (e.g. Ukrainian).|
-|`%two_letters_code%`|Language code `ISO 639-1` (i.e. `uk`).|
-|`%three_letters_code%`|Language code `ISO 639-2/T` (i.e. `ukr`).|
 
 #### 1.2.3 Example project configuration
 ```xml

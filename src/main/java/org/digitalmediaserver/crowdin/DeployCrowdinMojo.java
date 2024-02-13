@@ -248,13 +248,17 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 								!fileSet.getCharset().equals(StandardCharsets.UTF_8) ||
 								Boolean.TRUE.equals(fileSet.getAddComment()) ||
 								currentLineSeparator != null ||
-								fileSet.getType() == FileType.nsh
+								fileSet.getType() == FileType.nsh ||
+								Boolean.TRUE.equals(fileSet.getWriteBOM())
 							) {
 								// "Manual" copy
 								try (
 									BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8);
 									BufferedWriter writer = Files.newBufferedWriter(targetFile, fileSet.getCharset());
 								) {
+									if (Boolean.TRUE.equals(fileSet.getWriteBOM())) {
+										writer.write("\ufeff");
+									}
 									if (Boolean.TRUE.equals(fileSet.getAddComment())) {
 										if (fileSet.getType() == FileType.html || fileSet.getType() == FileType.xml) {
 											writer.write("<!-- ");

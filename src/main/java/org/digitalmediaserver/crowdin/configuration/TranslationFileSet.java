@@ -200,6 +200,19 @@ public class TranslationFileSet extends AbstractFileSet {
 	protected List<String> excludes;
 
 	/**
+	 * Whether or not to write a BOM (Byte Order Mark) at the beginning of the
+	 * file when deploying translations files. This is only applicable to
+	 * Unicode encodings, and generally isn't recommended for UTF-8. Despite
+	 * this, some systems, like NSIS, requires a UTF-8 BOM to be present to
+	 * interpret the file as UTF-8. In such cases, set this parameter to
+	 * {@code true}.
+	 *
+	 * @parameter default-value="false"
+	 */
+	@Nullable
+	protected Boolean writeBOM;
+
+	/**
 	 * @return The comment tag.
 	 */
 	public String getCommentTag() {
@@ -298,6 +311,16 @@ public class TranslationFileSet extends AbstractFileSet {
 	@Nullable
 	public List<String> getExcludes() {
 		return excludes;
+	}
+
+	/**
+	 * @return {@code true} if a Unicode BOM should be written to the start of
+	 *         the deployed file, {@code false} otherwise. {@code null} if not
+	 *         specified.
+	 */
+	@Nullable
+	public Boolean getWriteBOM() {
+		return writeBOM;
 	}
 
 	@Override
