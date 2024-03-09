@@ -21,8 +21,9 @@ package org.digitalmediaserver.crowdin;
 import java.io.IOException;
 import java.util.HashMap;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.digitalmediaserver.crowdin.tool.CrowdinAPI;
+import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.jdom2.Document;
+
 
 /**
  * Asks Crowdin to build/prepare the latest translations for download.

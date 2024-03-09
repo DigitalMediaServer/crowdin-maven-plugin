@@ -43,7 +43,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.digitalmediaserver.crowdin.configuration.FileType;
+import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.configuration.PathPlaceholder;
 import org.digitalmediaserver.crowdin.configuration.Conversion;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;

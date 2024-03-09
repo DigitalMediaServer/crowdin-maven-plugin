@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import javax.annotation.Nullable;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 
 

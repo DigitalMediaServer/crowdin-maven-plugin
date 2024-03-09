@@ -19,7 +19,7 @@
 package org.digitalmediaserver.crowdin.tool;
 
 import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
-import static org.digitalmediaserver.crowdin.tool.CrowdinAPI.*;
+import static org.digitalmediaserver.crowdin.api.CrowdinAPI.*;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;

@@ -35,13 +35,14 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Server;
 import org.apache.maven.settings.Settings;
+import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
-import org.digitalmediaserver.crowdin.tool.CrowdinAPI;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.digitalmediaserver.crowdin.tool.GitUtil;
 import org.jdom2.Document;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 
 /**
  * The abstract base class for the Crowdin {@link Mojo}s.
