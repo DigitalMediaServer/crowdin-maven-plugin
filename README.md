@@ -2,7 +2,7 @@
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin)
 
-This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin API. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository since Git branches are translated to Crowdin branches.
+This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin API v2. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository since Git branches are translated to Crowdin branches.
 
 ## Table of Contents
 - [1. Configuration](#1-configuration)
@@ -34,7 +34,9 @@ The `pom.xml` configuration for this plugin doesn't affect the Maven build proce
 
 ### 1.1 Credentials
 
-To access Crowdin the project identifier and API key are needed. This is configured by specifying a ```server``` in Maven's configuration. The API key needs to be kept private, so the best place to put it is usually in Maven's user settings. This can be achieved by adding a server to your ```~/.m2/settings.xml``` as shown in the example below. If you don't have a ```~/.m2/settings.xml``` file, a template that can be pasted into an empty file [is provided](#112-settings-template).
+To access Crowdin your API token is needed. This is configured by specifying a ```server``` in Maven's configuration, which is then referenced in the plugin configuration with the `crowdinServerId` parameter. You can create an API token under [Account settings -> API](https://crowdin.com/settings#api-key) at Crowdin.
+
+The API token needs to be kept private, so the best place to put it is usually in Maven's user settings. This can be achieved by adding a server to your ```~/.m2/settings.xml``` as shown in the example below. If you don't have a ```~/.m2/settings.xml``` file, a template that can be pasted into an empty file [is provided](#112-settings-template).
 
 #### 1.1.1 Example credentials configuration
 ```xml
@@ -44,8 +46,7 @@ To access Crowdin the project identifier and API key are needed. This is configu
     <!-- ... -->
     <server>
       <id>crowdin</id>
-      <username>DigitalMediaServer</username>
-      <password>API key</password>
+      <password>API token</password>
     </server>
     <!-- ... -->
   </servers>
@@ -69,8 +70,7 @@ If you're missing the file ```~/.m2/settings.xml```, you can copy and paste the 
   <servers>
     <server>
       <id>crowdin</id>
-      <username>Your project identifier</username>
-      <password>Your API key</password>
+      <password>Your API token</password>
     </server>
   </servers>
   <mirrors>
@@ -102,6 +102,7 @@ Here is a skeleton project configuration showing the location of all configurati
           <artifactId>crowdin-maven-plugin</artifactId>
           <version>...</version>
           <configuration>
+            <projectId></projectId>
             <comment></comment>
             <confirm></confirm>
             <crowdinServerId></crowdinServerId>
@@ -110,6 +111,9 @@ Here is a skeleton project configuration showing the location of all configurati
             <lineSeparator></lineSeparator>
             <projectName></projectName>
             <rootBranch></rootBranch>
+            <skipUntranslatedStrings></skipUntranslatedStrings>
+            <skipUntranslatedFiles></skipUntranslatedFiles>
+            <exportApprovedOnly></exportApprovedOnly>
             <updateOption></updateOption>
             <statusFiles>
               <statusFile>
@@ -184,6 +188,7 @@ Here is a skeleton project configuration showing the location of all configurati
 
 |<sub>Name</sub>|<sub>Type</sub>|<sub>Req.</sub>|<sub>Default</sub>|<sub>Description</sub>|
 |--|:--:|:--:|:--:|--|
+|<sub>`projectId`</sub>|<sub>Integer</sub>|<sub>Yes</sub>| |<sub>The Crowdin project Id. It can be found at Crowdin under `Tools -> API` </sub>|
 |<sub>`comment`</sub>|<sub>String</sub>|<sub>No</sub>| * |<sub>The global comment to add to the top of downloaded translation files. If defined, this parameter acts as the default for all `translationFileSets` and `statusFiles`.</sub>|
 |<sub>`confirm`</sub>|<sub>String</sub>|<sub>`push`</sub>| |<sub>This is required to be `true` to use the `push` goal. This parameter can be overridden on the command line with `-Dconfirm`. Any strings that exist on Crowdin but don't exist in the uploaded files will have all their translations deleted on Crowdin when pushed. As such, it's important to make sure that a push is intended. Although this parameter can be set to `true` in `pom.xml`, it is recommended not to. That way, adding `-Dconfirm` to the command line is required to be able to push.</sub>|
 |<sub>`crowdinServerId`</sub>|<sub>String</sub>|<sub>Yes</sub>| |<sub>The `id` of the Maven configured `server` to be used for Crowdin authentication.</sub>|
@@ -194,6 +199,9 @@ Here is a skeleton project configuration showing the location of all configurati
 |<sub>`rootBranch`</sub>|<sub>String</sub>|<sub>No</sub>|<sub>`master`</sub>|<sub>The Git branch that should be considered the root on Crowdin (that is; not exist in a branch folder). This parameter can be overridden on the command line with `-DrootBranch=`. Any local Git branch not matching this parameter will push to and fetch from a branch folder at Crowdin.</sub>|
 |<sub>`statusFiles`</sub>|<sub>List</sub>|<sub>No</sub>| |<sub>A list of one or more `statusFile` elements. A `statusFile` element represents a local status file. This is a file a file in either `properties` or `xml` format, whose content is the output of the `status` [Crowdin API method](https://support.crowdin.com/api/status/). The file contains basic information about the state of the translations per language for all files in total. Crowdin doesn't allow getting the status per file, so having more than one status file for a project would serve little purpose. See [separate definition](#1221-statusfile-parameter-description).</sub>|
 |<sub>`translation` `FileSets`</sub>|<sub>List</sub>|<sub>Yes</sub>| |<sub>A list of one or more `translationFileSet` elements. A `translationsFileSet` element represents a local *base language file* and its set of corresponding translations in other languages. It also represents a single file on Crowdin. Only the *base language file* will be uploaded to Crowdin, and only the corresponding translated language files will be downloaded. See [separate definition](#1222-translationfileset-parameter-description).</sub>|
+|<sub>`skipUntranslatedStrings`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`true`</sub>|<sub>**Note:** This parameter cannot be `true` if `skipUntranslatedFiles` is `true`. Only translated strings will be included in the exported translation files. This option is not applied to text documents: `*.docx`, `*.pptx`, `*.xlsx`, etc., since missing texts may cause the resulting files to be unreadable. This parameter is not used by this plugin, it is merely passed on to Crowdin when triggering a new build.</sub>|
+|<sub>`skipUntranslatedFiles`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`false`</sub>|<sub>**Note:** This parameter cannot be `true` if `skipUntranslatedStrings` is `true`. Only translated files will be included in the exported translation files. This parameter is not used by this plugin, it is merely passed on to Crowdin when triggering a new build.</sub>|
+|<sub>`exportApprovedOnly`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`false`</sub>|<sub>Only texts that are both translated and approved will be included in the exported translation files. This will require additional efforts from your proofreaders to approve all suggestions. This parameter is not used by this plugin, it is merely passed on to Crowdin when triggering a new build.</sub>|
 |<sub>`updateOption`</sub>|<sub>Enum</sub>|<sub>No</sub>|<sub>Delete</sub>|<sub>The global `update_option` [Crowdin API parameter](https://support.crowdin.com/api/update-file/). See [separate definition](#1225-updateoption-options). This is not used by this plugin, and is merely passed on to Crowdin. If defined, this parameter acts as the default for all `translationFileSets`.</sub>|
 
 <sub>`*` The default comment is `This file has been generated automatically, modifications will be overwritten. If you'd like to change the content, please do so at Crowdin.`</sub>
@@ -340,6 +348,7 @@ Here is a skeleton project configuration showing the location of all configurati
           <artifactId>crowdin-maven-plugin</artifactId>
           <version>...</version>   
           <configuration>
+            <projectId>xxxxxx</projectID>
             <projectName>Digital Media Server</projectName>
             <crowdinServerId>crowdin</crowdinServerId>
             <downloadFolder>${project.basedir}/extras/crowdin</downloadFolder>
@@ -411,10 +420,9 @@ This short form will be used in the descriptions below.
 
 |*Goal* | *Command* | *Description*|
 |--|--|--|
-|**build** | `mvn crowdin:build` | Asks Crowdin to build a downloadable zip file containing all the latest translations. This file is used by the `fetch` goal, so if the zip file isn't up to date, `fetch` will download stale translations.<br><br>Unpaid projects can only build once every 30 minutes via the API, but it's possible to build from the Crowdin web interface at any time. Unfortunately, it's not possible to build branches from the Crowdin web interface. The API replies with status `skipped` both if there are no changes in the translations since the last build and if the previous build was less than 30 minutes ago, so there is no way to tell the two apart.|
-|**fetch** | `mvn crowdin:fetch` | Downloads and extracts the last built zip file from Crowdin to `downloadFolder`.|
+|**fetch** | `mvn crowdin:fetch` | Builds a downloadable zip file containing the latest translations, then downloads and extracts the zip file from Crowdin to `downloadFolder`.|
 |**deploy** | `mvn crowdin:deploy` | Applies any transformations and deploys the files from `downloadFolder` into their intended locations as defined by the [translationsFileSets](#1222-translationfileset-parameter-description) and the [statusFiles](#1221-statusfile-parameter-description).|
-|**pull** | `mvn crowdin:pull` | Executes `build`, `fetch` and `deploy` in sequence. This is a convenience goal combining the individual steps needed to get the latest translations from Crowdin built and deployed into your local project.|
+|**pull** | `mvn crowdin:pull` | Executes `fetch` and `deploy` in sequence. This is a convenience goal combining the individual steps needed to get the latest translations from Crowdin built and deployed into your local project.|
 
 ### 2.3 Cleaning the intermediate folder
 

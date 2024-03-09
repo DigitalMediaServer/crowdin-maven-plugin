@@ -48,7 +48,7 @@ public class Constants {
 	public static final SAXBuilder SAX_BUILDER = new SAXBuilder();
 
 	/** The Crowdin API URL */
-	public static final String API_URL = "https://api.crowdin.com/api/project/";
+	public static final String API_URL = "https://api.crowdin.com/api/v2/";
 
 	/** The system property to use for NTLM domain */
 	public static final String HTTP_AUTH_NTLM_DOMAIN = "http.auth.ntlm.domain";

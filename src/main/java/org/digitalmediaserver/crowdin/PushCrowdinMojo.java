@@ -130,7 +130,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			);
 		}
 
-		String branch = getBranch(true, projectDetails);
+		String branch = null; //getBranch(true, projectDetails);
 
 		// Update project information in case the branch was created in the
 		// previous step

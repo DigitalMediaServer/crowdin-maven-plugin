@@ -21,17 +21,47 @@ package org.digitalmediaserver.crowdin;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 
 
 /**
- * Executes {@link BuildCrowdinMojo}, {@link FetchCrowdinMojo} and
- * {@link DeployCrowdinMojo} in that order. This effectively downloads the
- * latest translations from Crowdin and deploys them to the local project.
+ * Executes {@link FetchCrowdinMojo} and {@link DeployCrowdinMojo} in that
+ * order. This effectively builds and downloads the latest translations from
+ * Crowdin and then deploys them to the local project.
  */
 @Mojo(name = "pull", defaultPhase = LifecyclePhase.NONE)
 public class PullCrowdinMojo extends AbstractCrowdinMojo {
+
+	/**
+	 * Only translated strings will be included in the exported translation
+	 * files. This option is not applied to text documents: *.docx, *.pptx,
+	 * *.xlsx, etc., since missing texts may cause the resulting files to be
+	 * unreadable.
+	 * <p>
+	 * <b>Note</b>: This parameter cannot be {@code true} if
+	 * {@link #skipUntranslatedFiles} is {@code true}.
+	 */
+	@Parameter(property = "skipUntranslatedStrings", defaultValue = "true")
+	protected boolean skipUntranslatedStrings;
+
+	/**
+	 * Only translated files will be included in the exported translation files.
+	 * <p>
+	 * <b>Note</b>: This parameter cannot be {@code true} if
+	 * {@link #skipUntranslatedStrings} is {@code true}.
+	 */
+	@Parameter(property = "skipUntranslatedFiles", defaultValue = "false")
+	protected boolean skipUntranslatedFiles;
+
+	/**
+	 * Only texts that are both translated and approved will be included in the
+	 * exported translation files. This will require additional efforts from
+	 * your proofreaders to approve all suggestions.
+	 */
+	@Parameter(property = "exportApprovedOnly", defaultValue = "false")
+	protected boolean exportApprovedOnly;
 
 	@Override
 	public void execute() throws MojoExecutionException {
@@ -41,26 +71,20 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		TranslationFileSet.initialize(translationFileSets);
 		StatusFile.initialize(statusFiles);
 
-		getLog().info("Executing build, fetch and deploy goals");
-
-		getLog().debug("Executing build");
-		BuildCrowdinMojo build = new BuildCrowdinMojo();
-		build.setCrowdinServerId(crowdinServerId);
-		build.setProject(project);
-		build.setRootBranch(rootBranch);
-		build.setServer(server);
-		build.setClient(client);
-		build.setLog(getLog());
-		build.doExecute();
+		getLog().info("Executing fetch and deploy goals");
 
 		getLog().debug("Executing fetch");
 		FetchCrowdinMojo fetch = new FetchCrowdinMojo();
 		fetch.setCrowdinServerId(crowdinServerId);
 		fetch.setDownloadFolder(downloadFolderPath);
 		fetch.setProject(project);
+		fetch.setProjectId(projectId);
 		fetch.setRootBranch(rootBranch);
 		fetch.setServer(server);
 		fetch.setClient(client);
+		fetch.setSkipUntranslatedFiles(skipUntranslatedFiles);
+		fetch.setSkipUntranslatedStrings(skipUntranslatedStrings);
+		fetch.setExportApprovedOnly(exportApprovedOnly);
 		fetch.setTranslationFileSets(translationFileSets);
 		fetch.setStatusFiles(statusFiles);
 		fetch.setLog(getLog());
@@ -77,5 +101,15 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		deploy.execute();
 
 		getLog().info("Pull sequence completed");
+	}
+
+	@Override
+	protected void initializeServer() throws MojoExecutionException {
+		super.initializeServer();
+		if (skipUntranslatedFiles && skipUntranslatedStrings) {
+			throw new MojoExecutionException(
+				"Both 'skipUntranslatedFiles' and 'skipUntranslatedStrings' cannot be 'true'"
+			);
+		}
 	}
 }
