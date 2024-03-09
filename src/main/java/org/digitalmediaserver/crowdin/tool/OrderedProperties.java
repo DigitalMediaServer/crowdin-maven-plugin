@@ -18,7 +18,8 @@
  */
 package org.digitalmediaserver.crowdin.tool;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -130,7 +131,7 @@ public abstract class OrderedProperties implements Iterable<Entry<String, String
 		@Nullable String lineSeparator,
 		boolean escapeUnicode
 	) throws IOException {
-		if (!isBlank(comment)) {
+		if (isNotBlank(comment)) {
 			writeComment(bw, comment, lineSeparator);
 			writeNewLine(bw, lineSeparator);
 		}

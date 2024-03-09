@@ -18,7 +18,7 @@
  */
 package org.digitalmediaserver.crowdin.api.request;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

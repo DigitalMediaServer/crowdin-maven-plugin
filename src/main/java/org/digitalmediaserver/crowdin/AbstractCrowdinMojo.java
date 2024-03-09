@@ -18,6 +18,8 @@
  */
 package org.digitalmediaserver.crowdin;
 
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -426,29 +428,5 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 				);
 			}
 		}
-	}
-
-	/**
-	 * Evaluates if the specified character sequence is {@code null}, empty or
-	 * only consists of whitespace.
-	 *
-	 * @param cs the {@link CharSequence} to evaluate.
-	 * @return true if {@code cs} is {@code null}, empty or only consists of
-	 *         whitespace, {@code false} otherwise.
-	 */
-	public static boolean isBlank(@Nullable CharSequence cs) {
-		if (cs == null) {
-			return true;
-		}
-		int strLen = cs.length();
-		if (strLen == 0) {
-			return true;
-		}
-		for (int i = 0; i < strLen; i++) {
-			if (!Character.isWhitespace(cs.charAt(i))) {
-				return false;
-			}
-		}
-		return true;
 	}
 }

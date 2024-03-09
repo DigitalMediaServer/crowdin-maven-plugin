@@ -19,6 +19,8 @@
 package org.digitalmediaserver.crowdin;
 
 import static org.digitalmediaserver.crowdin.tool.CrowdinFileSystem.*;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +36,7 @@ import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.configuration.UpdateOption;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
+import org.digitalmediaserver.crowdin.tool.FileUtil;
 import org.digitalmediaserver.crowdin.tool.NSISUtil;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -155,8 +158,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 		for (TranslationFileSet fileSet : translationFileSets) {
 			Path pushFile = fileSet.getLanguageFilesFolder().toPath().resolve(fileSet.getBaseFileName());
 			if (Files.exists(pushFile)) {
-				String pushFolder = getPushFolder(fileSet, true);
-				if (!isBlank(pushFolder) && !containsFolder(filesElement, pushFolder, getLog())) {
+				String pushFolder = FileUtil.getPushFolder(fileSet, true);
+				if (isNotBlank(pushFolder) && !containsFolder(filesElement, pushFolder, getLog())) {
 					try {
 						createFolders(client, server, filesElement, pushFolder, getLog());
 					} catch (IOException e) {
@@ -173,7 +176,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 				String pushName = isBlank(fileSet.getCrowdinPath()) ?
 					fileSet.getBaseFileName() :
-					formatPath(fileSet.getCrowdinPath(), true) + fileSet.getBaseFileName();
+					FileUtil.formatPath(fileSet.getCrowdinPath(), true) + fileSet.getBaseFileName();
 				boolean update = containsFile(filesElement, pushName, getLog());
 
 				try {

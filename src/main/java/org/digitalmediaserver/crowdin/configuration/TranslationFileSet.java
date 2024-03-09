@@ -18,7 +18,8 @@
  */
 package org.digitalmediaserver.crowdin.configuration;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -28,7 +29,7 @@ import javax.annotation.Nullable;
 import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.digitalmediaserver.crowdin.api.FileType;
-import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
+import org.digitalmediaserver.crowdin.tool.FileUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
@@ -334,7 +335,7 @@ public class TranslationFileSet extends AbstractFileSet {
 
 		// Title and base file name.
 		if (baseFileName != null) {
-			baseFileName = CrowdinFileSystem.formatPath(baseFileName, false);
+			baseFileName = FileUtil.formatPath(baseFileName, false);
 		}
 		if (isBlank(title)) {
 			title = baseFileName;
@@ -363,7 +364,7 @@ public class TranslationFileSet extends AbstractFileSet {
 
 		// Crowdin path
 		if (crowdinPath != null) {
-			crowdinPath = CrowdinFileSystem.formatPath(crowdinPath, false);
+			crowdinPath = FileUtil.formatPath(crowdinPath, false);
 		}
 
 		// File type
@@ -440,7 +441,7 @@ public class TranslationFileSet extends AbstractFileSet {
 			case yaml:
 			default:
 				// Parse the encoding parameter
-				if (!isBlank(encoding)) {
+				if (isNotBlank(encoding)) {
 					charset = Charset.forName(encoding);
 					break;
 				}
@@ -482,7 +483,7 @@ public class TranslationFileSet extends AbstractFileSet {
 
 		// Target filename
 		if (targetFileName != null) {
-			targetFileName = CrowdinFileSystem.formatPath(targetFileName, false);
+			targetFileName = FileUtil.formatPath(targetFileName, false);
 		}
 
 		super.initializeInstance();
