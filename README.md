@@ -110,6 +110,9 @@ Here is a skeleton project configuration showing the location of all configurati
             <lineSeparator></lineSeparator>
             <projectName></projectName>
             <rootBranch></rootBranch>
+            <skipUntranslatedStrings></skipUntranslatedStrings>
+            <skipUntranslatedFiles></skipUntranslatedFiles>
+            <exportApprovedOnly></exportApprovedOnly>
             <updateOption></updateOption>
             <statusFiles>
               <statusFile>
@@ -194,6 +197,9 @@ Here is a skeleton project configuration showing the location of all configurati
 |<sub>`rootBranch`</sub>|<sub>String</sub>|<sub>No</sub>|<sub>`master`</sub>|<sub>The Git branch that should be considered the root on Crowdin (that is; not exist in a branch folder). This parameter can be overridden on the command line with `-DrootBranch=`. Any local Git branch not matching this parameter will push to and fetch from a branch folder at Crowdin.</sub>|
 |<sub>`statusFiles`</sub>|<sub>List</sub>|<sub>No</sub>| |<sub>A list of one or more `statusFile` elements. A `statusFile` element represents a local status file. This is a file a file in either `properties` or `xml` format, whose content is the output of the `status` [Crowdin API method](https://support.crowdin.com/api/status/). The file contains basic information about the state of the translations per language for all files in total. Crowdin doesn't allow getting the status per file, so having more than one status file for a project would serve little purpose. See [separate definition](#1221-statusfile-parameter-description).</sub>|
 |<sub>`translation` `FileSets`</sub>|<sub>List</sub>|<sub>Yes</sub>| |<sub>A list of one or more `translationFileSet` elements. A `translationsFileSet` element represents a local *base language file* and its set of corresponding translations in other languages. It also represents a single file on Crowdin. Only the *base language file* will be uploaded to Crowdin, and only the corresponding translated language files will be downloaded. See [separate definition](#1222-translationfileset-parameter-description).</sub>|
+|<sub>`skipUntranslatedStrings`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`true`</sub>|<sub>**Note:** This parameter cannot be `true` if `skipUntranslatedFiles` is `true`. Only translated strings will be included in the exported translation files. This option is not applied to text documents: `*.docx`, `*.pptx`, `*.xlsx`, etc., since missing texts may cause the resulting files to be unreadable. This parameter is not used by this plugin, it is merely passed on to Crowdin when triggering a new build.</sub>|
+|<sub>`skipUntranslatedFiles`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`false`</sub>|<sub>**Note:** This parameter cannot be `true` if `skipUntranslatedStrings` is `true`. Only translated files will be included in the exported translation files. This parameter is not used by this plugin, it is merely passed on to Crowdin when triggering a new build.</sub>|
+|<sub>`exportApprovedOnly`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`false`</sub>|<sub>Only texts that are both translated and approved will be included in the exported translation files. This will require additional efforts from your proofreaders to approve all suggestions. This parameter is not used by this plugin, it is merely passed on to Crowdin when triggering a new build.</sub>|
 |<sub>`updateOption`</sub>|<sub>Enum</sub>|<sub>No</sub>|<sub>Delete</sub>|<sub>The global `update_option` [Crowdin API parameter](https://support.crowdin.com/api/update-file/). See [separate definition](#1225-updateoption-options). This is not used by this plugin, and is merely passed on to Crowdin. If defined, this parameter acts as the default for all `translationFileSets`.</sub>|
 
 <sub>`*` The default comment is `This file has been generated automatically, modifications will be overwritten. If you'd like to change the content, please do so at Crowdin.`</sub>

@@ -19,13 +19,13 @@
 package org.digitalmediaserver.crowdin;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
 
 /**
  * Deletes all content in {@link AbstractCrowdinMojo#downloadFolder}.
- *
- * @goal clean
- * @phase clean
  */
+@Mojo(name = "clean", defaultPhase = LifecyclePhase.CLEAN)
 public class CleanDownloadsMojo extends AbstractCrowdinMojo {
 
 	@Override

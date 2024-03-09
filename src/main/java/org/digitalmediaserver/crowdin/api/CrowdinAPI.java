@@ -308,15 +308,21 @@ public class CrowdinAPI {
 		long projectId,
 		@Nonnull String token,
 		@Nullable Long branchId,
+		boolean skipUntranslatedStrings,
+		boolean skipUntranslatedFiles,
+		boolean exportApprovedOnly,
 		@Nullable Log logger
 	) throws MojoExecutionException {
-		CreateBuildRequest payload = new CreateBuildRequest(); //TODO: (Nad) Figure out params.
+		CreateBuildRequest payload = new CreateBuildRequest();
+		payload.setSkipUntranslatedStrings(skipUntranslatedStrings);
+		payload.setSkipUntranslatedFiles(skipUntranslatedFiles);
+		payload.setExportApprovedOnly(exportApprovedOnly);
 		if (branchId != null) {
 			payload.setBranchId(branchId);
 		}
 
 		if (logger != null && logger.isDebugEnabled()) {
-			logger.debug("Requesting a new build with:  " + payload);
+			logger.debug("Requesting a new build with: " + payload);
 		}
 		String response;
 		try {

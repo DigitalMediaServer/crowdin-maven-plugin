@@ -30,11 +30,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI.HTTPMethod;
+import org.digitalmediaserver.crowdin.api.response.BranchInfo;
+import org.digitalmediaserver.crowdin.api.response.BuildInfo;
+import org.digitalmediaserver.crowdin.api.response.BuildInfo.ProjectBuildStatus;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.jdom2.Document;
@@ -44,10 +53,65 @@ import org.jdom2.output.XMLOutputter;
 /**
  * Downloads the translations files to the intermediary
  * {@link AbstractCrowdinMojo#downloadFolder}.
- *
- * @goal fetch
  */
+@Mojo(name = "fetch", defaultPhase = LifecyclePhase.NONE)
 public class FetchCrowdinMojo extends AbstractCrowdinMojo {
+
+	/**
+	 * Only translated strings will be included in the exported translation
+	 * files. This option is not applied to text documents: *.docx, *.pptx,
+	 * *.xlsx, etc., since missing texts may cause the resulting files to be
+	 * unreadable.
+	 * <p>
+	 * <b>Note</b>: This parameter cannot be {@code true} if
+	 * {@link #skipUntranslatedFiles} is {@code true}.
+	 */
+	@Parameter(property = "skipUntranslatedStrings", defaultValue = "true")
+	protected boolean skipUntranslatedStrings;
+
+	/**
+	 * Sets the {@link #skipUntranslatedStrings} value.
+	 *
+	 * @param value the value to set.
+	 */
+	protected void setSkipUntranslatedStrings(boolean value) {
+		skipUntranslatedStrings = value;
+	}
+
+	/**
+	 * Only translated files will be included in the exported translation files.
+	 * <p>
+	 * <b>Note</b>: This parameter cannot be {@code true} if
+	 * {@link #skipUntranslatedStrings} is {@code true}.
+	 */
+	@Parameter(property = "skipUntranslatedFiles", defaultValue = "false")
+	protected boolean skipUntranslatedFiles;
+
+	/**
+	 * Sets the {@link #skipUntranslatedFiles} value.
+	 *
+	 * @param value the value to set.
+	 */
+	protected void setSkipUntranslatedFiles(boolean value) {
+		skipUntranslatedFiles = value;
+	}
+
+	/**
+	 * Only texts that are both translated and approved will be included in the
+	 * exported translation files. This will require additional efforts from
+	 * your proofreaders to approve all suggestions.
+	 */
+	@Parameter(property = "exportApprovedOnly", defaultValue = "false")
+	protected boolean exportApprovedOnly;
+
+	/**
+	 * Sets the {@link #exportApprovedOnly} value.
+	 *
+	 * @param value the value to set.
+	 */
+	protected void setExportApprovedOnly(boolean value) {
+		exportApprovedOnly = value;
+	}
 
 	@Override
 	public void execute() throws MojoExecutionException {
@@ -70,12 +134,15 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		}
 
 		String token = server.getPassword();
-
+		BranchInfo branch = null; //getBranch(); TODO: (Nad) Temp test
+		buildTranslations(branch, token);
 		//cleanDownloadFolder(); TODO: (Nad) Temp disabled
-		String branch = null; // getBranch(); TODO: (Nad) Temp hack
+
+
+
 		Map<String, String> parameters = new HashMap<>();
 		if (branch != null) {
-			parameters.put("branch", branch); //TODO: (Nad) Redo
+//			parameters.put("branch", branch); //TODO: (Nad) Redo
 		}
 
 		getLog().info("Downloading translations from Crowdin");
@@ -140,6 +207,35 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		}
 	}
 
+	protected void buildTranslations(
+		@Nullable BranchInfo branch,
+		@Nonnull String token
+	) throws MojoExecutionException {
+		if (branch == null) {
+			getLog().info("Asking Crowdin to build translations");
+		} else {
+			getLog().info("Asking Crowdin to build translations for branch \"" + branch.getName() + "\"");
+		}
+
+		BuildInfo build = CrowdinAPI.createBuild(
+			client,
+			projectId,
+			token,
+			branch == null ? null : Long.valueOf(branch.getId()),
+			skipUntranslatedStrings,
+			skipUntranslatedFiles,
+			exportApprovedOnly,
+			getLog()
+		);
+		build = waitForBuild(build, 500L, 30000L, token, getLog());
+		if (build.getStatus() != ProjectBuildStatus.FINISHED) {
+			throw new MojoExecutionException(
+				"Failed to build translations at Crowdin with status: " + build.getStatus()
+			);
+		}
+		getLog().info("Crowdin successfully built translations");
+	}
+
 	/**
 	 * Downloads the translations status file to the intermediary
 	 * {@link AbstractCrowdinMojo#downloadFolder}.
@@ -165,6 +261,61 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			xmlOut.output(document, writer);
 		} catch (IOException e) {
 			throw new MojoExecutionException("Failed to write file \"" + statusFile + "\": " + e.getMessage(), e);
+		}
+	}
+
+	@Nonnull
+	public BuildInfo waitForBuild(
+		@Nonnull BuildInfo build,
+		long pollIntervalMS,
+		long timeoutMS,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		BuildInfo result = build;
+		ProjectBuildStatus status;
+		long now = System.currentTimeMillis();
+		long expiry = now + timeoutMS;
+		while ((
+				(status = result.getStatus()) == ProjectBuildStatus.CREATED ||
+				status == ProjectBuildStatus.IN_PROGRESS
+			) && (
+				(now = System.currentTimeMillis()) < expiry
+			)
+		) {
+			if (logger != null) {
+				if (status == ProjectBuildStatus.CREATED) {
+					logger.info("Build hasn't started yet");
+				} else {
+					logger.info("Build is " + result.getProgress() + "% completed");
+				}
+			}
+			try {
+				if (logger != null && logger.isDebugEnabled()) {
+					logger.debug("Waiting for " + pollIntervalMS + " ms");
+				}
+				Thread.sleep(pollIntervalMS);
+			} catch (InterruptedException e) {
+				throw new MojoExecutionException("Interrupted while waiting for build to finish", e);
+			}
+			result = CrowdinAPI.getBuildStatus(client, build.getProjectId(), build.getId(), token, logger);
+		}
+
+		if (now >= expiry) {
+			throw new MojoExecutionException(
+				"Timed out while waiting for build to finish (timeout = " + timeoutMS + " ms)"
+			);
+		}
+		return result;
+	}
+
+	@Override
+	protected void initializeServer() throws MojoExecutionException { //TODO: (Nad) Is this called for "pull"?
+		super.initializeServer();
+		if (skipUntranslatedFiles && skipUntranslatedStrings) {
+			throw new MojoExecutionException(
+				"Both 'skipUntranslatedFiles' and 'skipUntranslatedStrings' cannot be 'true'"
+			);
 		}
 	}
 }

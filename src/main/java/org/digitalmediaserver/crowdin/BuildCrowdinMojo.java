@@ -25,6 +25,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo;
@@ -33,10 +36,38 @@ import org.jdom2.Document;
 
 /**
  * Asks Crowdin to build/prepare the latest translations for download.
- *
- * @goal build
  */
+@Mojo(name = "build", defaultPhase = LifecyclePhase.NONE)
 public class BuildCrowdinMojo extends AbstractCrowdinMojo {
+
+	/**
+	 * Only translated strings will be included in the exported translation
+	 * files. This option is not applied to text documents: *.docx, *.pptx,
+	 * *.xlsx, etc., since missing texts may cause the resulting files to be
+	 * unreadable.
+	 * <p>
+	 * <b>Note</b>: This parameter cannot be {@code true} if
+	 * {@link #skipUntranslatedFiles} is {@code true}.
+	 */
+	@Parameter(property = "skipUntranslatedStrings", defaultValue = "true")
+	protected boolean skipUntranslatedStrings;
+
+	/**
+	 * Only translated files will be included in the exported translation files.
+	 * <p>
+	 * <b>Note</b>: This parameter cannot be {@code true} if
+	 * {@link #skipUntranslatedStrings} is {@code true}.
+	 */
+	@Parameter(property = "skipUntranslatedFiles", defaultValue = "false")
+	protected boolean skipUntranslatedFiles;
+
+	/**
+	 * Only texts that are both translated and approved will be included in the
+	 * exported translation files. This will require additional efforts from
+	 * your proofreaders to approve all suggestions.
+	 */
+	@Parameter(property = "exportApprovedOnly", defaultValue = "false")
+	protected boolean exportApprovedOnly;
 
 	@Override
 	public void execute() throws MojoExecutionException {
@@ -45,6 +76,7 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		doExecute();
 	}
 
+	@Nonnull
 	public BuildInfo waitForBuild(
 		@Nonnull BuildInfo build,
 		long pollIntervalMS,
@@ -64,7 +96,11 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 			)
 		) {
 			if (logger != null) {
-				logger.info("Build is " + result.getProgress() + "% completed");
+				if (status == ProjectBuildStatus.CREATED) {
+					logger.info("Build hasn't started yet");
+				} else {
+					logger.info("Build is " + result.getProgress() + "% completed");
+				}
 			}
 			try {
 				if (logger != null && logger.isDebugEnabled()) {
@@ -95,7 +131,7 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	public void doExecute() throws MojoExecutionException {
-		BranchInfo branch = getBranch();
+		BranchInfo branch = null; //getBranch(); TODO: (Nad) Temp test
 		if (branch == null) {
 			getLog().info("Asking Crowdin to build translations");
 		} else {
@@ -103,47 +139,22 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		}
 
 		String token = server.getPassword();
-
-		List<BuildInfo> builds = CrowdinAPI.listProjectBuilds( //TODO: (Nad) Futile it seems
-			client,
-			projectId,
-			token,
-			branch == null ? null : Long.valueOf(branch.getId()),
-			getLog()
-		);
 		BuildInfo build = CrowdinAPI.createBuild(
 			client,
 			projectId,
 			token,
 			branch == null ? null : Long.valueOf(branch.getId()),
+			skipUntranslatedStrings,
+			skipUntranslatedFiles,
+			exportApprovedOnly,
 			getLog()
 		);
-		build = waitForBuild(build, 500L, 1000L, token, getLog());
-		HashMap<String, String> parameters = new HashMap<>();
-		parameters.put("limit", "500");
-//		if (branch != null) {
-//			parameters.put("branch", branch); //tODO: (Nad) Wrong
-//		}
-
-
-
-		Document document;
-		try {
-			document = CrowdinAPI.requestGetDocument(client, server, "export", parameters, getLog());
-		} catch (IOException e) {
-			throw new MojoExecutionException("Failed to build translations at Crowdin: " + e.getMessage(), e);
-		}
-
-		String status = document.getRootElement().getAttributeValue("status");
-		if (status.equals("skipped")) {
-			getLog().warn(
-				"Crowdin build skipped either because the files are up to " +
-				"date or because the last build was less than 30 minutes ago"
+		build = waitForBuild(build, 500L, 30000L, token, getLog());
+		if (build.getStatus() != ProjectBuildStatus.FINISHED) {
+			throw new MojoExecutionException(
+				"Failed to build translations at Crowdin with status: " + build.getStatus()
 			);
-		} else if (status.equals("built")) {
-			getLog().info("Crowdin successfully built translations");
-		} else {
-			getLog().warn("Crowdin replied to build request with an unexpected status: \"" + status + "\"");
 		}
+		getLog().info("Crowdin successfully built translations");
 	}
 }
