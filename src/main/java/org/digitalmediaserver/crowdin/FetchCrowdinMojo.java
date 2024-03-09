@@ -33,6 +33,8 @@ import java.util.zip.ZipInputStream;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
@@ -43,9 +45,8 @@ import org.jdom2.output.XMLOutputter;
 /**
  * Downloads the translations files to the intermediary
  * {@link AbstractCrowdinMojo#downloadFolder}.
- *
- * @goal fetch
  */
+@Mojo(name = "fetch", defaultPhase = LifecyclePhase.NONE)
 public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override

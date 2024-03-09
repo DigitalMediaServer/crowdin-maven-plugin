@@ -43,8 +43,9 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.configuration.PathPlaceholder;
 import org.digitalmediaserver.crowdin.configuration.Conversion;
@@ -68,9 +69,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Transforms the downloaded files as needed and copies/writes them to their
  * configured location.
- *
- * @goal deploy
  */
+@Mojo(name = "deploy", defaultPhase = LifecyclePhase.NONE)
 @SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
 public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 

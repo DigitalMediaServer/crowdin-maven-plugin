@@ -37,10 +37,7 @@ import org.digitalmediaserver.crowdin.tool.FileUtil;
 public class StatusFile extends AbstractFileSet {
 
 	/**
-	 * The full status file path.
-	 *
-	 * @parameter
-	 * @required
+	 * <b>Required</b>. The full status file path.
 	 */
 	protected String targetFile;
 

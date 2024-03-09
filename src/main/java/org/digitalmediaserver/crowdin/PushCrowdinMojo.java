@@ -32,6 +32,9 @@ import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.configuration.UpdateOption;
@@ -45,28 +48,23 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Uploads the base/root language file(s) to Crowdin for translation.
- *
- * @goal push
  */
+@Mojo(name = "push", defaultPhase = LifecyclePhase.NONE)
 public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 	/**
 	 * This parameter must match the POM name of the current project in is used
 	 * to prevent pushing from the wrong project.
-	 *
-	 * @parameter
-	 * @required
 	 */
+	@Parameter(property = "projectName", required = true)
 	protected String projectName;
 
 	/**
 	 * This parameter must be {@code true} for push to execute. If this isn't
 	 * specified in the POM file, {@code -Dconfirm=true} is required as a
 	 * command line argument for the push to execute.
-	 *
-	 * @parameter property="confirm"
-	 * @required
 	 */
+	@Parameter(property = "confirm", required = true)
 	protected String confirm;
 
 	/**
@@ -78,9 +76,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 * <li>3 — Escape single quote by another single quote only in strings
 	 * containing variables (<code>{0}</code>)</li>
 	 * </ul>
-	 *
-	 * @parameter default-value=0
 	 */
+	@Parameter(property = "escapeQuotes", defaultValue = "0")
 	protected int escapeQuotes;
 
 	/**
@@ -93,9 +90,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 * <li>update_without_changes — Preserve translations and validations of
 	 * changed strings</li>
 	 * </ul>
-	 *
-	 * @parameter default-value="delete_translations"
 	 */
+	@Parameter(property = "updateOption", defaultValue = "delete_translations")
 	protected UpdateOption updateOption;
 
 	@Override

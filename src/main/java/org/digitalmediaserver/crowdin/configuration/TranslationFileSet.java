@@ -42,10 +42,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TranslationFileSet extends AbstractFileSet {
 
 	/**
-	 * The folder where the language files are located.
-	 *
-	 * @parameter
-	 * @required
+	 * <b>Required</b>. The folder where the language files are located.
 	 */
 	protected File languageFilesFolder;
 
@@ -53,33 +50,24 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * The path from the Crowdin (branch) root folder to the files of this
 	 * {@link TranslationFileSet}. Only specify it the files are located in a
 	 * subfolder at Crowdin.
-	 *
-	 * @parameter
 	 */
 	protected String crowdinPath;
 
 	/**
-	 * The base language file that should be uploaded to Crowdin.
-	 *
-	 * @parameter
-	 * @required
+	 * <b>Required</b>. The base language file that should be uploaded to Crowdin.
 	 */
 	protected String baseFileName;
 
 	/**
 	 * The title as it should appear to translators at Crowdin.
-	 *
-	 * @parameter
 	 */
 	protected String title;
 
 	/**
 	 * The comment character or character combination to use for comment lines
 	 * when exporting files from Crowdin if {@code addComment} is {@code true}.
-	 *
-	 * @parameter default-value="#"
 	 */
-	protected String commentTag;
+	protected String commentTag = "#";
 
 	/**
 	 * The value to use in the {@code "Resulting file name when exported"}
@@ -106,9 +94,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li><b>%original_path%</b> &ndash; Use parent folders' names in your
 	 * project to build the file path in the resulting archive</li>
 	 * </ul>
-	 *
-	 * @parameter
-	 * @required
 	 */
 	protected String fileNameWhenExported;
 
@@ -146,8 +131,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * </ul>
 	 * (*) The variable must also be used in {@link #fileNameWhenExported} to be
 	 * supported.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected String targetFileName;
@@ -161,8 +144,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li>3 — Escape single quote by another single quote only in strings
 	 * containing variables (<code>{0}</code>)</li>
 	 * </ul>
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected Integer escapeQuotes;
@@ -176,8 +157,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li>update_without_changes — Preserve translations and validations of
 	 * changed strings</li>
 	 * </ul>
-	 *
-	 * @parameter default-value="delete_translations"
 	 */
 	protected UpdateOption updateOption;
 
@@ -186,8 +165,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * wildcards and the rest are literals. If one or more includes are
 	 * configured the file set becomes a white-list where anything not included
 	 * is excluded.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected List<String> includes;
@@ -195,8 +172,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	/**
 	 * Paths to exclude using a basic filter where {@code ?} and {@code *} are
 	 * wildcards and the rest are literals.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected List<String> excludes;
@@ -208,11 +183,9 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * this, some systems, like NSIS, requires a UTF-8 BOM to be present to
 	 * interpret the file as UTF-8. In such cases, set this parameter to
 	 * {@code true}.
-	 *
-	 * @parameter default-value="false"
 	 */
 	@Nullable
-	protected Boolean writeBOM;
+	protected Boolean writeBOM = Boolean.FALSE;
 
 	/**
 	 * @return The comment tag.

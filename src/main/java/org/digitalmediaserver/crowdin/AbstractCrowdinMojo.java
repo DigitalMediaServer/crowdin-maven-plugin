@@ -34,6 +34,7 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Server;
 import org.apache.maven.settings.Settings;
@@ -61,20 +62,14 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	/**
 	* The Maven Session object.
-	*
-	* @parameter default-value="${session}"
-	* @readonly
-	* @required
 	*/
+	@Parameter(defaultValue = "${session}", required = true, readonly = true)
 	protected MavenSession mavenSession;
 
 	/**
-	 * The current Maven project
-	 *
-	 * @parameter default-value="${project}"
-	 * @readonly
-	 * @required
+	 * The current Maven project.
 	 */
+	@Parameter(defaultValue = "${project}", required = true, readonly = true)
 	protected MavenProject project;
 
 	/**
@@ -88,10 +83,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	/**
 	 * The folder where the downloaded language files should be placed.
-	 *
-	 * @parameter
-	 * @required
 	 */
+	@Parameter(property = "downloadFolder", required = true)
 	protected File downloadFolder;
 
 	/**
@@ -126,9 +119,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 * The custom comment header to add to translation files if
 	 * {@link TranslationFileSet#addComment} is {@code true}. If not configured,
 	 * a generic "do not modify" comment will be added.
-	 *
-	 * @parameter
 	 */
+	@Parameter(property = "comment")
 	protected String comment;
 
 	/**
@@ -143,9 +135,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The string to use as line separator. Specify {@code \n}, {@code \r} or
 	 * {@code \r\n} as needed. If not specified, the default will be used.
-	 *
-	 * @parameter
 	 */
+	@Parameter(property = "lineSeparator")
 	protected String lineSeparator;
 
 	/**
@@ -160,9 +151,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * The git branch that should be treated as root in Crowdin versions
 	 * management.
-	 *
-	 * @parameter property="rootBranch" default-value="master"
 	 */
+	@Parameter(property = "rootBranch", defaultValue = "master")
 	protected String rootBranch;
 
 	/**
@@ -177,10 +167,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * Server id in settings.xml. {@code <username>} is project identifier,
 	 * {@code <password>} is API key.
-	 *
-	 * @parameter property="crowdinServerId"
-	 * @required
 	 */
+	@Parameter(property = "crowdinServerId", required = true)
 	protected String crowdinServerId;
 
 	/**
@@ -196,10 +184,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	/**
 	 * A list of {@link TranslationFileSet} elements that defines a set of
 	 * translation files.
-	 *
-	 * @parameter
-	 * @required
 	 */
+	@Parameter(property = "translationFileSets", required = true)
 	protected List<TranslationFileSet> translationFileSets;
 
 	/**
@@ -213,10 +199,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
 	/**
 	 * A list of {@link StatusFile} elements that defines status files.
-	 *
-	 * @parameter
-	 * @required
 	 */
+	@Parameter(property = "statusFiles", required = true)
 	protected List<StatusFile> statusFiles;
 
 	/**

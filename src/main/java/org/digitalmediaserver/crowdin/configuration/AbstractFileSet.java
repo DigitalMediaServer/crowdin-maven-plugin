@@ -45,8 +45,6 @@ public abstract class AbstractFileSet {
 	 * Together with {@link #escapeUnicode} == {@code true}, any characters that
 	 * don't exist in ISO 8859-1 will be encoded as &#92;u{@code <xxxx>} where
 	 * {@code <xxxx>} is the hexadecimal Unicode value.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected String encoding;
@@ -56,8 +54,6 @@ public abstract class AbstractFileSet {
 	 * translation files when exporting them from Crowdin. Mostly useful for
 	 * {@link Properties} files. Defaults to {@code true} if {@code encoding} is
 	 * {@code "Properties"}, {@code false} otherwise.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected Boolean sortLines;
@@ -66,8 +62,6 @@ public abstract class AbstractFileSet {
 	 * Whether or not to add a comment header to the files when exporting them
 	 * from Crowdin. If no custom comment is provided, a generic "do not modify"
 	 * comment will be added.
-	 *
-	 * @parameter default-value="true"
 	 */
 	@Nullable
 	protected Boolean addComment;
@@ -76,8 +70,6 @@ public abstract class AbstractFileSet {
 	 * The custom comment header to add to translation files when exporting them
 	 * from Crowdin if {@link #addComment} is {@code true}. If not configured, a
 	 * generic "do not modify" comment will be added.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected String comment;
@@ -86,8 +78,6 @@ public abstract class AbstractFileSet {
 	 * The string to use as line separator when exporting files from Crowdin.
 	 * Specify \n, \r or \r\n as needed. If not specified, the default will be
 	 * used.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected String lineSeparator;
@@ -96,8 +86,6 @@ public abstract class AbstractFileSet {
 	 * Whether or not to encode Unicode characters in the form "&#92;uxxxx" when
 	 * exporting files from Crowdin. This setting only applies to
 	 * {@link FileType#properties} file sets.
-	 *
-	 * @parameter default-value="true"
 	 */
 	@Nullable
 	protected Boolean escapeUnicode;
@@ -106,8 +94,6 @@ public abstract class AbstractFileSet {
 	 * The {@link FileType} for this fileset. If not specified,
 	 * auto-detection will be attempted with fall-back to
 	 * {@link FileType#auto}.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected FileType type;
@@ -115,8 +101,6 @@ public abstract class AbstractFileSet {
 	/**
 	 * A list of {@link Conversion} elements to apply to the
 	 * translation file names.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected List<Conversion> conversions;

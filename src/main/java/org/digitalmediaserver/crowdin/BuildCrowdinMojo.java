@@ -21,6 +21,8 @@ package org.digitalmediaserver.crowdin;
 import java.io.IOException;
 import java.util.HashMap;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.jdom2.Document;
 
@@ -30,6 +32,7 @@ import org.jdom2.Document;
  *
  * @goal build
  */
+@Mojo(name = "build", defaultPhase = LifecyclePhase.NONE)
 public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 
 	@Override
