@@ -33,9 +33,9 @@ import java.util.zip.ZipInputStream;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
-import org.digitalmediaserver.crowdin.tool.CrowdinAPI;
 import org.jdom2.Document;
 import org.jdom2.output.XMLOutputter;
 

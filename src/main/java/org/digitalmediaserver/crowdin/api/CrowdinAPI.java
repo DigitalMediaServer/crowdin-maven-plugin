@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-package org.digitalmediaserver.crowdin.tool;
+package org.digitalmediaserver.crowdin.api;
 
 import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
 import static org.digitalmediaserver.crowdin.tool.Constants.*;
@@ -45,6 +45,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
+import org.digitalmediaserver.crowdin.tool.Constants;
+import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
