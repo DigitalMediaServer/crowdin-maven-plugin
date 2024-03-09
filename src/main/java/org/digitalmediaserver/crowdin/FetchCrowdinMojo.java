@@ -34,6 +34,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
+import org.digitalmediaserver.crowdin.api.CrowdinAPI.HTTPMethod;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.jdom2.Document;
@@ -68,16 +69,19 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			throw new MojoExecutionException("No filesets are defined");
 		}
 
-		cleanDownloadFolder();
-		String branch = getBranch();
+		String token = server.getPassword();
+
+		//cleanDownloadFolder(); TODO: (Nad) Temp disabled
+		String branch = null; // getBranch(); TODO: (Nad) Temp hack
 		Map<String, String> parameters = new HashMap<>();
 		if (branch != null) {
-			parameters.put("branch", branch);
+			parameters.put("branch", branch); //TODO: (Nad) Redo
 		}
 
 		getLog().info("Downloading translations from Crowdin");
 
 		try {
+//			CrowdinAPI.sendRequest(client, HTTPMethod.GET, "", parameters, token, payload, clazz)
 			HttpResponse response = CrowdinAPI.requestPost(client, server, "download/all.zip", parameters, getLog());
 			int returnCode = response.getStatusLine().getStatusCode();
 			getLog().debug("Crowdin return code : " + returnCode);

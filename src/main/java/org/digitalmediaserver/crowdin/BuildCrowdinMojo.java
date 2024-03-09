@@ -20,8 +20,15 @@ package org.digitalmediaserver.crowdin;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
+import org.digitalmediaserver.crowdin.api.response.BranchInfo;
+import org.digitalmediaserver.crowdin.api.response.BuildInfo;
+import org.digitalmediaserver.crowdin.api.response.BuildInfo.ProjectBuildStatus;
 import org.jdom2.Document;
 
 /**
@@ -38,6 +45,46 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 		doExecute();
 	}
 
+	public BuildInfo waitForBuild(
+		@Nonnull BuildInfo build,
+		long pollIntervalMS,
+		long timeoutMS,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		BuildInfo result = build;
+		ProjectBuildStatus status;
+		long now = System.currentTimeMillis();
+		long expiry = now + timeoutMS;
+		while ((
+				(status = result.getStatus()) == ProjectBuildStatus.CREATED ||
+				status == ProjectBuildStatus.IN_PROGRESS
+			) && (
+				(now = System.currentTimeMillis()) < expiry
+			)
+		) {
+			if (logger != null) {
+				logger.info("Build is " + result.getProgress() + "% completed");
+			}
+			try {
+				if (logger != null && logger.isDebugEnabled()) {
+					logger.debug("Waiting for " + pollIntervalMS + " ms");
+				}
+				Thread.sleep(pollIntervalMS);
+			} catch (InterruptedException e) {
+				throw new MojoExecutionException("Interrupted while waiting for build to finish", e);
+			}
+			result = CrowdinAPI.getBuildStatus(client, build.getProjectId(), build.getId(), token, logger);
+		}
+
+		if (now >= expiry) {
+			throw new MojoExecutionException(
+				"Timed out while waiting for build to finish (timeout = " + timeoutMS + " ms)"
+			);
+		}
+		return result;
+	}
+
 	/**
 	 * Performs the actual task. Requires that:
 	 * <ul>
@@ -48,18 +95,37 @@ public class BuildCrowdinMojo extends AbstractCrowdinMojo {
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	public void doExecute() throws MojoExecutionException {
-		String branch = getBranch();
+		BranchInfo branch = getBranch();
 		if (branch == null) {
 			getLog().info("Asking Crowdin to build translations");
 		} else {
-			getLog().info("Asking Crowdin to build translations for branch \"" + branch + "\"");
+			getLog().info("Asking Crowdin to build translations for branch \"" + branch.getName() + "\"");
 		}
 
-		HashMap<String, String> parameters = null;
-		if (branch != null) {
-			parameters = new HashMap<>();
-			parameters.put("branch", branch);
-		}
+		String token = server.getPassword();
+
+		List<BuildInfo> builds = CrowdinAPI.listProjectBuilds( //TODO: (Nad) Futile it seems
+			client,
+			projectId,
+			token,
+			branch == null ? null : Long.valueOf(branch.getId()),
+			getLog()
+		);
+		BuildInfo build = CrowdinAPI.createBuild(
+			client,
+			projectId,
+			token,
+			branch == null ? null : Long.valueOf(branch.getId()),
+			getLog()
+		);
+		build = waitForBuild(build, 500L, 1000L, token, getLog());
+		HashMap<String, String> parameters = new HashMap<>();
+		parameters.put("limit", "500");
+//		if (branch != null) {
+//			parameters.put("branch", branch); //tODO: (Nad) Wrong
+//		}
+
+
 
 		Document document;
 		try {

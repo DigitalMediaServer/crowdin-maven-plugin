@@ -22,13 +22,24 @@ import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
 import static org.digitalmediaserver.crowdin.tool.Constants.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.NTCredentials;
@@ -36,20 +47,43 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
+import org.digitalmediaserver.crowdin.api.request.CreateBranchRequest;
+import org.digitalmediaserver.crowdin.api.request.CreateBuildRequest;
+import org.digitalmediaserver.crowdin.api.response.BranchInfo;
+import org.digitalmediaserver.crowdin.api.response.BuildInfo;
 import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
+import org.eclipse.jgit.util.io.InterruptTimer;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 
 
 /**
@@ -58,6 +92,9 @@ import org.jdom2.JDOMException;
  * @author Nadahar
  */
 public class CrowdinAPI {
+
+	//TODO: (Nad) JavaDocs
+	protected static final Gson GSON = new Gson();
 
 	/**
 	 * Not to be instantiated.
@@ -71,8 +108,9 @@ public class CrowdinAPI {
 	 * @return The new {@link CloseableHttpClient}.
 	 * @throws IOException If an error occurs during the operation.
 	 */
-	public static CloseableHttpClient createHTTPClient() throws IOException {
+	public static CloseableHttpClient createHTTPClient(String projectVersion) throws IOException {
 		HttpClientBuilder clientBuilder = HttpClientBuilder.create();
+		clientBuilder.setUserAgent("crowdin-maven-plugin/" + projectVersion);
 		if (System.getProperty(HTTP_PROXY_HOST) != null) {
 			String host = System.getProperty(HTTP_PROXY_HOST);
 			String port = System.getProperty(HTTP_PROXY_PORT);
@@ -157,6 +195,437 @@ public class CrowdinAPI {
 		}
 		return projectDetails.getRootElement().getChild("files");
 	}
+
+	@Nonnull
+	public static BranchInfo createBranch( //TODO: (Nad) JavaDocs,
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String token,
+		@Nonnull String branchName,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (isBlank(branchName)) {
+			throw new MojoExecutionException("Cannot create a branch with a blank name");
+		}
+		CreateBranchRequest payload = new CreateBranchRequest(branchName);
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting to create branch with> " + payload);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"projects/" + projectId + "/branches",
+				null,
+				token,
+				payload,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while creating branch: " + e.getMessage(),
+				e
+			);
+		}
+
+		BranchInfo branch;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			branch = GSON.fromJson(jsonObject.get("data"), BranchInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing branch creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new branch: " + branch);
+		}
+		return branch;
+	}
+
+	@Nonnull
+	public static List<BranchInfo> listBranches(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String token,
+		@Nullable String branchName, //Doc: filters the result
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		HashMap<String, String> parameters = new HashMap<>();
+		parameters.put("limit", "500");
+		if (!isBlank(branchName)) {
+			parameters.put("name", branchName);
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a list of branches");
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/branches",
+				parameters,
+				token,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting list of branches: " + e.getMessage(),
+				e
+			);
+		}
+
+		List<BranchInfo> result = new ArrayList<>();
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+			for (JsonElement element : jsonArray) {
+				result.add(GSON.fromJson(element.getAsJsonObject().get("data"), BranchInfo.class));
+			}
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing list of branches response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with branches: " + result);
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static BuildInfo createBuild( //TODO: (Nad) JavaDocs,
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String token,
+		@Nullable Long branchId,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		CreateBuildRequest payload = new CreateBuildRequest(); //TODO: (Nad) Figure out params.
+		if (branchId != null) {
+			payload.setBranchId(branchId);
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a new build with:  " + payload);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"projects/" + projectId + "/translations/builds",
+				null,
+				token,
+				payload,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while triggering build: " + e.getMessage(),
+				e
+			);
+		}
+
+		BuildInfo build;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			build = GSON.fromJson(jsonObject.get("data"), BuildInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing build creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new build: " + build);
+		}
+		return build;
+	}
+
+	@Nonnull
+	public static BuildInfo getBuildStatus(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		long buildId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting build status for buildId " + buildId);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/translations/builds/" + buildId,
+				null,
+				token,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting builds status: " + e.getMessage(),
+				e
+			);
+		}
+
+		BuildInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data").getAsJsonObject(), BuildInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing build status response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with build: " + result);
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static List<BuildInfo> listProjectBuilds(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String token,
+		@Nullable Long branchId,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		HashMap<String, String> parameters = new HashMap<>();
+		parameters.put("limit", "500");
+		if (branchId != null) {
+			parameters.put("branchId", branchId.toString());
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a list of builds");
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/translations/builds",
+				parameters,
+				token,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting list of project builds: " + e.getMessage(),
+				e
+			);
+		}
+
+		List<BuildInfo> result = new ArrayList<>();
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+			for (JsonElement element : jsonArray) {
+				result.add(GSON.fromJson(element.getAsJsonObject().get("data"), BuildInfo.class));
+			}
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing list of project builds response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with builds: " + result);
+		}
+		return result;
+	}
+
+	//TODO: (Nad) JavaDocs all over
+	@Nonnull
+	public static URI buildURI(
+		@Nullable String function,
+		@Nullable Map<String, String> parameters
+	) throws HttpException {
+		StringBuilder uri = new StringBuilder(API_URL).append(function);
+		if (parameters != null) {
+			boolean first = true;
+			String key, value;
+			for (Entry<String, String> parameter : parameters.entrySet()) {
+				if (!isBlank(key = parameter.getKey())) {
+					uri.append(first ? "?" : "&").append(key);
+					if (!isBlank(value = parameter.getValue())) {
+						uri.append('=').append(value);
+					}
+					first = false;
+				}
+			}
+		}
+		try {
+			return new URI(uri.toString());
+		} catch (URISyntaxException e) {
+			throw new HttpException("Invalid URI \"" + uri.toString() + "\": " + e.getMessage(), e);
+		}
+	}
+
+	//protected static final Type STRING_MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
+
+	public static <T, V> T sendRequest( //TODO: (Nad) Handle HTTP timeout
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull HTTPMethod method,
+		@Nullable String function,
+		@Nullable Map<String, String> parameters,
+		@Nonnull String token,
+		@Nullable V payload,
+		@Nonnull Class<T> clazz,
+		@Nullable Log logger
+	) throws HttpException {
+		RequestBuilder requestBuilder = RequestBuilder.create(method.getValue());
+		requestBuilder.setUri(buildURI(function, parameters));
+		requestBuilder.addHeader("Authorization", "Bearer " + token); //TODO: (Nad) Content-type - or any other headers..?
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Calling " + requestBuilder.getUri().toString());
+		}
+
+		if (payload != null) {
+			if (payload instanceof String) {
+				requestBuilder.setEntity(new StringEntity((String) payload, ContentType.APPLICATION_OCTET_STREAM)); //toDO: (Nad) Octet stream basically means "unknown" - it this appropriate?
+			} else if (payload instanceof InputStream) {
+				requestBuilder.setEntity(new InputStreamEntity((InputStream) payload)); //toDO: (Nad) Will this be used? If so, content type..
+			} else {
+				//Serialize JSON
+				requestBuilder.setEntity(new StringEntity(GSON.toJson(payload), ContentType.APPLICATION_JSON));
+			}
+		} else if (method == HTTPMethod.POST) {
+			requestBuilder.setEntity(new StringEntity("", ContentType.APPLICATION_JSON));
+		}
+
+		HttpUriRequest request = requestBuilder.build();
+		try (CloseableHttpResponse response = httpClient.execute(request)) {
+			StatusLine statusLine = response.getStatusLine();
+			if (statusLine == null) {
+				throw new HttpException("Request \"" + request.getURI() + "\" returned no status");
+			}
+			int statusCode = statusLine.getStatusCode();
+			if (statusCode < 200 || statusCode >= 300) {
+				throw new HttpException("Request \"" + request.getURI() + "\" failed with: " + entityToString(response.getEntity()));
+			}
+			if (logger != null && logger.isDebugEnabled()) {
+				logger.debug("Crowdin API replied with status code " + statusCode);
+			}
+
+			if (Void.class.equals(clazz)) {
+				return null;
+			}
+			if (String.class.equals(clazz)) {
+				return (T) entityToString(response.getEntity());
+			} else {
+				return GSON.fromJson(entityToString(response.getEntity()), clazz);
+			}
+
+		} catch (IOException e) {
+			throw new HttpException("Error closing HTTPResponse: " + e.getMessage(), e);
+		}
+
+	}
+
+	@Nullable
+	public static String entityToString(@Nullable HttpEntity entity) throws IOException {
+		if (entity == null) {
+			return null;
+		}
+		InputStream stream = entity.getContent();
+		int bufferSize = 1024;
+		char[] buffer = new char[bufferSize];
+		StringBuilder result = new StringBuilder();
+		Reader isr = new InputStreamReader(stream, StandardCharsets.UTF_8);
+		int read;
+		while ((read = isr.read(buffer, 0, buffer.length)) > 0) {
+			result.append(buffer, 0, read);
+		}
+		return result.toString();
+	}
+
+//    private <T, V> T request(String url,
+//        V data,
+//        HttpRequestConfig config,
+//        Class<T> clazz,
+//        String method) throws HttpException, HttpBadRequestException
+//    {
+//		HttpUriRequest request = this.buildRequest(method, url, data, config);
+//		try (CloseableHttpResponse response = httpClient.execute(request)) {
+//			int statusCode = response.getStatusLine().getStatusCode();
+//			if (statusCode < 200 || statusCode >= 300) {
+//				String error = this.toString(response.getEntity());
+//				throw this.jsonTransformer.parse(error, CrowdinApiException.class);
+//			}
+//			//plain response
+//			if (String.class.equals(clazz)) {
+//				return (T) this.toString(response.getEntity());
+//			}
+//			//not interested in response at all
+//			if (Void.class.equals(clazz)) {
+//				return null;
+//			}
+//			return this.jsonTransformer.parse(this.toString(response.getEntity()), clazz);
+//		} catch (IOException e) {
+//			throw HttpException.fromMessage(e.getMessage());
+//		}
+//    }
+
+
+	// TODO (Nad) Request stuff
+//    private <V> HttpUriRequest buildRequest(String httpMethod, String url, V data, HttpRequestConfig config) {
+//        RequestBuilder requestBuilder = RequestBuilder.create(httpMethod);
+//        requestBuilder.setUri(URI.create(this.appendUrlParams(url, config.getUrlParams())));
+//        requestBuilder.addHeader("Authorization", "Bearer " + this.credentials.getToken());
+//        if (data != null) {
+//            HttpEntity entity;
+//            if (data instanceof InputStream) {
+//                entity = new InputStreamEntity((InputStream) data);
+//            } else if (data instanceof String) {
+//                entity = new StringEntity((String) data, ContentType.APPLICATION_OCTET_STREAM);
+//            } else {
+//                entity = new StringEntity(this.jsonTransformer.convert(data), ContentType.APPLICATION_JSON);
+//            }
+//            requestBuilder.setEntity(entity);
+//        } else if (HttpPost.METHOD_NAME.equals(httpMethod)) {
+//            requestBuilder.setEntity(new StringEntity("", ContentType.APPLICATION_JSON));
+//        }
+//        Map<String, Object> headers = new HashMap<>();
+//        headers.putAll(config.getHeaders());
+//        headers.putAll(this.defaultHeaders);
+//        for (Map.Entry<String, ?> entry : headers.entrySet()) {
+//            requestBuilder = requestBuilder.addHeader(entry.getKey(), entry.getValue().toString());
+//        }
+//        return requestBuilder.build();
+//    }
+//
+//    private String toString(HttpEntity entity) throws IOException {
+//        final InputStream stream = entity.getContent();
+//        final int bufferSize = 1024;
+//        final char[] buffer = new char[bufferSize];
+//        final StringBuilder out = new StringBuilder();
+//        Reader in = new InputStreamReader(stream, StandardCharsets.UTF_8);
+//        int charsRead;
+//        while ((charsRead = in.read(buffer, 0, buffer.length)) > 0) {
+//            out.append(buffer, 0, charsRead);
+//        }
+//        return out.toString();
+//    }
 
 	/**
 	 * Makes a GET request to the Crowdin API and returns the result as a
@@ -398,5 +867,26 @@ public class CrowdinAPI {
 		postMethod.setEntity(reqEntityBuilder.build());
 
 		return httpClient.execute(postMethod);
+	}
+
+	public enum HTTPMethod {
+		DELETE(HttpDelete.METHOD_NAME),
+		GET(HttpGet.METHOD_NAME),
+		HEAD(HttpHead.METHOD_NAME),
+		PATCH(HttpPatch.METHOD_NAME),
+		POST(HttpPost.METHOD_NAME),
+		PUT(HttpPut.METHOD_NAME);
+
+		@Nonnull
+		private final String value;
+
+		private HTTPMethod(String value) {
+			this.value = value;
+		}
+
+		@Nonnull
+		public String getValue() {
+			return value;
+		}
 	}
 }

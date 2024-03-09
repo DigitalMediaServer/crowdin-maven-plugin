@@ -96,7 +96,7 @@ public class CrowdinFileSystem {
 	 * @return {@code true} if the branch exists in {@code files}, {@code false}
 	 *         otherwise.
 	 */
-	public static boolean containsBranch(
+	public static boolean containsBranch( //TODO (Nad) Needed?
 		@Nullable Element currentElement,
 		@Nullable String branchName,
 		@Nullable Log logger
@@ -420,7 +420,7 @@ public class CrowdinFileSystem {
 	 */
 	@Nonnull
 	public static String getPushFolder(@Nonnull TranslationFileSet fileSet, boolean includeCrowdinPath) {
-		ArrayList<String> folders = new ArrayList<String>();
+		ArrayList<String> folders = new ArrayList<>();
 		if (includeCrowdinPath && !isBlank(fileSet.getCrowdinPath())) {
 			folders.addAll(Arrays.asList(fileSet.getCrowdinPath().split("/")));
 		}
@@ -541,7 +541,7 @@ public class CrowdinFileSystem {
 		if (logger != null) {
 			logger.info("Creating folder \"" + folderName + "\" on Crowdin");
 		}
-		Map<String, String> parameters = new HashMap<String, String>();
+		Map<String, String> parameters = new HashMap<>();
 		parameters.put("name", folderName);
 		requestPostDocument(httpClient, server, "add-directory", parameters, null, true, logger);
 	}
@@ -568,7 +568,7 @@ public class CrowdinFileSystem {
 		if (logger != null) {
 			logger.info("Creating branch \"" + branchName + "\" on Crowdin");
 		}
-		Map<String, String> parameters = new HashMap<String, String>();
+		Map<String, String> parameters = new HashMap<>();
 		parameters.put("name", branchName);
 		parameters.put("is_branch", "1");
 		requestPostDocument(httpClient, server, "add-directory", parameters, null, true, logger);

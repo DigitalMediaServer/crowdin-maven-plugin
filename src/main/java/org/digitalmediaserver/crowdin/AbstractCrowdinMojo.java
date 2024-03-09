@@ -26,16 +26,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Server;
 import org.apache.maven.settings.Settings;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
+import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
@@ -172,8 +175,8 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Server id in settings.xml. {@code <username>} is project identifier,
-	 * {@code <password>} is API key.
+	 * Server id in settings.xml, whose {@code <password>} is the API token to
+	 * use.
 	 *
 	 * @parameter property="crowdinServerId"
 	 * @required
@@ -188,6 +191,24 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 	protected void setCrowdinServerId(String serverId) {
 		crowdinServerId = serverId;
+	}
+
+	/**
+	 * The Project Id, can be found on Crowdin under Tools -> API.
+	 *
+	 * @parameter property="projectId"
+	 * @required
+	 */
+	protected long projectId;
+
+	/**
+	 * Sets the {@link #projectId} value.
+	 *
+	 * @param projectId the project id to set.
+	 * @see #projectId
+	 */
+	protected void setProjectId(long projectId) {
+		this.projectId = projectId;
 	}
 
 	/**
@@ -274,14 +295,9 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 				"Failed to find server setting with ID " + crowdinServerId + " in the Maven settings (~/.m2/settings.xml)"
 			);
 		}
-		if (isBlank(server.getUsername())) {
-			throw new MojoExecutionException(
-				"No username is configured for the server setting with ID " + crowdinServerId
-			);
-		}
 		if (isBlank(server.getPassword())) {
 			throw new MojoExecutionException(
-				"No password is configured for the server setting with ID " + crowdinServerId
+				"No password/token is configured for the server setting with ID " + crowdinServerId
 			);
 		}
 	}
@@ -297,10 +313,24 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			return;
 		}
 		try {
-			client = CrowdinAPI.createHTTPClient();
+			client = CrowdinAPI.createHTTPClient(getPluginVersion());
 		} catch (IOException e) {
 			throw new MojoExecutionException("An error occurred while creating the HTTP client: " + e.getMessage(), e);
 		}
+	}
+
+	//TODO: (Nad) JavaDocs
+	protected String getPluginVersion() {
+		Map<?, ?> context = getPluginContext();
+		Object o = context.get("pluginDescriptor");
+		if (o instanceof PluginDescriptor) {
+			PluginDescriptor descriptor = (PluginDescriptor) o;
+			String result;
+			if (!isBlank(result = descriptor.getVersion())) {
+				return result;
+			}
+		}
+		return "unknown";
 	}
 
 	/**
@@ -317,13 +347,13 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 * Gets the Crowdin branch name that matches the name of the current Git
 	 * branch.
 	 *
-	 * @return The branch name or {@code null} if the current git branch is the
-	 *         Crowdin root.
+	 * @return The {@link BranchInfo} or {@code null} if the current git
+	 *         branch is the Crowdin root.
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	@Nullable
-	protected String getBranch() throws MojoExecutionException {
-		return getBranch(false, null);
+	protected BranchInfo getBranch() throws MojoExecutionException {
+		return getBranch(false);
 	}
 
 	/**
@@ -332,45 +362,38 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 *
 	 * @param create whether the branch should be created at Crowdin if it
 	 *            doesn't exist.
-	 * @param projectDetails the {@link Document} containing the project
-	 *            details. If {@code null} the project details will be retrieved
-	 *            from Crowdin.
-	 * @return The branch name or {@code null} if the current git branch is the
-	 *         Crowdin root.
+	 * @return The {@link BranchInfo} or {@code null} if the current git
+	 *         branch is the Crowdin root.
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	@Nullable
-	protected String getBranch(boolean create, @Nullable Document projectDetails) throws MojoExecutionException {
+	protected BranchInfo getBranch(boolean create) throws MojoExecutionException {
 		getLog().info("Determining git branch..");
 		String branch = GitUtil.getBranch(project.getBasedir(), getLog());
 		if (isBlank(branch)) {
 			throw new MojoExecutionException("Could not determine current git branch");
 		}
-		getLog().info("Git branch is \"" + branch + "\"");
 		if (branch.equals(rootBranch)) {
+			getLog().info("Git branch is root branch \"" + branch + "\"");
 			return null;
 		}
-		try {
-			if (CrowdinFileSystem.containsBranch(
-				CrowdinAPI.getFiles(client, server, null, projectDetails, getLog()),
-				branch,
-				getLog()
-			)) {
-				getLog().info("Found branch \"" + branch + "\" on Crowdin");
-				return branch;
-			} else if (create) {
-				CrowdinFileSystem.createBranch(client, server, branch, getLog());
-				return branch;
-			}
-		} catch (IOException e) {
+		getLog().info("Git branch is \"" + branch + "\"");
+
+		String token = server.getPassword();
+		List<BranchInfo> branches = CrowdinAPI.listBranches(client, projectId, token, branch, getLog());
+		if (!branches.isEmpty() && branch.equals(branches.get(0).getName())) {
+			getLog().info("Found branch \"" + branch + "\" on Crowdin");
+			return branches.get(0);
+		}
+		if (!create) {
 			throw new MojoExecutionException(
-				"An error occured while trying to resolve Crowdin branch: " + e.getMessage(),
-				e
+				"Crowdin project doesn't contain branch \"" + branch + "\". Please push this branch first."
 			);
 		}
-		throw new MojoExecutionException(
-			"Crowdin project doesn't contain branch \"" + branch + "\". Please push this branch first."
-		);
+
+		getLog().info("Creating branch \"" + branch + "\" on Crowdin");
+		BranchInfo result = CrowdinAPI.createBranch(client, projectId, token, branch, getLog());
+		return result;
 	}
 
 	/**

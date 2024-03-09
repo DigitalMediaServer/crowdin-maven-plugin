@@ -131,7 +131,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			);
 		}
 
-		String branch = getBranch(true, projectDetails);
+		String branch = null; // getBranch(true); // TODO: (Nad) Temp hack
 
 		// Update project information in case the branch was created in the
 		// previous step
@@ -167,9 +167,9 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					}
 				}
 
-				Map<String, AbstractContentBody> fileMap = new HashMap<String, AbstractContentBody>();
-				Map<String, String> titleMap = new HashMap<String, String>();
-				Map<String, String> patternMap = new HashMap<String, String>();
+				Map<String, AbstractContentBody> fileMap = new HashMap<>();
+				Map<String, String> titleMap = new HashMap<>();
+				Map<String, String> patternMap = new HashMap<>();
 
 				String pushName = isBlank(fileSet.getCrowdinPath()) ?
 					fileSet.getBaseFileName() :
@@ -228,7 +228,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					getLog().info((update ? "Updating" : "Adding") + " file \"" + fileSet.getBaseFileName() + "\" on Crowdin");
 				}
 
-				Map<String, String> parameters = new HashMap<String, String>();
+				Map<String, String> parameters = new HashMap<>();
 				if (branch != null) {
 					parameters.put("branch", branch);
 				}
