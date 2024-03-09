@@ -71,17 +71,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		TranslationFileSet.initialize(translationFileSets);
 		StatusFile.initialize(statusFiles);
 
-		getLog().info("Executing build, fetch and deploy goals");
-
-		getLog().debug("Executing build");
-		BuildCrowdinMojo build = new BuildCrowdinMojo();
-		build.setCrowdinServerId(crowdinServerId);
-		build.setProject(project);
-		build.setRootBranch(rootBranch);
-		build.setServer(server);
-		build.setClient(client);
-		build.setLog(getLog());
-		build.doExecute();
+		getLog().info("Executing fetch and deploy goals");
 
 		getLog().debug("Executing fetch");
 		FetchCrowdinMojo fetch = new FetchCrowdinMojo();

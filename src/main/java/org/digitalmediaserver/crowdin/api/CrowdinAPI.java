@@ -354,7 +354,7 @@ public class CrowdinAPI {
 			);
 		}
 		if (logger != null && logger.isDebugEnabled()) {
-			logger.debug("Crowdin responded with new build: " + build);
+			logger.debug("Crowdin responded with build: " + build);
 		}
 		return build;
 	}
