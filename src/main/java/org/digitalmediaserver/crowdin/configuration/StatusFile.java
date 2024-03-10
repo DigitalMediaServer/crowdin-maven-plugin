@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.tool.FileUtil;
+import org.digitalmediaserver.crowdin.tool.FileUtil.LetterCase;
 
 
 /**
@@ -52,20 +53,15 @@ public class StatusFile extends AbstractFileSet {
 	@Override
 	protected void initializeInstance() throws MojoExecutionException {
 
-		// Add comment
-		if (addComment == null) {
-			addComment = Boolean.TRUE;
+		// Target filename
+		if (isBlank(targetFile)) {
+			throw new MojoExecutionException("\"targetFile\" must be specified for status files");
 		}
 
 		// File type and file type defaults
 		if (type == null) {
-			int dot = targetFile.lastIndexOf('.');
-			if (dot > 0 && dot < targetFile.length() - 1) {
-				String extension = targetFile.substring(dot + 1).toLowerCase(Locale.ROOT);
-				type = "xml".equals(extension) ? FileType.xml : FileType.properties;
-			} else {
-				type = FileType.properties;
-			}
+			String extension = FileUtil.getExtension(targetFile, LetterCase.LOWER, Locale.ROOT);
+			type = "json".equals(extension) ? FileType.json : FileType.properties;
 		}
 		switch (type) {
 			case properties:
@@ -75,6 +71,9 @@ public class StatusFile extends AbstractFileSet {
 				} else {
 					charset = Charset.forName(encoding);
 				}
+				if (addComment == null) {
+					addComment = Boolean.TRUE;
+				}
 				if (sortLines == null) {
 					sortLines = Boolean.TRUE;
 				}
@@ -82,27 +81,19 @@ public class StatusFile extends AbstractFileSet {
 					escapeUnicode = Boolean.TRUE;
 				}
 				break;
-			case xml:
+			case json:
 				if (isBlank(encoding)) {
 					charset = StandardCharsets.UTF_8;
 					encoding = charset.name();
 				} else {
 					charset = Charset.forName(encoding);
 				}
-				if (sortLines == null) {
-					sortLines = Boolean.FALSE;
-				}
-				if (escapeUnicode == null) {
-					escapeUnicode = Boolean.FALSE;
+				if (addComment == null) {
+					addComment = Boolean.FALSE;
 				}
 				break;
 			default:
-				throw new MojoExecutionException("Only properties and XML formats are supported for status files");
-		}
-
-		// Target filename
-		if (isBlank(targetFile)) {
-			throw new MojoExecutionException("\"targetFile\" must be specified for status files");
+				throw new MojoExecutionException("Only properties and JSON formats are supported for status files");
 		}
 
 		targetFile = FileUtil.formatPath(targetFile, false);

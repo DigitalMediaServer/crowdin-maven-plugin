@@ -95,12 +95,12 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * project to build the file path in the resulting archive</li>
 	 * </ul>
 	 */
-	protected String fileNameWhenExported;
+	protected String exportPattern;
 
 	/**
 	 * The file path relative to {@link #languageFilesFolder} to use when
 	 * deploying the translation files. If left blank,
-	 * {@link #fileNameWhenExported} will be used.
+	 * {@link #exportPattern} will be used.
 	 * <p>
 	 * The following variables are available:
 	 * <ul>
@@ -129,7 +129,7 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li><b>%original_path%</b> &ndash; Use parent folders' names in your
 	 * project to build the file path in the resulting archive (*)</li>
 	 * </ul>
-	 * (*) The variable must also be used in {@link #fileNameWhenExported} to be
+	 * (*) The variable must also be used in {@link #exportPattern} to be
 	 * supported.
 	 */
 	@Nullable
@@ -237,14 +237,14 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * @return The "Resulting file name when exported" to use on Crowdin.
 	 */
 	@Nonnull
-	public String getFileNameWhenExported() {
-		return fileNameWhenExported;
+	public String getExportPattern() {
+		return exportPattern;
 	}
 
 	/**
 	 * @return The file path relative to {@link #languageFilesFolder} to use
 	 *         when deploying translation files. If left blank,
-	 *         {@link #fileNameWhenExported} will be used.
+	 *         {@link #exportPattern} will be used.
 	 */
 	@Nullable
 	public String getTargetFileName() {
@@ -342,9 +342,8 @@ public class TranslationFileSet extends AbstractFileSet {
 
 		// File type
 		if (type == null) {
-			int dot = baseFileName.lastIndexOf('.');
-			if (dot > 0 && dot < baseFileName.length() - 1) {
-				String extension = baseFileName.substring(dot + 1);
+			String extension = FileUtil.getExtension(baseFileName, null, null);
+			if (extension != null) {
 				for (FileType fileType : FileType.values()) {
 					if (fileType.hasExtension(extension)) {
 						type = fileType;
@@ -357,7 +356,7 @@ public class TranslationFileSet extends AbstractFileSet {
 			}
 		}
 
-		// CharSet
+		// Charset
 		switch (type) {
 			// Set charset from type when it is defined
 			case properties:
@@ -424,7 +423,6 @@ public class TranslationFileSet extends AbstractFileSet {
 				break;
 		}
 
-
 		// Sort lines
 		if (sortLines == null) {
 			sortLines = Boolean.FALSE;
@@ -441,9 +439,9 @@ public class TranslationFileSet extends AbstractFileSet {
 		}
 
 		// Filename when exported
-		if (isBlank(fileNameWhenExported)) {
+		if (isBlank(exportPattern)) {
 			throw new MojoExecutionException(
-				"\"fileNameWhenExported\" isn't defined for translation fileset \"" + title + "\""
+				"\"exportPattern\" isn't defined for translation fileset \"" + title + "\""
 			);
 		}
 

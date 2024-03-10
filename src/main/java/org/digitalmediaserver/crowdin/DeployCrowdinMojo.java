@@ -46,6 +46,7 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.configuration.PathPlaceholder;
 import org.digitalmediaserver.crowdin.configuration.Conversion;
@@ -57,12 +58,12 @@ import org.digitalmediaserver.crowdin.tool.GroupSortedProperties;
 import org.digitalmediaserver.crowdin.tool.ISO639;
 import org.digitalmediaserver.crowdin.tool.NSISUtil;
 import org.digitalmediaserver.crowdin.tool.OrderedProperties;
-import org.jdom2.Comment;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
@@ -268,7 +269,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 											writer.write(" -->");
 										} else {
 											writer.write(fileSet.getCommentTag());
-											writer.write(" ");
+											writer.write(' ');
 											writer.write(commentHeader);
 										}
 										OrderedProperties.writeNewLine(writer, currentLineSeparator);
@@ -361,9 +362,10 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			// Convert placeholders
 			int groupCount = matcher.groupCount();
 			if (groupCount > 0) {
+				int literalStart, literalEnd;
 				for (int group = 1; group <= groupCount; group++) {
-					int literalStart = group == 1 ? 0 : matcher.end(group - 1);
-					int literalEnd = matcher.start(group);
+					literalStart = group == 1 ? 0 : matcher.end(group - 1);
+					literalEnd = matcher.start(group);
 					if (literalEnd - literalStart > 0) {
 						targetFileName.append(fileName.substring(literalStart, literalEnd));
 					}
@@ -373,9 +375,9 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			} else {
 				targetFileName.append(fileName);
 			}
-			String crowdinPath = matchedfileSetMatchInfo.getFileSet().getCrowdinPath();
+			String crowdinPath = FileUtil.formatPath(matchedfileSetMatchInfo.getFileSet().getCrowdinPath(), true);
 			if (crowdinPath != null && targetFileName.toString().startsWith(crowdinPath)) {
-				targetFileName = new StringBuilder(targetFileName.substring(crowdinPath.length() + 1));
+				targetFileName = new StringBuilder(targetFileName.substring(crowdinPath.length()));
 			}
 		} else {
 			String remaining = matchedfileSetMatchInfo.getFileSet().getTargetFileName();
@@ -421,9 +423,9 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 							}
 						} else if (placeholder != null) {
 							throw new MojoExecutionException(
-								"targetFileName refers placeholder \"" + placeholder.getIdentifier() +
-								"\" not found in the exported file name \"" +
-								matchedfileSetMatchInfo.getFileSet().getFileNameWhenExported() + "\""
+								"targetFileName refers to placeholder \"" + placeholder.getIdentifier() +
+								"\" not found in the export pattern \"" +
+								matchedfileSetMatchInfo.getFileSet().getExportPattern() + "\""
 							);
 						} else if ("%crowdin_code%".equals(group)) {
 							replacement = convertPlaceholder(crowdinCode, conversions);
@@ -443,7 +445,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			}
 
 		}
-		if (targetFileName.length() == 0) {
+		if (isBlank(targetFileName)) {
 			throw new IOException("Resolved target filename for file \"" + path.toAbsolutePath() + "\" is blank");
 		}
 		return new ParseResult(Paths.get(targetFileName.toString()), matchedfileSetMatchInfo);
@@ -452,25 +454,18 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 	private void deployStatusFiles(@Nonnull Path file) throws IOException {
 		// Translations status
 		if (statusFiles != null && !statusFiles.isEmpty()) {
-			Document document;
+			Gson gson = CrowdinAPI.getGsonInstance();
+			JsonElement document;
 			try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-				document = SAX_BUILDER.build(reader);
-			} catch (JDOMException e) {
-				throw new IOException("Could not parse XML document \"" + file + "\"", e);
+				document = gson.fromJson(reader, JsonElement.class);
+			} catch (JsonParseException e) {
+				throw new IOException("Could not parse JSON file \"" + file + "\"", e);
 			}
 			for (StatusFile fileSet : statusFiles) {
 
 				getLog().info("Deploying status file \"" + fileSet.getTargetFile() + "\" from \"" + file  + "\"");
 
 				String commentHeader = null;
-				if (Boolean.TRUE.equals(fileSet.getAddComment())) {
-					if (isBlank(fileSet.getComment())) {
-						commentHeader = isBlank(comment) ? DEFAULT_COMMENT : comment;
-					} else {
-						commentHeader = fileSet.getComment();
-					}
-				}
-
 				String currentLineSeparator = fileSet.getLineSeparator() != null ? fileSet.getLineSeparator() : lineSeparator;
 				if (currentLineSeparator != null) {
 					currentLineSeparator = currentLineSeparator.replace("\\r", "\r").replace("\\n", "\n");
@@ -478,31 +473,56 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 
 				if (fileSet.getType() == FileType.properties) {
 					// Properties status file
+					if (Boolean.TRUE.equals(fileSet.getAddComment())) {
+						if (isBlank(fileSet.getComment())) {
+							commentHeader = isBlank(comment) ? DEFAULT_COMMENT : comment;
+						} else {
+							commentHeader = fileSet.getComment();
+						}
+					}
+
 					OrderedProperties statusProperties = Boolean.TRUE.equals(fileSet.getSortLines()) ?
 						new GroupSortedProperties() :
 						new FIFOProperties();
-					for (Element child : document.getRootElement().getChildren("language")) {
-						if (!"".equals(child.getChildTextTrim("code"))) {
-							String languageTag = convertPlaceholder(child.getChildText("code"), fileSet.getConversions());
-							statusProperties.put(languageTag + ".name", child.getChildTextNormalize("name"));
-							statusProperties.put(languageTag + ".phrases", child.getChildTextNormalize("phrases"));
-							statusProperties.put(languageTag + ".phrases.translated", child.getChildTextNormalize("translated"));
-							statusProperties.put(languageTag + ".phrases.approved", child.getChildTextNormalize("approved"));
-							statusProperties.put(languageTag + ".words", child.getChildTextNormalize("words"));
-							statusProperties.put(languageTag + ".words.translated", child.getChildTextNormalize("words_translated"));
-							statusProperties.put(languageTag + ".words.approved", child.getChildTextNormalize("words_approved"));
-							statusProperties.put(languageTag + ".progress.translated", child.getChildTextNormalize("translated_progress"));
-							statusProperties.put(languageTag + ".progress.approved", child.getChildTextNormalize("approved_progress"));
-							if (getLog().isDebugEnabled()) {
-								getLog().debug(
-									"Translation status for " + child.getChildTextNormalize("name") + "(" +
-									child.getChildTextNormalize("code") + "): " +
-									"Phrases " + child.getChildTextNormalize("phrases") +
-									", Translated " + child.getChildTextNormalize("translated") +
-									", Approved " + child.getChildTextNormalize("approved")
-								);
+					JsonElement element;
+					JsonObject childObject, object;
+					String languageTag;
+					try {
+						for (JsonElement child : document.getAsJsonArray()) {
+							childObject = child.getAsJsonObject();
+							element = childObject.get("languageId");
+							if (element != null) {
+								languageTag = convertPlaceholder(element.getAsString(), fileSet.getConversions());
+								element = childObject.get("language");
+								if (element != null) {
+									statusProperties.put(languageTag + ".name", element.getAsJsonObject().get("name").getAsString());
+								}
+								element = childObject.get("phrases");
+								if (element != null) {
+									object = element.getAsJsonObject();
+									statusProperties.put(languageTag + ".phrases", object.get("total").getAsString());
+									statusProperties.put(languageTag + ".phrases.translated", object.get("translated").getAsString());
+									statusProperties.put(languageTag + ".phrases.approved", object.get("approved").getAsString());
+								}
+								element = childObject.get("words");
+								if (element != null) {
+									object = element.getAsJsonObject();
+									statusProperties.put(languageTag + ".words", object.get("total").getAsString());
+									statusProperties.put(languageTag + ".words.translated", object.get("translated").getAsString());
+									statusProperties.put(languageTag + ".words.approved", object.get("approved").getAsString());
+								}
+								element = childObject.get("translationProgress");
+								if (element != null) {
+									statusProperties.put(languageTag + ".progress.translated", element.getAsString());
+								}
+								element = childObject.get("approvalProgress");
+								if (element != null) {
+									statusProperties.put(languageTag + ".progress.approved", element.getAsString());
+								}
 							}
 						}
+					} catch (IllegalStateException | UnsupportedOperationException e) {
+						throw new IOException("Unable to parse status file \"" + file + "\": " + e.getMessage(), e);
 					}
 					try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(fileSet.getTargetFile()), fileSet.getCharset())) {
 						statusProperties.store(
@@ -512,8 +532,8 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 							!Boolean.FALSE.equals(fileSet.getEscapeUnicode())
 						);
 					}
-				} else if (fileSet.getType() == FileType.xml) {
-					// XML status file
+				} else if (fileSet.getType() == FileType.json) {
+					// JSON status file
 					if (Boolean.TRUE.equals(fileSet.getSortLines())) {
 						throw new IOException("Invalid option", new MojoExecutionException(
 							"Option \"sortLines\" isn't supported for " + fileSet.getType() + " files"
@@ -525,34 +545,60 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 						));
 					}
 
-					Format format = Format.getPrettyFormat();
-					Charset charset = StandardCharsets.UTF_8;
-					if (!charset.equals(fileSet.getCharset())) {
-						format.setEncoding(fileSet.getEncoding());
-						charset = fileSet.getCharset();
-					}
-					if (currentLineSeparator != null) {
-						format.setLineSeparator(currentLineSeparator);
+					if (Boolean.TRUE.equals(fileSet.getAddComment())) {
+						throw new IOException("Invalid option", new MojoExecutionException(
+							"Option \"addComment\" isn't supported for " + fileSet.getType() + " files"
+						));
 					}
 
-					XMLOutputter xmlOut = new XMLOutputter(format);
-					Document outDocument = document.clone();
+					Charset charset = fileSet.getCharset();
+					if (charset == null) {
+						charset = StandardCharsets.UTF_8;
+					}
+					if (!charset.toString().startsWith("UTF")) {
+						throw new IOException("Invalid charset", new MojoExecutionException(
+							"Only Unicode character sets are supported for " + fileSet.getType() + " files"
+						));
+					}
 
 					List<Conversion> conversions = fileSet.getConversions();
-					if (conversions != null && !conversions.isEmpty()) {
-						for (Element child : outDocument.getRootElement().getChildren("language")) {
-							Element code = child.getChild("code");
-							if (code != null) {
-								code.setText(convertPlaceholder(code.getText(), conversions));
+					if (conversions != null && !conversions.isEmpty() && document.isJsonArray()) {
+						JsonElement element;
+						JsonObject childObject;
+						String currentCode, convertedCode;
+						for (JsonElement child : document.getAsJsonArray()) {
+							if (child.isJsonObject()) {
+								childObject = child.getAsJsonObject();
+								element = childObject.get("languageId");
+								if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+									convertedCode = convertPlaceholder(
+										currentCode = element.getAsJsonPrimitive().getAsString(),
+										conversions
+									);
+									if (!convertedCode.equals(currentCode)) {
+										childObject.add("languageId", new JsonPrimitive(convertedCode));
+									}
+								}
 							}
 						}
 					}
-					if (commentHeader != null) {
-						outDocument.addContent(0, new Comment(" " + commentHeader + " "));
+
+					String formattedDocument = new GsonBuilder()
+						.setPrettyPrinting()
+						.disableHtmlEscaping()
+						.create()
+						.toJson(document);
+
+					// Gson always outputs \n (next version is expected to change that), so replace them if necessary
+					if (currentLineSeparator == null) {
+						currentLineSeparator = System.lineSeparator();
+					}
+					if (!"\n".equals(currentLineSeparator)) {
+						formattedDocument = formattedDocument.replace("\n", currentLineSeparator);
 					}
 
 					try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(fileSet.getTargetFile()), charset)) {
-						xmlOut.output(outDocument, writer);
+						writer.write(formattedDocument);
 					}
 				} else {
 					throw new IOException("Invalid file type \"" + fileSet.getType() + "\" for status file \"" + file + "\"");
@@ -604,19 +650,19 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 	private Set<MatchInfo> buildFileSetMatches() throws MojoExecutionException {
 		HashSet<MatchInfo> fileSetMatches = new HashSet<>();
 		for (TranslationFileSet fileSet : translationFileSets) {
-			if (isBlank(fileSet.getFileNameWhenExported())) {
+			if (isBlank(fileSet.getExportPattern())) {
 				getLog().warn(
 					"Can't deploy translation file set \"" + fileSet.getTitle() +
-					"\" because \"file name when exported\" is missing"
+					"\" because \"exportPattern\" is missing"
 				);
 				continue;
 			}
 			StringBuilder sb = new StringBuilder();
 			String pushFolder = FileUtil.getPushFolder(fileSet, true);
 			if (isNotBlank(pushFolder)) {
-				sb.append(Pattern.quote(FileUtil.formatPath(pushFolder, true)));
+				sb.append(Pattern.quote(pushFolder));
 			}
-			String remaining = fileSet.getFileNameWhenExported();
+			String remaining = fileSet.getExportPattern();
 			List<PathPlaceholder> matchPlaceHolders = new ArrayList<>();
 			while (remaining.length() > 0) {
 				Matcher matcher = PLACEHOLDER_PATTERN.matcher(remaining);

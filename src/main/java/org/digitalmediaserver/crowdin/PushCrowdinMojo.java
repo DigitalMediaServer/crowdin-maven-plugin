@@ -166,9 +166,9 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					}
 				}
 
-				Map<String, AbstractContentBody> fileMap = new HashMap<String, AbstractContentBody>();
-				Map<String, String> titleMap = new HashMap<String, String>();
-				Map<String, String> patternMap = new HashMap<String, String>();
+				Map<String, AbstractContentBody> fileMap = new HashMap<>();
+				Map<String, String> titleMap = new HashMap<>();
+				Map<String, String> patternMap = new HashMap<>();
 
 				String pushName = isBlank(fileSet.getCrowdinPath()) ?
 					fileSet.getBaseFileName() :
@@ -216,7 +216,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
 					titleMap.put(pushName, fileSet.getTitle());
 				}
-				patternMap.put(pushName, fileSet.getFileNameWhenExported());
+				patternMap.put(pushName, fileSet.getExportPattern());
 
 				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
 					getLog().info(
@@ -227,7 +227,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					getLog().info((update ? "Updating" : "Adding") + " file \"" + fileSet.getBaseFileName() + "\" on Crowdin");
 				}
 
-				Map<String, String> parameters = new HashMap<String, String>();
+				Map<String, String> parameters = new HashMap<>();
 				if (branch != null) {
 					parameters.put("branch", branch);
 				}

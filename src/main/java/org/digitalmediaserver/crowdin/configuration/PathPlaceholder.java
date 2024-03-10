@@ -24,8 +24,8 @@ import javax.annotation.Nullable;
 
 
 /**
- * An {@code enum} representing the {@code export_patterns} parameter in the
- * {@code add-file} and {@code update-file} API methods.
+ * An {@code enum} representing the {@code exportPattern} parameter used when
+ * adding or updating files using the Crowdin API.
  *
  * @author Nadahar
  */

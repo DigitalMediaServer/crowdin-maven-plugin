@@ -36,7 +36,7 @@ public class Constants {
 		"If you'd like to change the content, please do so at Crowdin.";
 
 	/** The name of the translation status document in the download folder */
-	public static final String STATUS_DOWNLOAD_FILENAME = "crowdin_status.xml";
+	public static final String STATUS_DOWNLOAD_FILENAME = "crowdin_status.json";
 
 	/** The generic placeholder {@link Pattern} */
 	public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("%[^%]+%");
