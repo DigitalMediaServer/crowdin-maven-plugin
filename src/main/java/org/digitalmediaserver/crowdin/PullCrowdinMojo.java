@@ -102,4 +102,14 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 
 		getLog().info("Pull sequence completed");
 	}
+
+	@Override
+	protected void initializeServer() throws MojoExecutionException {
+		super.initializeServer();
+		if (skipUntranslatedFiles && skipUntranslatedStrings) {
+			throw new MojoExecutionException(
+				"Both 'skipUntranslatedFiles' and 'skipUntranslatedStrings' cannot be 'true'"
+			);
+		}
+	}
 }

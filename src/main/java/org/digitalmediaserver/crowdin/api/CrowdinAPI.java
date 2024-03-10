@@ -44,6 +44,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -64,6 +65,7 @@ import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
@@ -71,6 +73,7 @@ import org.digitalmediaserver.crowdin.api.request.CreateBranchRequest;
 import org.digitalmediaserver.crowdin.api.request.CreateBuildRequest;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo;
+import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
 import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.eclipse.jgit.util.io.InterruptTimer;
@@ -460,6 +463,52 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	@Nonnull
+	public static DownloadLinkInfo getDownloadLink(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		long buildId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting download link for buildId " + buildId);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/translations/builds/" + buildId + "/download",
+				null,
+				token,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting download link for build: " + e.getMessage(),
+				e
+			);
+		}
+
+		DownloadLinkInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data").getAsJsonObject(), DownloadLinkInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing download link response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with download link: " + result);
+		}
+		return result;
+	}
+
 	//TODO: (Nad) JavaDocs all over
 	@Nonnull
 	public static URI buildURI(
@@ -489,19 +538,33 @@ public class CrowdinAPI {
 
 	//protected static final Type STRING_MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
 
-	public static <T, V> T sendRequest( //TODO: (Nad) Handle HTTP timeout
+	public static <T, V> T sendRequest(
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
 		@Nullable String function,
 		@Nullable Map<String, String> parameters,
-		@Nonnull String token,
+		@Nullable String token,
+		@Nullable V payload,
+		@Nonnull Class<T> clazz,
+		@Nullable Log logger
+	) throws HttpException {
+		return sendRequest(httpClient, method, buildURI(function, parameters), token, payload, clazz, logger);
+	}
+
+	public static <T, V> T sendRequest( //TODO: (Nad) Handle HTTP timeout
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull HTTPMethod method,
+		@Nonnull URI uri,
+		@Nullable String token,
 		@Nullable V payload,
 		@Nonnull Class<T> clazz,
 		@Nullable Log logger
 	) throws HttpException {
 		RequestBuilder requestBuilder = RequestBuilder.create(method.getValue());
-		requestBuilder.setUri(buildURI(function, parameters));
-		requestBuilder.addHeader("Authorization", "Bearer " + token); //TODO: (Nad) Content-type - or any other headers..?
+		requestBuilder.setUri(uri);
+		if (!isBlank(token)) { //TODO: (Nad) Content-type - or any other headers..?
+			requestBuilder.addHeader("Authorization", "Bearer " + token);
+		}
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Calling " + requestBuilder.getUri().toString());
 		}
@@ -536,16 +599,54 @@ public class CrowdinAPI {
 			if (Void.class.equals(clazz)) {
 				return null;
 			}
+			if (InputStream.class.equals(clazz)) {
+				return (T) response.getEntity().getContent();
+			}
 			if (String.class.equals(clazz)) {
 				return (T) entityToString(response.getEntity());
 			} else {
 				return GSON.fromJson(entityToString(response.getEntity()), clazz);
 			}
-
 		} catch (IOException e) {
 			throw new HttpException("Error closing HTTPResponse: " + e.getMessage(), e);
 		}
+	}
 
+	//Doc: Does NOT close the response
+	public static CloseableHttpResponse sendStreamRequest( //TODO: (Nad) Handle HTTP timeout
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull HTTPMethod method,
+		@Nonnull URI uri,
+		@Nullable String token,
+		@Nullable Log logger
+	) throws HttpException, IOException {
+		RequestBuilder requestBuilder = RequestBuilder.create(method.getValue());
+		requestBuilder.setUri(uri);
+		if (!isBlank(token)) { //TODO: (Nad) Content-type - or any other headers..?
+			requestBuilder.addHeader("Authorization", "Bearer " + token);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Calling " + requestBuilder.getUri().toString());
+		}
+
+		HttpUriRequest request = requestBuilder.build();
+		CloseableHttpResponse response = httpClient.execute(request);
+		StatusLine statusLine = response.getStatusLine();
+		if (statusLine == null) {
+			httpClient.close();
+			throw new HttpException("Request \"" + request.getURI() + "\" returned no status");
+		}
+		int statusCode = statusLine.getStatusCode();
+		if (statusCode < 200 || statusCode >= 300) {
+			String error = entityToString(response.getEntity());
+			httpClient.close();
+			throw new HttpException("Request \"" + request.getURI() + "\" failed with: " + error);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin API replied with status code " + statusCode);
+		}
+
+		return response;
 	}
 
 	@Nullable

@@ -26,14 +26,17 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.HttpException;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -43,6 +46,7 @@ import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI.HTTPMethod;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo;
+import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo.ProjectBuildStatus;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
@@ -133,81 +137,136 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			throw new MojoExecutionException("No filesets are defined");
 		}
 
+		Log logger = getLog();
 		String token = server.getPassword();
-		BranchInfo branch = null; //getBranch(); TODO: (Nad) Temp test
-		buildTranslations(branch, token);
-		//cleanDownloadFolder(); TODO: (Nad) Temp disabled
+		List<BranchInfo> branches = CrowdinAPI.listBranches(client, projectId, token, null, logger);
+		BranchInfo branch = null; //getBranch(false, branches); //TODO: (Nad) Temp test
+		BuildInfo build = buildTranslations(branch, token);
+		cleanDownloadFolder();
 
+		logger.info("Downloading translations from Crowdin");
+		DownloadLinkInfo downloadLinkInfo = CrowdinAPI.getDownloadLink(
+			client,
+			projectId,
+			build.getId(),
+			token,
+			logger
+		);
 
-
-		Map<String, String> parameters = new HashMap<>();
-		if (branch != null) {
-//			parameters.put("branch", branch); //TODO: (Nad) Redo
+		// Crowdin doesn't filter out branches from the root branch archive,
+		// so they have to be filtered here.
+		Set<String> filterBranchNames = null;
+		if (branch == null && !branches.isEmpty()) {
+			filterBranchNames = new HashSet<>(branches.size(), 1f);
+			for (BranchInfo info : branches) {
+				filterBranchNames.add(info.getName());
+			}
 		}
 
-		getLog().info("Downloading translations from Crowdin");
-
-		try {
-//			CrowdinAPI.sendRequest(client, HTTPMethod.GET, "", parameters, token, payload, clazz)
-			HttpResponse response = CrowdinAPI.requestPost(client, server, "download/all.zip", parameters, getLog());
-			int returnCode = response.getStatusLine().getStatusCode();
-			getLog().debug("Crowdin return code : " + returnCode);
-
-			if (returnCode == 200) {
-				int count = 0;
-				byte[] buf = new byte[1024];
-				try (
-					InputStream responseBodyAsStream = response.getEntity().getContent();
-					ZipInputStream zis = new ZipInputStream(responseBodyAsStream);
-				) {
-					ZipEntry entry;
-					while ((entry = zis.getNextEntry()) != null) {
-						if (entry.isDirectory()) {
-							getLog().debug("Creating folder \"" + entry.getName() + "\"");
-
-							Files.createDirectories(downloadFolderPath.resolve(entry.getName()));
-						} else {
-							getLog().debug("Writing \"" + entry.getName() + "\"");
-
-							Path path = downloadFolderPath.resolve(entry.getName());
-							try (OutputStream os = Files.newOutputStream(path)) {
-								while (zis.available() > 0) {
-									int read = zis.read(buf);
-									if (read != -1) {
-										os.write(buf, 0, read);
-									}
-								}
-							}
-							count++;
+		List<String> pathElements;
+		int count = 0;
+		boolean filter;
+		byte[] buf = new byte[1024];
+		try (
+			CloseableHttpResponse response = CrowdinAPI.sendStreamRequest(
+				client,
+				HTTPMethod.GET,
+				downloadLinkInfo.getUrl(),
+				null,
+				logger
+			);
+			InputStream responseBodyAsStream = response.getEntity().getContent();
+			ZipInputStream zis = new ZipInputStream(responseBodyAsStream);
+		) {
+			ZipEntry entry;
+			while ((entry = zis.getNextEntry()) != null) {
+				if (filterBranchNames != null) {
+					pathElements = splitPath(entry.getName());
+					filter = false;
+					for (int i = 1; i < pathElements.size(); i++) {
+						if (filterBranchNames.contains(pathElements.get(i))) {
+							filter = true;
+							break;
 						}
 					}
-				} catch (IOException e) {
-					throw new MojoExecutionException("Failed to download translation files: " + e.getMessage(), e);
+					if (filter) {
+						if (logger.isDebugEnabled()) {
+							logger.debug("Filtering out branch element \"" + entry.getName() + "\"");
+						}
+						continue;
+					}
 				}
-				EntityUtils.consumeQuietly(response.getEntity());
+				if (entry.isDirectory()) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Creating folder \"" + entry.getName() + "\"");
+					}
 
-				if (count == 0) {
-					getLog().info("No translations available for this project!");
+					Files.createDirectories(downloadFolderPath.resolve(entry.getName()));
 				} else {
-					getLog().info("Successfully downloaded " + count + " files from Crowdin");
-				}
+					if (logger.isDebugEnabled()) {
+						logger.debug("Writing \"" + entry.getName() + "\"");
+					}
 
-				downloadStatusFile();
-			} else if (returnCode == 404) {
-				throw new MojoExecutionException(
-					"Could not find any files in branch \"" + (branch != null ? branch : rootBranch) + "\" on Crowdin"
-				);
-			} else {
-				throw new MojoExecutionException(
-					"Failed to get translations from Crowdin with return code " + Integer.toString(returnCode)
-				);
+					Path path = downloadFolderPath.resolve(entry.getName());
+					try (OutputStream os = Files.newOutputStream(path)) {
+						while (zis.available() > 0) {
+							int read = zis.read(buf);
+							if (read != -1) {
+								os.write(buf, 0, read);
+							}
+						}
+					}
+					count++;
+				}
 			}
-		} catch (IOException e) {
-			throw new MojoExecutionException("Failed to call API: " + e.getMessage(), e);
+		} catch (IOException | HttpException e) {
+			throw new MojoExecutionException("Failed to download translation files: " + e.getMessage(), e);
 		}
+		if (count == 0) {
+			logger.info("No translations are available!");
+		} else {
+			logger.info("Successfully downloaded " + count + " files from Crowdin");
+		}
+
+		downloadStatusFile();
 	}
 
-	protected void buildTranslations(
+	/**
+	 * Splits a file path into its folder elements, omitting the filename if
+	 * there is one.
+	 *
+	 * @param path the file path to split.
+	 * @return The {@link List} of folder elements.
+	 */
+	@Nonnull
+	protected List<String> splitPath(@Nullable String path) {
+		if (path == null || path.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		List<String> result = new ArrayList<>();
+		int len = path.length();
+		int i = 0;
+		int start = 0;
+		boolean match = false;
+		char c;
+		while (i < len) {
+			if ((c = path.charAt(i)) == '/' || c == '\\') {
+				if (match) {
+					result.add(path.substring(start, i));
+					match = false;
+				}
+				start = ++i;
+				continue;
+			}
+			match = true;
+			i++;
+		}
+		return result;
+	}
+
+	@Nonnull
+	protected BuildInfo buildTranslations(
 		@Nullable BranchInfo branch,
 		@Nonnull String token
 	) throws MojoExecutionException {
@@ -234,6 +293,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			);
 		}
 		getLog().info("Crowdin successfully built translations");
+		return build;
 	}
 
 	/**
@@ -310,7 +370,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 	}
 
 	@Override
-	protected void initializeServer() throws MojoExecutionException { //TODO: (Nad) Is this called for "pull"?
+	protected void initializeServer() throws MojoExecutionException {
 		super.initializeServer();
 		if (skipUntranslatedFiles && skipUntranslatedStrings) {
 			throw new MojoExecutionException(

@@ -25,6 +25,7 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -335,7 +336,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 	@Nullable
 	protected BranchInfo getBranch() throws MojoExecutionException {
-		return getBranch(false);
+		return getBranch(false, null);
 	}
 
 	/**
@@ -344,12 +345,17 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 *
 	 * @param create whether the branch should be created at Crowdin if it
 	 *            doesn't exist.
-	 * @return The {@link BranchInfo} or {@code null} if the current git
-	 *         branch is the Crowdin root.
+	 * @param branches a {@link List} of {@link BranchInfo} if it's already
+	 *            possessed, {@code null} to make this method retrieve it.
+	 * @return The {@link BranchInfo} or {@code null} if the current git branch
+	 *         is the Crowdin root.
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	@Nullable
-	protected BranchInfo getBranch(boolean create) throws MojoExecutionException {
+	protected BranchInfo getBranch(
+		boolean create,
+		@Nullable List<BranchInfo> branches
+	) throws MojoExecutionException {
 		getLog().info("Determining git branch..");
 		String branch = GitUtil.getBranch(project.getBasedir(), getLog());
 		if (isBlank(branch)) {
@@ -362,10 +368,14 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		getLog().info("Git branch is \"" + branch + "\"");
 
 		String token = server.getPassword();
-		List<BranchInfo> branches = CrowdinAPI.listBranches(client, projectId, token, branch, getLog());
-		if (!branches.isEmpty() && branch.equals(branches.get(0).getName())) {
-			getLog().info("Found branch \"" + branch + "\" on Crowdin");
-			return branches.get(0);
+		if (branches == null) {
+			branches = CrowdinAPI.listBranches(client, projectId, token, branch, getLog());
+		}
+		for (BranchInfo branchInfo : branches) {
+			if (branch.equals(branchInfo.getName())) {
+				getLog().info("Found branch \"" + branch + "\" on Crowdin");
+				return branchInfo;
+			}
 		}
 		if (!create) {
 			throw new MojoExecutionException(

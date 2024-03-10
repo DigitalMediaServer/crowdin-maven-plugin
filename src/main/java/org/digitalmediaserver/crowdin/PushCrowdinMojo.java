@@ -127,7 +127,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			);
 		}
 
-		String branch = null; // getBranch(true); // TODO: (Nad) Temp hack
+		String branch = null; // getBranch(true, null); // TODO: (Nad) Temp hack
 
 		// Update project information in case the branch was created in the
 		// previous step
