@@ -81,6 +81,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -97,12 +98,16 @@ import com.google.gson.JsonSyntaxException;
 public class CrowdinAPI {
 
 	//TODO: (Nad) JavaDocs
-	protected static final Gson GSON = new Gson();
+	public static final Gson GSON = new Gson();
 
 	/**
 	 * Not to be instantiated.
 	 */
 	private CrowdinAPI() {
+	}
+
+	public static Gson getGsonInstance() {
+		return GSON;
 	}
 
 	/**
@@ -459,6 +464,58 @@ public class CrowdinAPI {
 		}
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin responded with builds: " + result);
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static String getProjectStatus(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		HashMap<String, String> parameters = new HashMap<>();
+		parameters.put("limit", "500");
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting translations status");
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/languages/progress",
+				parameters,
+				token,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting translations status: " + e.getMessage(),
+				e
+			);
+		}
+
+		JsonArray languages = new JsonArray();
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+			for (JsonElement element : jsonArray) {
+				languages.add(element.getAsJsonObject().get("data"));
+			}
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing translations status response: " + e.getMessage(),
+				e
+			);
+		}
+		String result = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create().toJson(languages);
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with translations status: " + languages.toString());
 		}
 		return result;
 	}

@@ -50,8 +50,6 @@ import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo.ProjectBuildStatus;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
-import org.jdom2.Document;
-import org.jdom2.output.XMLOutputter;
 
 
 /**
@@ -307,18 +305,11 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			return;
 		}
 
-		Document document;
-		try {
-			document = CrowdinAPI.requestPostDocument(client, server, "status", null, null, true, getLog());
-		} catch (IOException e) {
-			throw new MojoExecutionException("An error occurred while getting the Crowdin status: " + e.getMessage(), e);
-		}
-
-		XMLOutputter xmlOut = new XMLOutputter();
+		String status = CrowdinAPI.getProjectStatus(client, projectId, server.getPassword(), getLog());
 		Path statusFile = downloadFolderPath.resolve(STATUS_DOWNLOAD_FILENAME);
 		getLog().info("Writing translations status to \"" + statusFile + "\"");
 		try (BufferedWriter writer = Files.newBufferedWriter(statusFile, StandardCharsets.UTF_8)) {
-			xmlOut.output(document, writer);
+			writer.write(status);
 		} catch (IOException e) {
 			throw new MojoExecutionException("Failed to write file \"" + statusFile + "\": " + e.getMessage(), e);
 		}

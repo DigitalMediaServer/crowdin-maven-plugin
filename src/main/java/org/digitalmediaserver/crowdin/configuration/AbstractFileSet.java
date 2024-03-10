@@ -32,7 +32,7 @@ import org.digitalmediaserver.crowdin.api.FileType;
  *
  * @author Nadahar
  */
-public abstract class AbstractFileSet {
+public abstract class AbstractFileSet { //TODO: (Nad) parameter annotations..?
 
 	/**
 	 * The encoding to use when deploying the translation files. This can either

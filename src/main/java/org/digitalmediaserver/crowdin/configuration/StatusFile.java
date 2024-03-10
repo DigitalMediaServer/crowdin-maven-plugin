@@ -57,7 +57,7 @@ public class StatusFile extends AbstractFileSet {
 
 		// Add comment
 		if (addComment == null) {
-			addComment = Boolean.TRUE;
+			addComment = Boolean.TRUE; //TODO: (Nad) ..ok?
 		}
 
 		// File type and file type defaults
@@ -85,12 +85,15 @@ public class StatusFile extends AbstractFileSet {
 					escapeUnicode = Boolean.TRUE;
 				}
 				break;
-			case xml:
+			case json:
 				if (isBlank(encoding)) {
 					charset = StandardCharsets.UTF_8;
 					encoding = charset.name();
 				} else {
 					charset = Charset.forName(encoding);
+				}
+				if (addComment == null) {
+					addComment = Boolean.FALSE;
 				}
 				if (sortLines == null) {
 					sortLines = Boolean.FALSE;
@@ -100,7 +103,7 @@ public class StatusFile extends AbstractFileSet {
 				}
 				break;
 			default:
-				throw new MojoExecutionException("Only properties and XML formats are supported for status files");
+				throw new MojoExecutionException("Only properties and JSON formats are supported for status files");
 		}
 
 		// Target filename
