@@ -276,16 +276,28 @@ public class FileImportOptions {
 		// Only valid for xml, md, flsnp, docx, mif, idml, dita, android8 files.
 		if (
 			contentSegmentation != null &&
+			fileType != FileType.adoc &&
 			fileType != FileType.android &&
+			fileType != FileType.arb &&
 			fileType != FileType.chrome &&
 			fileType != FileType.csv &&
+			fileType != FileType.dita &&
 			fileType != FileType.docx &&
 			fileType != FileType.flsnp &&
 			fileType != FileType.fm_html &&
 			fileType != FileType.fm_md &&
+			fileType != FileType.go_json &&
 			fileType != FileType.html &&
+			fileType != FileType.i18next_json &&
+			fileType != FileType.idml &&
 			fileType != FileType.json &&
+			fileType != FileType.nestjs_i18n &&
 			fileType != FileType.md &&
+			fileType != FileType.mdx_v1 &&
+			fileType != FileType.mdx_v2 &&
+			fileType != FileType.mif &&
+			fileType != FileType.webxml &&
+			fileType != FileType.xlsx &&
 			fileType != FileType.xml
 		) {
 			throw new MojoExecutionException(
@@ -295,14 +307,21 @@ public class FileImportOptions {
 		}
 		if (
 			customSegmentation != null &&
+			fileType != FileType.adoc &&
+			fileType != FileType.dita &&
 			fileType != FileType.docx &&
 			fileType != FileType.flsnp &&
 			fileType != FileType.fm_html &&
 			fileType != FileType.fm_md &&
 			fileType != FileType.html &&
+			fileType != FileType.idml &&
 			fileType != FileType.md &&
+			fileType != FileType.mdx_v1 &&
+			fileType != FileType.mdx_v2 &&
 			fileType != FileType.mediawiki &&
+			fileType != FileType.mif &&
 			fileType != FileType.txt &&
+			fileType != FileType.webxml &&
 			fileType != FileType.xml
 		) {
 			throw new MojoExecutionException(
@@ -313,20 +332,42 @@ public class FileImportOptions {
 		}
 		if (
 			srxStorageId != null &&
+			fileType != FileType.adoc &&
+			fileType != FileType.dita &&
 			fileType != FileType.docx &&
 			fileType != FileType.flsnp &&
 			fileType != FileType.fm_html &&
 			fileType != FileType.fm_md &&
 			fileType != FileType.html &&
+			fileType != FileType.idml &&
 			fileType != FileType.md &&
+			fileType != FileType.mdx_v1 &&
+			fileType != FileType.mdx_v2 &&
 			fileType != FileType.mediawiki &&
+			fileType != FileType.mif &&
 			fileType != FileType.txt &&
+			fileType != FileType.webxml &&
 			fileType != FileType.xml
 		) {
 			throw new MojoExecutionException(
 				"FileImportOptions validation failed: srxStorageId is only valid for " +
 				"AsciiDoc, DITA, Office documents, Madcap Flare, HTML, Markdown, Adobe Indesign, " +
 				"MDX, MediaWiki, Adobe Framemaker, Plain text and XML files"
+			);
+		}
+		if (firstLineContainsHeader != null && fileType != FileType.xlsx) {
+			throw new MojoExecutionException(
+				"FileImportOptions validation failed: firstLineContainsHeader is only valid for .xls(x) files"
+			);
+		}
+		if (importHiddenSheets != null && fileType != FileType.xlsx) {
+			throw new MojoExecutionException(
+				"FileImportOptions validation failed: importHiddenSheets is only valid for .xls(x) files"
+			);
+		}
+		if (importTranslations != null && fileType != FileType.xlsx) {
+			throw new MojoExecutionException(
+				"FileImportOptions validation failed: importTranslations is only valid for .xls(x) files"
 			);
 		}
 		if (translateContent != null && fileType != FileType.xml) {
@@ -344,7 +385,7 @@ public class FileImportOptions {
 				"FileImportOptions validation failed: translatableElements is only valid for XML files"
 			);
 		}
-		if (cleanTagsAggressively != null && fileType != FileType.docx) {
+		if (cleanTagsAggressively != null && fileType != FileType.docx && fileType != FileType.xlsx) {
 			throw new MojoExecutionException(
 				"FileImportOptions validation failed: cleanTagsAggressively is only valid for Office documents"
 			);
@@ -357,6 +398,11 @@ public class FileImportOptions {
 		if (translateHyperlinkUrls != null && fileType != FileType.docx) {
 			throw new MojoExecutionException(
 				"FileImportOptions validation failed: translateHyperlinkUrls is only valid for Office documents"
+			);
+		}
+		if (translateHiddenRowsAndColumns != null && fileType != FileType.xlsx) {
+			throw new MojoExecutionException(
+				"FileImportOptions validation failed: translateHiddenRowsAndColumns is only valid for Excel documents"
 			);
 		}
 		if (importNotes != null && fileType != FileType.docx) {
@@ -376,14 +422,18 @@ public class FileImportOptions {
 		}
 		if (
 			excludedFrontMatterElements != null &&
-			fileType != FileType.fm_html
+			fileType != FileType.fm_html &&
+			fileType != FileType.mdx_v1 &&
+			fileType != FileType.mdx_v2
 		) {
 			throw new MojoExecutionException(
 				"FileImportOptions validation failed: excludedFrontMatterElements is only valid for FrontMatter and MDX files"
 			);
 		}
 		if (
-			excludeCodeBlocks != null
+			excludeCodeBlocks != null &&
+			fileType != FileType.mdx_v1 &&
+			fileType != FileType.mdx_v2
 		) {
 			throw new MojoExecutionException(
 				"FileImportOptions validation failed: excludeCodeBlocks is only valid for MDX files"
@@ -392,6 +442,11 @@ public class FileImportOptions {
 		if (importKeyAsSource != null) {
 			throw new MojoExecutionException(
 				"FileImportOptions validation failed: importKeyAsSource is only valid for String Catalog files"
+			);
+		}
+		if (excludeIncludeDirectives != null && fileType != FileType.adoc) {
+			throw new MojoExecutionException(
+				"FileImportOptions validation failed: excludeIncludeDirectives is only valid for AsciiDoc files"
 			);
 		}
 	}

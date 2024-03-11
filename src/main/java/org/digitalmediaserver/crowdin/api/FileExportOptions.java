@@ -129,14 +129,19 @@ public class FileExportOptions {
 			return;
 		}
 
-		if (escapeQuotes != null && fileType != FileType.properties) {
+		if (escapeQuotes != null && fileType != FileType.properties && fileType != FileType.properties_play) {
 			throw new MojoExecutionException(
 				"FileExportOptions validation failed: escapeQuotes is only valid for Properties files"
 			);
 		}
-		if (escapeSpecialCharacters != null && fileType != FileType.properties) {
+		if (escapeSpecialCharacters != null && fileType != FileType.properties && fileType != FileType.properties_play) {
 			throw new MojoExecutionException(
 				"FileExportOptions validation failed: escapeSpecialCharacters is only valid for Properties files"
+			);
+		}
+		if (exportQuotes != null && fileType != FileType.js) {
+			throw new MojoExecutionException(
+				"FileExportOptions validation failed: escapeSpecialCharacters is only valid for JavaScript files"
 			);
 		}
 	}

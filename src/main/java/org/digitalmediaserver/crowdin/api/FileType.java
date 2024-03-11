@@ -20,129 +20,225 @@ package org.digitalmediaserver.crowdin.api;
 
 import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
 import java.util.Locale;
+import javax.annotation.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 /**
- * An {@code enum} representing the {@code type} parameter in the
- * {@code add-file} API method.
+ * An {@code enum} representing the Crowdin {@code fileType}. Represents API
+ * class {@code ProjectFileType}.
  *
  * @author Nadahar
  */
 public enum FileType {
 
 	/** Try to detect file type by extension or MIME type */
-	auto,
+	auto(null),
 
 	/** Android */
-	android("xml"),
+	android("text/xml", "xml"),
 
 	/** Mac OS X / iOS */
-	macosx("strings"),
+	macosx("text/plain", "strings"),
 
 	/** .NET, Windows Phone */
-	resx("resx", "resw"),
+	resx("application/xml", "resx", "resw"),
 
 	/** Java */
-	properties("properties"),
+	properties("text/plain", "properties"),
 
 	/** GNU GetText */
-	gettext("po", "pot"),
+	gettext("text/plain", "po", "pot"),
 
 	/** Ruby On Rails */
-	yaml("yaml"),
+	yaml("application/yaml", "yaml", "yml"),
 
 	/** Hypertext Preprocessor */
-	php("php"),
+	php("application/x-httpd-php", "php"),
 
 	/** Generic JSON */
-	json("json"),
+	json("application/json", "json"),
 
 	/** Generic XML */
-	xml("xml"),
+	xml("application/xml", "xml"),
 
 	/** Generic INI */
-	ini("ini"),
+	ini("text/plain", "ini"),
 
 	/** Windows Resources */
-	rc("rc"),
+	rc("text/plain", "rc"),
 
 	/** Windows 8 Metro */
-	resw("resw"),
+	resw("application/xml", "resw"),
 
 	/** Windows 8 Metro */
-	resjson("resjson"),
+	resjson("application/json", "resjson"),
 
 	/** Nokia Qt */
-	qtts("ts"),
+	qtts("application/xml", "ts"),
 
 	/** Joomla localizable resources */
-	joomla("ini"),
+	joomla("text/plain", "ini"),
 
 	/** Google Chrome Extension */
-	chrome("json"),
+	chrome("application/json", "json"),
 
 	/** Mozilla DTD */
-	dtd("dtd"),
+	dtd("text/plain", "dtd"),
 
 	/** Delphi DKLang */
-	dklang("dklang"),
+	dklang("text/plain", "dklang"),
 
 	/** Flex */
-	flex("properties"),
+	flex("text/plain", "properties"),
 
 	/** NSIS Installer Resources */
-	nsh("nsh"),
+	nsh("text/plain", "nsh"),
 
 	/** WiX Installer */
-	wxl("wxl"),
+	wxl("application/xml", "wxl"),
 
 	/** XLIFF */
-	xliff("xliff"),
+	xliff("application/xliff+xml", "xliff", "xlf"),
+
+	/** XLIFF 2.0 */
+	xliff_two("application/xliff+xml", "xliff", "xlf"),
 
 	/** HTML */
-	html("html", "htm", "xhtml", "xhtm"),
+	html("text/html", "html", "htm", "xhtml", "xhtm", "xht", "hbs", "liquid"),
 
 	/** Haml */
-	haml("haml"),
+	haml("text/x-haml", "haml"),
 
 	/** Plain Text */
-	txt("txt"),
+	txt("text/plain", "txt"),
 
 	/** Comma Separated Values */
-	csv("csv"),
+	csv("text/csv", "csv", "tsv"),
 
 	/** Markdown */
-	md("md", "text", "markdown"),
+	md("text/markdown", "md", "text", "markdown"),
+
+	/** MDX (v1) */
+	mdx_v1("text/mdx", "mdx"),
+
+	/** MDX (v2) */
+	mdx_v2("text/mdx", "mdx"),
 
 	/** MadCap Flare */
-	flsnp("flnsp", "flpgpl", "fltoc"),
+	flsnp("application/xml", "flnsp", "flpgpl", "fltoc"),
 
 	/** Jekyll HTML */
-	fm_html("html"),
+	fm_html("text/html", "html"),
 
 	/** Jekyll Markdown */
-	fm_md("md"),
+	fm_md("text/markdown", "md"),
 
 	/** MediaWiki */
-	mediawiki("wiki", "wikitext", "mediawiki"),
+	mediawiki("text/plain", "wiki", "wikitext", "mediawiki"),
 
 	/** Microsoft Office, OpenOffice.org Documents, Adobe InDesign Adobe FrameMaker */
-	docx("docx", "dotx", "odt", "ott", "xslx", "xltx", "pptx", "potx", "ods", "ots", "odg", "otg", "odp", "otp", "imdl", "mif"),
+	docx("application/vnd.openxmlformats-officedocument",
+		"docx", "dotx", "docm", "dotm", "xltx", "xlsm", "xltm", "pptx", "potx", "ppsx", "pptm",
+		"potm", "ppsm", "odt", "ods", "ots", "odg", "otg", "odp", "otp", "ott", "imdl", "mif"
+	),
+
+	/** Microsoft Excel */
+	xlsx("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xls", "xlsx"),
 
 	/** Youtube .sbv */
-	sbv("sbv"),
+	sbv("text/plain", "sbv"),
+
+	/** Play Framework */
+	properties_play(null),
+
+	/** Java Application */
+	properties_xml("application/xml", "xml"),
+
+	/** Maxthon Browser */
+	maxthon("text/plain", "ini"),
+
+	/** Go */
+	go_json("application/json", "gotext.json"),
+
+	/** DITA Document */
+	dita("text/xml", "dita", "ditamap"),
+
+	/** Adobe FrameMaker */
+	mif("application/vnd.mif", "mif"),
+
+	/** Adobe InDesign */
+	idml("application/vnd.adobe.indesign-idml-package", "idml"),
+
+	/** iOS */
+	stringsdict("application/xml", "stringsdict"),
+
+	/** Mac OS property list */
+	plist("application/x-plist", "plist"),
 
 	/** Video Subtitling and WebVTT */
-	vtt("vtt"),
+	vtt("text/vtt", "vtt"),
+
+	/** Steamworks Localization Valve Data File */
+	vdf("text/vdf", "vdf"),
 
 	/** SubRip .srt */
-	srt("srt");
+	srt("text/plain", "srt"),
 
+	/** Salesforce */
+	stf("text/plain", "stf"),
+
+	/** Toml */
+	toml("application/toml", "toml"),
+
+	/** Contentful */
+	contentful_rt("application/json", "json"),
+
+	/** SVG */
+	svg("image/svg+xml", "svg"),
+
+	/** JavaScript */
+	js("text/javascript", "js"),
+
+	/** CoffeeScript */
+	coffee("application/vnd.coffeescript", "coffee"),
+
+	/** TypeScript */
+	ts("application/typescript", "ts"),
+
+	/** i18next */
+	i18next_json("application/json", "json"),
+
+	/** XAML */
+	xaml("application/xaml+xml", "xaml"),
+
+	/** Application Resource Bundle */
+	arb("text/plain", "arb"),
+
+	/** AsciiDoc */
+	adoc("text/asciidoc", "adoc"),
+
+	/** Facebook FBT */
+	fbt("application/json", "json"),
+
+	/** Mozilla Project Fluent */
+	ftl("text/plain", "ftl"),
+
+	/** Web XML */
+	webxml("application/xml", "xml"),
+
+	/** NestJS i18n */
+	nestjs_i18n(null);
+
+	@Nullable
 	private final String[] extensions;
 
-	private FileType(String... extensions) {
+	@Nullable
+	private final String contentType;
+
+	private FileType(String contentType, String... extensions) {
 		this.extensions = extensions;
+		this.contentType = contentType;
 	}
 
 	/**
@@ -150,6 +246,7 @@ public enum FileType {
 	 *         type.
 	 */
 	@SuppressFBWarnings("EI_EXPOSE_REP")
+	@Nullable
 	public String[] getExtensions() {
 		return extensions;
 	}
@@ -176,5 +273,14 @@ public enum FileType {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * @return The {@code Content-Type} string for this {@link FileType} or
+	 *         {@code null} if not applicable.
+	 */
+	@Nullable
+	public String getContentType() {
+		return contentType;
 	}
 }
