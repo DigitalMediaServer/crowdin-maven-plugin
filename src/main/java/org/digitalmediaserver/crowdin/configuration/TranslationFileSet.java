@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.digitalmediaserver.crowdin.api.FileExportOptions.JavaScriptExportQuotes;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.tool.FileUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -136,9 +137,13 @@ public class TranslationFileSet extends AbstractFileSet {
 	protected String targetFileName;
 
 	/**
-	 * The {@code escape_quotes} API parameter to use. Valid values are:
+	 * <b>Applies to {@link FileType#properties} files only</b>.
+	 * <p>
+	 * The {@code escapeQuotes} API parameter to use.
+	 *
+	 * Valid values are:
 	 * <ul>
-	 * <li>0 — Do not escape single quote</li>
+	 * <li>0 — Do not escape single quote (<b>default</b>)</li>
 	 * <li>1 — Escape single quote by another single quote</li>
 	 * <li>2 — Escape single quote by backslash</li>
 	 * <li>3 — Escape single quote by another single quote only in strings
@@ -147,6 +152,39 @@ public class TranslationFileSet extends AbstractFileSet {
 	 */
 	@Nullable
 	protected Integer escapeQuotes;
+
+	/**
+	 * <b>Applies to {@link FileType#properties} files only</b>.
+	 * <p>
+	 * The {@code escapeSpecialCharacters} API parameter to use. It defines
+	 * whether any special characters ({@code =}, {@code :}, {@code !} and
+	 * {@code #}) should be escaped by backslash in the exported translations.
+	 * <p>
+	 * Valid values are:
+	 * <ul>
+	 * <li>0 — Do not escape special characters (<b>default</b>)</li>
+	 * <li>1 — Escape special characters by a backslash</li>
+	 * </ul>
+	 */
+	@Nullable
+	protected Integer escapeSpecialCharacters;
+
+	/**
+	 * <b>Applies to JavaScript files only</b>.
+	 * <p>
+	 * The {@code exportQuotes} API parameter to use. It defines what type of
+	 * quotes to use when exporting JavaScript translations.
+	 *
+	 * <p>
+	 * Valid values are:
+	 * <ul>
+	 * <li>single — Output will be enclosed in single quotes
+	 * (<b>default</b>)</li>
+	 * <li>double — Output will be enclosed in double quotes</li>
+	 * </ul>
+	 */
+	@Nullable
+	protected JavaScriptExportQuotes exportQuotes;
 
 	/**
 	 * The update behavior for updates string when pushing. Valid values are:
@@ -159,6 +197,12 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * </ul>
 	 */
 	protected UpdateOption updateOption;
+
+	/**
+	 * Whether or not to overwrite context when updating the source file, even
+	 * if the context has been modified on Crowdin.
+	 */
+	protected Boolean replaceModifiedContext = Boolean.FALSE;
 
 	/**
 	 * Paths to include using a basic filter where {@code ?} and {@code *} are
@@ -252,7 +296,7 @@ public class TranslationFileSet extends AbstractFileSet {
 	}
 
 	/**
-	 * @return The {@code escape_quotes} API parameter.
+	 * @return The {@link #escapeQuotes} value.
 	 */
 	@Nullable
 	public Integer getEscapeQuotes() {
@@ -260,10 +304,34 @@ public class TranslationFileSet extends AbstractFileSet {
 	}
 
 	/**
+	 * @return The {@link #exportQuotes} value.
+	 */
+	@Nullable
+	public JavaScriptExportQuotes getExportQuotes() {
+		return exportQuotes;
+	}
+
+	/**
+	 * @return The {@link #escapeSpecialCharacters} value.
+	 */
+	@Nullable
+	public Integer getEscapeSpecialCharacters() {
+		return escapeSpecialCharacters;
+	}
+
+	/**
 	 * @return The {@link UpdateOption}.
 	 */
 	public UpdateOption getUpdateOption() {
 		return updateOption;
+	}
+
+	/**
+	 * @return the {@link #replaceModifiedContext} value.
+	 */
+	@Nullable
+	public Boolean getReplaceModifiedContext() {
+		return replaceModifiedContext;
 	}
 
 	/**
@@ -356,6 +424,21 @@ public class TranslationFileSet extends AbstractFileSet {
 			}
 		}
 
+		if (updateOption == null) {
+			updateOption = UpdateOption.clear_translations_and_approvals;
+		}
+
+		//Add comment
+		if (addComment == null) {
+			addComment = Boolean.valueOf(
+				type == FileType.android || type == FileType.fm_html || type == FileType.gettext ||
+				type == FileType.html || type == FileType.ini || type == FileType.nsh ||
+				type == FileType.php || type == FileType.properties || type == FileType.resw ||
+				type == FileType.resx || type == FileType.xliff || type == FileType.xml ||
+				type == FileType.yaml
+			);
+		}
+
 		// Charset
 		switch (type) {
 			// Set charset from type when it is defined
@@ -365,6 +448,12 @@ public class TranslationFileSet extends AbstractFileSet {
 					encoding = charset.name();
 				} else {
 					charset = Charset.forName(encoding);
+				}
+				if (escapeQuotes == null) {
+					escapeQuotes = Integer.valueOf(0);
+				}
+				if (escapeSpecialCharacters == null) {
+					escapeSpecialCharacters = Integer.valueOf(0);
 				}
 				if (sortLines == null) {
 					sortLines = Boolean.TRUE;
@@ -423,32 +512,37 @@ public class TranslationFileSet extends AbstractFileSet {
 				break;
 		}
 
-		// Sort lines
-		if (sortLines == null) {
-			sortLines = Boolean.FALSE;
-		}
-
-		// Add comment
-		if (addComment == null) {
-			addComment = Boolean.TRUE;
-		}
-
-		// Comment tag
-		if (commentTag == null) {
-			commentTag = "#";
-		}
-
-		// Filename when exported
+		// Export pattern
 		if (isBlank(exportPattern)) {
 			throw new MojoExecutionException(
 				"\"exportPattern\" isn't defined for translation fileset \"" + title + "\""
 			);
 		}
 
-		// Escape single quotes
+		// Escape single quotes (Properties)
+		if (escapeQuotes != null && type != FileType.properties) {
+			throw new MojoExecutionException(
+				"Invalid configuration in fileset \"" + title + "\": \"escapeQuotes\" " +
+				"is only valid for .properties files"
+			);
+		}
 		if (escapeQuotes != null && (escapeQuotes.intValue() < 0 || escapeQuotes.intValue() > 3)) {
 			throw new MojoExecutionException(
 				"Invalid \"escapeQuotes\" value " + escapeQuotes.intValue() + " for translation fileset \"" + title + "\""
+			);
+		}
+
+		// Escape special characters (Properties)
+		if (escapeSpecialCharacters != null && type != FileType.properties) {
+			throw new MojoExecutionException(
+				"Invalid configuration in fileset \"" + title + "\": \"escapeSpecialCharacters\" " +
+				"is only valid for .properties files"
+			);
+		}
+		if (escapeSpecialCharacters != null && (escapeSpecialCharacters.intValue() < 0 || escapeSpecialCharacters.intValue() > 1)) {
+			throw new MojoExecutionException(
+				"Invalid \"escapeSpecialCharacters\" value " + escapeSpecialCharacters.intValue() +
+				" for translation fileset \"" + title + "\""
 			);
 		}
 

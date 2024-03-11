@@ -25,7 +25,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,16 +69,26 @@ import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicHeader;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
 import org.digitalmediaserver.crowdin.api.request.CreateBranchRequest;
 import org.digitalmediaserver.crowdin.api.request.CreateBuildRequest;
+import org.digitalmediaserver.crowdin.api.request.CreateFileRequest;
+import org.digitalmediaserver.crowdin.api.request.CreateFolderRequest;
+import org.digitalmediaserver.crowdin.api.request.UpdateFileRequest;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo;
 import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
+import org.digitalmediaserver.crowdin.api.response.FileInfo;
+import org.digitalmediaserver.crowdin.api.response.FolderInfo;
+import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
+import org.digitalmediaserver.crowdin.api.response.StorageInfo;
+import org.digitalmediaserver.crowdin.configuration.UpdateOption;
 import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
+import org.digitalmediaserver.crowdin.tool.FileUtil;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -206,6 +218,95 @@ public class CrowdinAPI {
 			return branchElement.getChild("files");
 		}
 		return projectDetails.getRootElement().getChild("files");
+	}
+
+	/**
+	 * Queries Crowdin for information about the specified folder. If the folder
+	 * doesn't exist, it can optionally be created.
+	 * <p>
+	 * <b>Note:</b> This method will <i>not</i> strip a path element that
+	 * doesn't end in a separator, but will consider the last element to be a
+	 * folder as well. Example: {@code foo/bar} - both {@code foo} and
+	 * {@code bar} is assumed to be folders.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branch the {@link BranchInfo} if the folder belongs to a branch.
+	 * @param folderPath the folder path.
+	 * @param create if {@code true} the folder will be created if it doesn't
+	 *            exist, if {@code false} the method will return {@code null}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FolderInfo} if the folder exists or is
+	 *         created, {@code null} otherwise.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nullable
+	public static FolderInfo getFolder(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nullable BranchInfo branch,
+		@Nonnull String folderPath,
+		boolean create,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (isBlank(folderPath)) {
+			return null;
+		}
+		FolderInfo result = null;
+		List<FolderInfo> folders;
+		boolean found;
+		Long parentFolderId = null;
+		List<String> elements = FileUtil.splitPath(folderPath, false);
+		for (String element : elements) {
+			found = false;
+			folders = listFolders(
+				httpClient,
+				projectId,
+				branch == null || parentFolderId != null ? null : branch.getId(),
+				parentFolderId,
+				element,
+				false,
+				token,
+				logger
+			);
+			for (FolderInfo folder : folders) {
+				if (
+					element.equals(folder.getName()) && (
+						(branch == null && folder.getBranchId() == null) ||
+						(branch != null && folder.getBranchId() == branch.getId())
+					) && (
+						(parentFolderId == null && folder.getDirectoryId() == null) ||
+						(parentFolderId != null && parentFolderId.equals(folder.getDirectoryId()))
+					)
+				) {
+					found = true;
+					result = folder;
+					parentFolderId = Long.valueOf(folder.getId());
+					break;
+				}
+			}
+			if (!found) {
+				if (!create) {
+					return null;
+				}
+				//Create folder
+				FolderInfo folder = createFolder(
+					httpClient,
+					projectId,
+					element,
+					branch == null || parentFolderId != null ? null : branch.getId(),
+					parentFolderId,
+					token,
+					logger
+				);
+				result = folder;
+				parentFolderId = Long.valueOf(folder.getId());
+			}
+		}
+
+		return result;
 	}
 
 	/**
@@ -652,6 +753,63 @@ public class CrowdinAPI {
 	}
 
 	/**
+	 * Queries Crowdin for project information.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link ProjectInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static ProjectInfo getProjectInfo(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting project info");
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId,
+				null,
+				null,
+				token,
+				null,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting project info: " + e.getMessage(),
+				e
+			);
+		}
+
+		ProjectInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data").getAsJsonObject(), ProjectInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing project info response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with project info: " + result);
+		}
+		return result;
+	}
+
+	/**
 	 * Asks Crowdin for a download link for the specified build.
 	 *
 	 * @param httpClient the {@link CloseableHttpClient} to use.
@@ -708,6 +866,865 @@ public class CrowdinAPI {
 			logger.debug("Crowdin responded with download link: " + result);
 		}
 		return result;
+	}
+
+	/**
+	 * Asks Crowdin for a list of files.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branchId the branch ID for which to list files. <b>Note:</b> Can't
+	 *            be used together with {@code folderId}.
+	 * @param folderId the folder ID for which to list files. <b>Note:</b> Can't
+	 *            be used together with {@code branchId}.
+	 * @param filter an optional filter for the returned files.
+	 * @param recursion whether to get recurive results. Can only be used with
+	 *            either {@code branchId} or {@code folderId}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link List} of {@link FileInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static List<FileInfo> listFiles(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nullable Long branchId,
+		@Nullable Long folderId,
+		@Nullable String filter,
+		boolean recursion,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		int chunkSize = 500;
+		if (logger != null && logger.isDebugEnabled()) {
+			StringBuilder sb = new StringBuilder().append("Requesting file list");
+			if (branchId != null) {
+				sb.append(" for branch ID ").append(branchId.toString());
+			}
+			if (folderId != null) {
+				sb.append(" for folder ID ").append(folderId.toString());
+			}
+			if (filter != null) {
+				sb.append(" with filter \"").append(filter).append('\"');
+			}
+			logger.debug(sb.toString());
+		}
+		HashMap<String, String> parameters = new LinkedHashMap<>();
+		if (branchId != null) {
+			parameters.put("branchId", branchId.toString());
+		}
+		if (folderId != null) {
+			parameters.put("directoryId", folderId.toString());
+		}
+		if (isNotBlank(filter)) {
+			parameters.put("filter", filter);
+		}
+		if (recursion) {
+			parameters.put("recursion", "1");
+		}
+		parameters.put("limit", Integer.toString(chunkSize));
+
+		List<FileInfo> result = new ArrayList<>();
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"projects/" + projectId + "/files",
+					parameters,
+					null,
+					token,
+					null,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting file list: " + e.getMessage(),
+					e
+				);
+			}
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), FileInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing file list response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with " + result.size() + " files");
+		}
+		return result;
+	}
+
+	/**
+	 * Queries Crowdin for information about a file with the specified name.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branch the branch to look in.
+	 * @param folder the folder to look in. <b>Note:</b> If specified together
+	 *            with {@code branch}, {@code folder} takes precedence.
+	 * @param fileName the file name to look for. <b>Note:</b> If path elements
+	 *            are present, they will be stripped and only the file name will
+	 *            be used.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FileInfo} or {@code null} if no such file
+	 *         exists.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nullable
+	public static FileInfo getFileIfExists(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nullable BranchInfo branch,
+		@Nullable FolderInfo folder,
+		@Nullable String fileName,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (isBlank(fileName)) {
+			return null;
+		}
+
+		List<String> elements = FileUtil.splitPath(fileName, false);
+		if (elements.isEmpty()) {
+			return null;
+		}
+		String name = elements.get(elements.size() - 1);
+		FileInfo result = null;
+		List<FileInfo> files = listFiles(
+			httpClient,
+			projectId,
+			folder != null || branch == null ? null : branch.getId(),
+			folder == null ? null : folder.getId(),
+			name,
+			false,
+			token,
+			logger
+		);
+		for (FileInfo fileInfo : files) {
+			if (
+				name.equals(fileInfo.getName()) && (
+					(branch == null && fileInfo.getBranchId() == null) ||
+					(branch != null && fileInfo.getBranchId() == branch.getId())
+				) && (
+					(folder == null && fileInfo.getDirectoryId() == null) ||
+					(folder != null && fileInfo.getDirectoryId() == folder.getId())
+				)
+			) {
+				result = fileInfo;
+				break;
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Queries Crowdin for information about the specified file.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param fileId the file ID for the file.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FileInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static FileInfo getFile(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		long fileId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting file info for ID " + fileId);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/files/" + fileId,
+				null,
+				null,
+				token,
+				null,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting file info: " + e.getMessage(),
+				e
+			);
+		}
+
+		FileInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FileInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing file info response: " + e.getMessage(),
+				e
+			);
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with file info: " + result);
+		}
+		return result;
+	}
+
+	/**
+	 * Asks Crowdin for a list of folders.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branchId the branch ID for which to list folders. <b>Note:</b>
+	 *            Can't be used together with {@code parentFolderId}.
+	 * @param parentFolderId the folder ID for which to list files. <b>Note:</b>
+	 *            Can't be used together with {@code branchId}.
+	 * @param filter an optional filter for the returned folders.
+	 * @param recursion whether to get recurive results. Can only be used with
+	 *            either {@code branchId} or {@code parentFolderId}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link List} of {@link FolderInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static List<FolderInfo> listFolders(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nullable Long branchId,
+		@Nullable Long parentFolderId,
+		@Nullable String filter,
+		boolean recursion,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		int chunkSize = 500;
+		if (logger != null && logger.isDebugEnabled()) {
+			StringBuilder sb = new StringBuilder().append("Requesting folder list");
+			if (branchId != null) {
+				sb.append(" for branch ID ").append(branchId.toString());
+			}
+			if (parentFolderId != null) {
+				sb.append(" for parent folder ID ").append(parentFolderId.toString());
+			}
+			if (filter != null) {
+				sb.append(" with filter \"").append(filter).append('\"');
+			}
+			logger.debug(sb.toString());
+		}
+		HashMap<String, String> parameters = new LinkedHashMap<>();
+		if (branchId != null) {
+			parameters.put("branchId", branchId.toString());
+		}
+		if (parentFolderId != null) {
+			parameters.put("directoryId", parentFolderId.toString());
+		}
+		if (isNotBlank(filter)) {
+			parameters.put("filter", filter);
+		}
+		if (recursion) {
+			parameters.put("recursion", "1");
+		}
+		parameters.put("limit", Integer.toString(chunkSize));
+
+		List<FolderInfo> result = new ArrayList<>();
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"projects/" + projectId + "/directories",
+					parameters,
+					null,
+					token,
+					null,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting folder list: " + e.getMessage(),
+					e
+				);
+			}
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), FolderInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing folder list response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with " + result.size() + " folders");
+		}
+		return result;
+	}
+
+	/**
+	 * Queries Crowdin for information about the specified folder.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param folderId the folder ID for the folder.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FolderInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static FolderInfo getFolder(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		long folderId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting folder info for ID " + folderId);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/directories/" + folderId,
+				null,
+				null,
+				token,
+				null,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting folder info: " + e.getMessage(),
+				e
+			);
+		}
+
+		FolderInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FolderInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing folder info response: " + e.getMessage(),
+				e
+			);
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with folder info: " + result);
+		}
+		return result;
+	}
+
+	/**
+	 * Asks Crowdin to create a new folder.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param name the name of the new folder.
+	 * @param branchId the branch ID for the branch in which to create the new
+	 *            folder. <b>Note:</b> Can't be used together with
+	 *            {@code parentFolderId}.
+	 * @param parentFolderId the parent folder ID for the folder in which to
+	 *            create the new folder. <b>Note:</b> Can't be used together
+	 *            with {@code branchId}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link FolderInfo} for the new folder.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static FolderInfo createFolder(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String name,
+		@Nullable Long branchId,
+		@Nullable Long parentFolderId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		CreateFolderRequest payload = new CreateFolderRequest(name);
+		payload.setBranchId(branchId);
+		payload.setDirectoryId(parentFolderId);
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a new folder with: " + payload);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"projects/" + projectId + "/directories",
+				null,
+				null,
+				token,
+				payload,
+				ContentType.APPLICATION_JSON,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while creating folder: " + e.getMessage(),
+				e
+			);
+		}
+
+		FolderInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FolderInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing folder creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new folder: " + result);
+		}
+		return result;
+	}
+
+	/**
+	 * Asks Crowdin to create a new file from a file that has already been
+	 * uploaded to storage.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param storage the {@link StorageInfo} for the previously uploaded file.
+	 * @param name the name of the new file.
+	 * @param type the {@link FileType} for the new file.
+	 * @param branchId the branch ID for the branch in which to create the new
+	 *            file. <b>Note:</b> Can't be used together with
+	 *            {@code folderId}.
+	 * @param folderId the folder ID for the folder in which to create the new
+	 *            file. <b>Note:</b> Can't be used together with
+	 *            {@code branchId}.
+	 * @param title the title for the new file as shown to translators.
+	 * @param context the context for the new file.
+	 * @param excludedTargetLanguages the array of excluded target languages.
+	 * @param exportOptions the {@link FileExportOptions} for the new file.
+	 * @param importOptions the {@link FileImportOptions} for the new file.
+	 * @param parserVersion the parser version to use for the new file.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link FileInfo} for the new file.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static FileInfo createFile(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull StorageInfo storage,
+		@Nonnull String name,
+		@Nullable FileType type,
+		@Nullable Long branchId,
+		@Nullable Long folderId,
+		@Nullable String title,
+		@Nullable String context,
+		@Nullable String[] excludedTargetLanguages,
+		@Nullable FileExportOptions exportOptions,
+		@Nullable FileImportOptions importOptions,
+		@Nullable Integer parserVersion,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		CreateFileRequest payload = new CreateFileRequest(storage, name);
+		payload.setBranchId(branchId);
+		if (isNotBlank(context)) {
+			payload.setContext(context);
+		}
+		payload.setDirectoryId(folderId);
+		payload.setExcludedTargetLanguages(excludedTargetLanguages);
+		payload.setExportOptions(exportOptions);
+		payload.setImportOptions(importOptions);
+		payload.setParserVersion(parserVersion);
+		if (isNotBlank(title)) {
+			payload.setTitle(title);
+		}
+		payload.setType(type);
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a new file with: " + payload);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"projects/" + projectId + "/files",
+				null,
+				null,
+				token,
+				payload,
+				ContentType.APPLICATION_JSON,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while creating file: " + e.getMessage(),
+				e
+			);
+		}
+
+		FileInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FileInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing file creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new file: " + result);
+		}
+		return result;
+	}
+
+	/**
+	 * Asks Crowdin to update an existing file from a file that has already been
+	 * uploaded to storage.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param fileId the file ID for the file to update.
+	 * @param storage the {@link StorageInfo} for the previously uploaded file.
+	 * @param updateOption the {@link UpdateOption} to use for the update.
+	 * @param importOptions the {@link FileImportOptions} for the file.
+	 * @param exportOptions the {@link FileExportOptions} for the file.
+	 * @param replaceModifiedContext whether to overwrite modified context
+	 *            during the update.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link FileInfo} for the updated file or {@code null} if the
+	 *         file wasn't modified.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nullable
+	public static FileInfo updateFile(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		long fileId,
+		@Nonnull StorageInfo storage,
+		@Nullable UpdateOption updateOption,
+		@Nullable FileImportOptions importOptions,
+		@Nullable FileExportOptions exportOptions,
+		@Nullable Boolean replaceModifiedContext,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		UpdateFileRequest payload = new UpdateFileRequest(storage);
+		payload.setUpdateOption(updateOption);
+		payload.setImportOptions(importOptions);
+		payload.setExportOptions(exportOptions);
+		payload.setReplaceModifiedContext(replaceModifiedContext);
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a file update with: " + payload);
+		}
+
+		RequestBuilder requestBuilder = RequestBuilder.create(HttpPut.METHOD_NAME);
+		requestBuilder.setUri(API_URL + "projects/" + projectId + "/files/" + fileId);
+		requestBuilder.addHeader("Authorization", "Bearer " + token);
+		requestBuilder.setEntity(new StringEntity(GSON.toJson(payload), ContentType.APPLICATION_JSON));
+
+		String responseContent, responseStatus;
+		try {
+			HttpUriRequest request = requestBuilder.build();
+			if (logger != null && logger.isDebugEnabled()) {
+				logger.debug("Calling " + request.getURI().toString());
+			}
+			try (CloseableHttpResponse response = httpClient.execute(request)) {
+				StatusLine statusLine = response.getStatusLine();
+				if (statusLine == null) {
+					throw new HttpException("Request \"" + request.getURI() + "\" returned no status");
+				}
+				int statusCode = statusLine.getStatusCode();
+				if (statusCode < 200 || statusCode >= 300) {
+					throw new HttpException("Request \"" + request.getURI() + "\" failed with: " + entityToString(response.getEntity()));
+				}
+				if (logger != null && logger.isDebugEnabled()) {
+					logger.debug("Crowdin API replied with status code " + statusCode);
+				}
+
+				responseContent = entityToString(response.getEntity());
+				Header[] headers = response.getHeaders("Crowdin-API-Content-Status");
+				responseStatus = headers.length > 0 ? headers[0].getValue() : null;
+			} catch (IOException e) {
+				throw new HttpException("Error closing HTTPResponse: " + e.getMessage(), e);
+			}
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while updating file: " + e.getMessage(),
+				e
+			);
+		}
+
+		FileInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(responseContent).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FileInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing file update response: " + e.getMessage(),
+				e
+			);
+		}
+		boolean modified = !"not-modified".equals(responseStatus);
+		if (logger != null && logger.isDebugEnabled()) {
+			if (modified) {
+				logger.debug("Crowdin responded with updated file: " + result);
+			} else {
+				logger.debug("Crowdin did not modify file: " + result);
+			}
+		}
+		return modified ? result : null;
+	}
+
+	/**
+	 * Lists the Crowdin storages for the current API user.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link List} of {@link StorageInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static List<StorageInfo> listStorages(
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		int chunkSize = 500;
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting list of storages");
+		}
+		HashMap<String, String> parameters = new LinkedHashMap<>();
+		parameters.put("limit", Integer.toString(chunkSize));
+
+		List<StorageInfo> result = new ArrayList<>();
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"storages",
+					parameters,
+					null,
+					token,
+					null,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting list of storages: " + e.getMessage(),
+					e
+				);
+			}
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), StorageInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing storages list response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with " + result.size() + " storages");
+		}
+		return result;
+	}
+
+	/**
+	 * Creates a new storage on Crowdin by uploading content.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param filename the filename for the newly created storage.
+	 * @param entity the {@link HttpEntity} containing the content to upload.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link StorageInfo} for the newly created storage.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static StorageInfo createStorage(
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull String filename,
+		@Nonnull HttpEntity entity,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a new storage for: " + filename);
+		}
+		List<Header> headers = new ArrayList<>();
+		try {
+			headers.add(new BasicHeader("Crowdin-API-FileName", URLEncoder.encode(filename, StandardCharsets.UTF_8.name())));
+		} catch (UnsupportedEncodingException e) {
+			// Can't happen
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"storages",
+				null,
+				headers,
+				token,
+				entity,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while creating storage: " + e.getMessage(),
+				e
+			);
+		}
+
+		StorageInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), StorageInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing storage creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new storage: " + result);
+		}
+		return result;
+	}
+
+	/**
+	 * Deletes the specified storage at Crowdin.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param storage the {@link StorageInfo} for the storage to delete.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
+	@Nonnull
+	public static void deleteStorage(
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull StorageInfo storage,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting to delete storage " + storage.getId());
+		}
+		try {
+			CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.DELETE,
+				"storages/" + storage.getId(),
+				null,
+				null,
+				token,
+				null,
+				null,
+				Void.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while deleting storage: " + e.getMessage(),
+				e
+			);
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin deleted storage: " + storage);
+		}
 	}
 
 	/**

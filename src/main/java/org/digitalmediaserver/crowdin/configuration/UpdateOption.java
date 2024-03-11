@@ -20,22 +20,22 @@ package org.digitalmediaserver.crowdin.configuration;
 
 
 /**
- * An {@code enum} representing the {@code update_option} parameter in the
- * {@code update-file} API method.
+ * An {@code enum} representing the {@code updateOption} parameter in the
+ * {@code Update or Restore File} API method.
  *
  * @author Nadahar
  */
 public enum UpdateOption {
 
 	/** Delete translations of changed strings */
-	delete_translations,
+	clear_translations_and_approvals,
 
 	/**
-	 * Preserve translations of changed strings but remove validations of those
+	 * Preserve translations of changed strings but remove approvals of those
 	 * translations if they exist
 	 */
-	update_as_unapproved,
+	keep_translations,
 
-	/** Preserve translations and validations of changed strings */
-	update_without_changes;
+	/** Preserve translations and approvals of changed strings */
+	keep_translations_and_approvals;
 }
