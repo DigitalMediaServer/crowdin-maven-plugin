@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.content.AbstractContentBody;
@@ -35,6 +36,10 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.FileType;
+import org.digitalmediaserver.crowdin.api.response.BranchInfo;
+import org.digitalmediaserver.crowdin.api.response.FileInfo;
+import org.digitalmediaserver.crowdin.api.response.FolderInfo;
+import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
 import org.digitalmediaserver.crowdin.configuration.UpdateOption;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.digitalmediaserver.crowdin.tool.NSISUtil;
@@ -61,7 +66,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 * specified in the POM file, {@code -Dconfirm=true} is required as a
 	 * command line argument for the push to execute.
 	 */
-	@Parameter(property = "confirm", required = true)
+	@Parameter(property = "confirm", defaultValue = "false")
 	protected String confirm;
 
 	/**
@@ -95,7 +100,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	@SuppressFBWarnings({"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"})
 	public void execute() throws MojoExecutionException {
 		if (!confirm.equalsIgnoreCase("confirm") && !confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("true")) {
-			throw new MojoExecutionException("Push is not confirmed - aborting!");
+//			throw new MojoExecutionException("Push is not confirmed - aborting!"); //TODO: (Nad) Temp disabled
 		}
 
 		if (!project.getName().equals(projectName)) {
@@ -111,41 +116,47 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 		// Retrieve project information
 		getLog().info("Retrieving Crowdin project information");
-		Document projectDetails;
-		try {
-			projectDetails = CrowdinAPI.requestPostDocument(client, server, "info", null, null, true, getLog());
-		} catch (IOException e) {
-			throw new MojoExecutionException("An error occurred while getting Crowdin information: " + e.getMessage(), e);
-		}
 
-		String crowdinProjectName = projectDetails.getRootElement().getChild("details").getChild("name").getText();
-		if (!crowdinProjectName.equals(projectName)) {
+		String token = server.getPassword();
+		ProjectInfo projectInfo = CrowdinAPI.getProjectInfo(client, projectId, token, getLog());
+
+		Document projectDetails = new Document(); //TODO: (Nad) Remove
+//		try {
+//			projectDetails = CrowdinAPI.requestPostDocument(client, server, "info", null, null, true, getLog());
+//		} catch (IOException e) {
+//			throw new MojoExecutionException("An error occurred while getting Crowdin information: " + e.getMessage(), e);
+//		}
+
+		if (projectInfo.getName() == null || !projectInfo.getName().equals(projectName)) {
 			throw new MojoExecutionException(
-				"Crowdin project name (" + crowdinProjectName +
+				"Crowdin project name (" + projectInfo.getName() +
 				") differs from the \"projectName\" parameter (" + projectName +
 				") - push aborted!"
 			);
 		}
 
-		String branch = null; // getBranch(true, null); // TODO: (Nad) Temp hack
+		BranchInfo branch = getBranch(true, null);
 
 		// Update project information in case the branch was created in the
 		// previous step
-		if (branch != null && !containsBranch(projectDetails.getRootElement().getChild("files"), branch, getLog())) {
-			try {
-				projectDetails = CrowdinAPI.requestPostDocument(client, server, "info", null, null, true, getLog());
-			} catch (IOException e) {
-				throw new MojoExecutionException("An error occurred while getting Crowdin information: " + e.getMessage(), e);
-			}
-		}
+//		if (branch != null && !containsBranch(projectDetails.getRootElement().getChild("files"), branch, getLog())) {
+//			try {
+//				projectDetails = CrowdinAPI.requestPostDocument(client, server, "info", null, null, true, getLog());
+//			} catch (IOException e) {
+//				throw new MojoExecutionException("An error occurred while getting Crowdin information: " + e.getMessage(), e);
+//			}
+//		}
 
 		// Get Crowdin files
-		Element filesElement;
-		try {
-			filesElement = CrowdinAPI.getFiles(client, server, branch, projectDetails, getLog());
-		} catch (IOException e) {
-			throw new MojoExecutionException("An error occurred while getting Crowdin files: " + e.getMessage(), e);
-		}
+		Element filesElement = new Element("test"); //TODO: (Nad) Remove
+//		try {
+//			filesElement = CrowdinAPI.getFiles(client, server, "branch", projectDetails, getLog());
+//		} catch (IOException e) {
+//			throw new MojoExecutionException("An error occurred while getting Crowdin files: " + e.getMessage(), e);
+//		}
+
+//		List<FileInfo> files = CrowdinAPI.listFiles(client, projectId, null, null, null, false, token, getLog());
+		List<FolderInfo> folders = CrowdinAPI.listFolders(client, projectId, null, null, null, false, token, getLog());
 
 		// Set values
 		for (TranslationFileSet fileSet : translationFileSets) {
@@ -225,9 +236,9 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 				}
 
 				Map<String, String> parameters = new HashMap<>();
-				if (branch != null) {
-					parameters.put("branch", branch);
-				}
+//				if (branch != null) {
+//					parameters.put("branch", branch);
+//				}
 				parameters.put("escape_quotes", Integer.toString(getEscapeQuotes(fileSet)));
 				try {
 					if (update) {

@@ -74,6 +74,9 @@ import org.digitalmediaserver.crowdin.api.request.CreateBuildRequest;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo;
 import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
+import org.digitalmediaserver.crowdin.api.response.FileInfo;
+import org.digitalmediaserver.crowdin.api.response.FolderInfo;
+import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
 import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.eclipse.jgit.util.io.InterruptTimer;
@@ -521,6 +524,51 @@ public class CrowdinAPI {
 	}
 
 	@Nonnull
+	public static ProjectInfo getProjectInfo(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting project info");
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId,
+				null,
+				token,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting project info: " + e.getMessage(),
+				e
+			);
+		}
+
+		ProjectInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data").getAsJsonObject(), ProjectInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing project info response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with project info: " + result);
+		}
+		return result;
+	}
+
+	@Nonnull
 	public static DownloadLinkInfo getDownloadLink(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
@@ -562,6 +610,168 @@ public class CrowdinAPI {
 		}
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin responded with download link: " + result);
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static List<FileInfo> listFiles(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nullable Long branchId,
+		@Nullable Long directoryId,
+		@Nullable String filter,
+		boolean recursion,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		int chunkSize = 500;
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting file list"); //TODO: (Nad) More detail?
+		}
+		HashMap<String, String> parameters = new HashMap<>();
+		if (branchId != null) {
+			parameters.put("branchId", branchId.toString());
+		}
+		if (directoryId != null) {
+			parameters.put("directoryId", directoryId.toString());
+		}
+		if (!isBlank(filter)) {
+			parameters.put("filter", filter);
+		}
+		if (recursion) {
+			parameters.put("recursion", "1");
+		}
+		parameters.put("limit", Integer.toString(chunkSize));
+
+		List<FileInfo> result = new ArrayList<>();
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) { //TODO: (Nad) Apply "pagination" logic to other relevant calls
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"projects/" + projectId + "/files",
+					parameters,
+					token,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting file list: " + e.getMessage(),
+					e
+				);
+			}
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), FileInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing file list response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with " + result.size() + " files");
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static List<FolderInfo> listFolders(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nullable Long branchId,
+		@Nullable Long directoryId,
+		@Nullable String filter,
+		boolean recursion,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		int chunkSize = 500;
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting folder list"); //TODO: (Nad) More detail?
+		}
+		HashMap<String, String> parameters = new HashMap<>();
+		if (branchId != null) {
+			parameters.put("branchId", branchId.toString());
+		}
+		if (directoryId != null) {
+			parameters.put("directoryId", directoryId.toString());
+		}
+		if (!isBlank(filter)) {
+			parameters.put("filter", filter);
+		}
+		if (recursion) {
+			parameters.put("recursion", "1");
+		}
+		parameters.put("limit", Integer.toString(chunkSize));
+
+		List<FolderInfo> result = new ArrayList<>();
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"projects/" + projectId + "/directories",
+					parameters,
+					token,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting folder list: " + e.getMessage(),
+					e
+				);
+			}
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), FolderInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing folder list response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with " + result.size() + " folders");
 		}
 		return result;
 	}
@@ -631,7 +841,7 @@ public class CrowdinAPI {
 				requestBuilder.setEntity(new StringEntity((String) payload, ContentType.APPLICATION_OCTET_STREAM)); //toDO: (Nad) Octet stream basically means "unknown" - it this appropriate?
 			} else if (payload instanceof InputStream) {
 				requestBuilder.setEntity(new InputStreamEntity((InputStream) payload)); //toDO: (Nad) Will this be used? If so, content type..
-			} else {
+			} else { //TODO: (Nad) Is this ever used..?
 				//Serialize JSON
 				requestBuilder.setEntity(new StringEntity(GSON.toJson(payload), ContentType.APPLICATION_JSON));
 			}
