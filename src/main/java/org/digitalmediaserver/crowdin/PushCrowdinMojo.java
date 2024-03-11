@@ -187,8 +187,13 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 				InputStream is = null;
 				try {
 					HttpEntity entity;
-					ContentType contentType = ContentType.APPLICATION_OCTET_STREAM;
+					ContentType contentType;
 					FileType fileType = fileSet.getType();
+					if (fileType == null || fileType == FileType.auto || isBlank(fileType.getContentType())) {
+						contentType = ContentType.APPLICATION_OCTET_STREAM;
+					} else {
+						contentType = ContentType.create(fileType.getContentType(), fileSet.getCharset());
+					}
 					if (fileSet.getType() == FileType.nsh) {
 						is = new NSISUtil.NSISInputStream(pushFile);
 						entity = new InputStreamEntity(is, contentType);
@@ -371,12 +376,17 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			result = new FileExportOptions();
 		}
 		result.setExportPattern(fileSet.getExportPattern());
-		if (fileSet.getType() == FileType.properties) {
+		if (fileSet.getType() == FileType.properties || fileSet.getType() == FileType.properties_play) {
 			if (fileSet.getEscapeQuotes() != null) {
 				result.setEscapeQuotes(fileSet.getEscapeQuotes());
 			}
 			if (fileSet.getEscapeSpecialCharacters() != null) {
 				result.setEscapeSpecialCharacters(fileSet.getEscapeSpecialCharacters());
+			}
+		}
+		if (fileSet.getType() == FileType.js) {
+			if (fileSet.getExportQuotes() != null) {
+				result.setExportQuotes(fileSet.getExportQuotes());
 			}
 		}
 

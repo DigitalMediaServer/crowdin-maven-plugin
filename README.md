@@ -319,19 +319,48 @@ Here is a skeleton project configuration showing the location of all configurati
 |`nsh`|NSIS Installer Resources|
 |`wxl`|WiX Installer|
 |`xliff`|XLIFF|
+|`xliff_two`|XLIFF 2.0|
 |`html`|HTML|
 |`haml`|Haml|
 |`txt`|Plain Text|
 |`csv`|Comma Separated Values|
 |`md`|Markdown|
+|`mdx_v1`|MDX (v1)|
+|`mdx_v2`|MDX (v2)|
 |`flsnp`|MadCap Flare|
 |`fm_html`|Jekyll HTML|
 |`fm_md`|Jekyll Markdown|
 |`mediawiki`|MediaWiki|
 |`docx`|Microsoft Office, OpenOffice.org Documents, Adobe InDesign Adobe FrameMaker|
+|`xlsx`|Microsoft Excel|
 |`sbv`|Youtube `.sbv`|
+|`properties_play`|Play Framework|
+|`properties_xml`|Java Application|
+|`maxthon`|Maxthon Browser|
+|`go_json`|Go|
+|`dita`|DITA Document|
+|`mif`|Adobe FrameMaker|
+|`idml`|Adobe InDesign|
+|`stringsdict`|iOS|
+|`plist`|Mac OS property list|
 |`vtt`|Video Subtitling and WebVTT|
+|`vdf`|Steamworks Localization Valve Data File|
 |`srt`|SubRip `.srt`|
+|`stf`|Salesforce|
+|`toml`|Toml|
+|`contentful_rt`|Contentful|
+|`svg`|SVG|
+|`js`|JavaScript|
+|`coffee`|CoffeeScript|
+|`ts`|TypeScript|
+|`i18next_json`|i18next|
+|`xaml`|XAML|
+|`arb`|Application Resource Bundle|
+|`adoc`|Asc|
+|`fbt`|Facebook FBT|
+|`ftl`|Mozilla Project Fluent|
+|`webxml`|Web XML|
+|`nestjs_i18n`|NestJS i18n|
 
 ##### 1.2.2.9 Crowdin placeholders
 | Code | Description |

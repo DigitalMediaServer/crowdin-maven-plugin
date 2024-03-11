@@ -170,7 +170,7 @@ public class TranslationFileSet extends AbstractFileSet {
 	protected Integer escapeSpecialCharacters;
 
 	/**
-	 * <b>Applies to JavaScript files only</b>.
+	 * <b>Applies to {@link FileType#js} files only</b>.
 	 * <p>
 	 * The {@code exportQuotes} API parameter to use. It defines what type of
 	 * quotes to use when exporting JavaScript translations.
@@ -431,10 +431,14 @@ public class TranslationFileSet extends AbstractFileSet {
 		//Add comment
 		if (addComment == null) {
 			addComment = Boolean.valueOf(
-				type == FileType.android || type == FileType.fm_html || type == FileType.gettext ||
-				type == FileType.html || type == FileType.ini || type == FileType.nsh ||
-				type == FileType.php || type == FileType.properties || type == FileType.resw ||
-				type == FileType.resx || type == FileType.xliff || type == FileType.xml ||
+				type == FileType.adoc || type == FileType.android || type == FileType.coffee ||
+				type == FileType.dita || type == FileType.fm_html || type == FileType.gettext ||
+				type == FileType.html || type == FileType.ini || type == FileType.js ||
+				type == FileType.nsh || type == FileType.php || type == FileType.properties ||
+				type == FileType.properties_play || type == FileType.properties_xml ||
+				type == FileType.resw || type == FileType.resx || type == FileType.toml ||
+				type == FileType.ts || type == FileType.webxml || type == FileType.xaml ||
+				type == FileType.xliff || type == FileType.xliff_two || type == FileType.xml ||
 				type == FileType.yaml
 			);
 		}
@@ -443,6 +447,7 @@ public class TranslationFileSet extends AbstractFileSet {
 		switch (type) {
 			// Set charset from type when it is defined
 			case properties:
+			case properties_play:
 				if (isBlank(encoding)) {
 					charset = StandardCharsets.ISO_8859_1;
 					encoding = charset.name();
@@ -482,6 +487,11 @@ public class TranslationFileSet extends AbstractFileSet {
 			case html:
 			case ini:
 			case joomla:
+			case js:
+				if (exportQuotes == null) {
+					exportQuotes = JavaScriptExportQuotes.SINGLE;
+				}
+				break;
 			case json:
 			case macosx:
 			case md:
@@ -520,7 +530,7 @@ public class TranslationFileSet extends AbstractFileSet {
 		}
 
 		// Escape single quotes (Properties)
-		if (escapeQuotes != null && type != FileType.properties) {
+		if (escapeQuotes != null && type != FileType.properties && type != FileType.properties_play) {
 			throw new MojoExecutionException(
 				"Invalid configuration in fileset \"" + title + "\": \"escapeQuotes\" " +
 				"is only valid for .properties files"
@@ -533,7 +543,7 @@ public class TranslationFileSet extends AbstractFileSet {
 		}
 
 		// Escape special characters (Properties)
-		if (escapeSpecialCharacters != null && type != FileType.properties) {
+		if (escapeSpecialCharacters != null && type != FileType.properties && type != FileType.properties_play) {
 			throw new MojoExecutionException(
 				"Invalid configuration in fileset \"" + title + "\": \"escapeSpecialCharacters\" " +
 				"is only valid for .properties files"
@@ -543,6 +553,13 @@ public class TranslationFileSet extends AbstractFileSet {
 			throw new MojoExecutionException(
 				"Invalid \"escapeSpecialCharacters\" value " + escapeSpecialCharacters.intValue() +
 				" for translation fileset \"" + title + "\""
+			);
+		}
+
+		// Export quotes (JavaScript)
+		if (exportQuotes != null && type != FileType.js) {
+			throw new MojoExecutionException(
+				"Invalid configuration in fileset \"" + title + "\": \"exportQuotes\" is only valid for JavaScript files"
 			);
 		}
 
