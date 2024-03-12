@@ -152,7 +152,7 @@ public class TranslationFileSet extends AbstractFileSet {
 	protected String targetFileName;
 
 	/**
-	 * The {@code escape_quotes} API parameter to use. Valid values are:
+	 * The {@code escapeQuotes} API parameter to use. Valid values are:
 	 * <ul>
 	 * <li>0 — Do not escape single quote</li>
 	 * <li>1 — Escape single quote by another single quote</li>
@@ -278,7 +278,7 @@ public class TranslationFileSet extends AbstractFileSet {
 	}
 
 	/**
-	 * @return The {@code escape_quotes} API parameter.
+	 * @return The {@code escapeQuotes} API parameter.
 	 */
 	@Nullable
 	public Integer getEscapeQuotes() {

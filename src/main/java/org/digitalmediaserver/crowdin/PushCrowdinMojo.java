@@ -21,9 +21,12 @@ package org.digitalmediaserver.crowdin;
 import static org.digitalmediaserver.crowdin.tool.CrowdinFileSystem.*;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.http.entity.ContentType;
@@ -40,6 +43,7 @@ import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.FileInfo;
 import org.digitalmediaserver.crowdin.api.response.FolderInfo;
 import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
+import org.digitalmediaserver.crowdin.api.response.StorageInfo;
 import org.digitalmediaserver.crowdin.configuration.UpdateOption;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.digitalmediaserver.crowdin.tool.NSISUtil;
@@ -70,7 +74,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	protected String confirm;
 
 	/**
-	 * The default "escape_quotes" parameter to use. Valid values are:
+	 * The default {@code escapeQuotes} parameter to use. Valid values are:
 	 * <ul>
 	 * <li>0 — Do not escape single quote</li>
 	 * <li>1 — Escape single quote by another single quote</li>
@@ -157,7 +161,18 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 //		List<FileInfo> files = CrowdinAPI.listFiles(client, projectId, null, null, null, false, token, getLog());
 //		List<FolderInfo> folders = CrowdinAPI.listFolders(client, projectId, null, null, null, false, token, getLog());
-//		FolderInfo folderInfo = CrowdinAPI.createFolder(client, projectId, "test2", branch.getId(), null, token, getLog());
+//		FolderInfo folderInfo = CrowdinAPI.createFolder(client, projectId, "test3", null /*branch.getId()*/, 60L, token, getLog());
+//		StorageInfo storage;
+//		try (InputStream is = Files.newInputStream(Paths.get("C:\\Repos\\Java\\DigitalMediaServer\\extras\\crowdin\\fi\\messages_fi_FI.properties"))) {
+//			storage = CrowdinAPI.createStorage(client, "fånu€.properties", ContentType.TEXT_PLAIN, is, token, getLog());
+//
+//		}
+//		catch (IOException e1) {
+//			e1.printStackTrace();
+//		}
+		List<StorageInfo> storages = CrowdinAPI.listStorages(client, token, getLog());
+//		CrowdinAPI.deleteStorage(client, storages.get(0), token, getLog());
+//		storages = CrowdinAPI.listStorages(client, token, getLog());
 
 		// Set values
 		for (TranslationFileSet fileSet : translationFileSets) {
@@ -236,7 +251,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					getLog().info((update ? "Updating" : "Adding") + " file \"" + fileSet.getBaseFileName() + "\" on Crowdin");
 				}
 
-				Map<String, String> parameters = new HashMap<>();
+				Map<String, String> parameters = new LinkedHashMap<>();
 //				if (branch != null) {
 //					parameters.put("branch", branch);
 //				}
@@ -307,22 +322,22 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	}
 
 	/**
-	 * Gets the effective "{@code escape_quotes}" value from either the
+	 * Gets the effective "{@code escapeQuotes}" value from either the
 	 * {@link TranslationFileSet} or the default parameter.
 	 *
 	 * @param fileSet the {@link TranslationFileSet} to use.
-	 * @return The effective "{@code escape_quotes}" value.
+	 * @return The effective "{@code escapeQuotes}" value.
 	 */
 	protected int getEscapeQuotes(TranslationFileSet fileSet) {
 		return fileSet != null && fileSet.getEscapeQuotes() != null ? fileSet.getEscapeQuotes().intValue() : escapeQuotes;
 	}
 
 	/**
-	 * Gets the effective "{@code update_option}" value from either the
+	 * Gets the effective "{@code updateOption}" value from either the
 	 * {@link TranslationFileSet} or the default parameter.
 	 *
 	 * @param fileSet the {@link TranslationFileSet} to use.
-	 * @return The effective "{@code update_option}" value.
+	 * @return The effective "{@code updateOption}" value.
 	 */
 	protected UpdateOption getUpdateOption(TranslationFileSet fileSet) {
 		return fileSet != null && fileSet.getUpdateOption() != null ? fileSet.getUpdateOption() : updateOption;

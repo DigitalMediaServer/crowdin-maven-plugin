@@ -20,8 +20,8 @@ package org.digitalmediaserver.crowdin.configuration;
 
 
 /**
- * An {@code enum} representing the {@code update_option} parameter in the
- * {@code update-file} API method.
+ * An {@code enum} representing the {@code updateOption} parameter in the
+ * {@code update-file} API method. //TODO: (Nad) Fix JAvaDoc
  *
  * @author Nadahar
  */

@@ -24,17 +24,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
@@ -44,7 +48,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -65,7 +68,8 @@ import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.protocol.HTTP;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
@@ -78,9 +82,9 @@ import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
 import org.digitalmediaserver.crowdin.api.response.FileInfo;
 import org.digitalmediaserver.crowdin.api.response.FolderInfo;
 import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
+import org.digitalmediaserver.crowdin.api.response.StorageInfo;
 import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
-import org.eclipse.jgit.util.io.InterruptTimer;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -91,7 +95,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 
 
 /**
@@ -231,8 +234,10 @@ public class CrowdinAPI {
 				HTTPMethod.POST,
 				"projects/" + projectId + "/branches",
 				null,
+				null,
 				token,
 				payload,
+				ContentType.APPLICATION_JSON,
 				String.class,
 				logger
 			);
@@ -267,7 +272,7 @@ public class CrowdinAPI {
 		@Nullable String branchName, //Doc: filters the result
 		@Nullable Log logger
 	) throws MojoExecutionException {
-		HashMap<String, String> parameters = new HashMap<>();
+		HashMap<String, String> parameters = new LinkedHashMap<>();
 		parameters.put("limit", "500");
 		if (!isBlank(branchName)) {
 			parameters.put("name", branchName);
@@ -283,7 +288,9 @@ public class CrowdinAPI {
 				HTTPMethod.GET,
 				"projects/" + projectId + "/branches",
 				parameters,
+				null,
 				token,
+				null,
 				null,
 				String.class,
 				logger
@@ -343,8 +350,10 @@ public class CrowdinAPI {
 				HTTPMethod.POST,
 				"projects/" + projectId + "/translations/builds",
 				null,
+				null,
 				token,
 				payload,
+				ContentType.APPLICATION_JSON,
 				String.class,
 				logger
 			);
@@ -389,7 +398,9 @@ public class CrowdinAPI {
 				HTTPMethod.GET,
 				"projects/" + projectId + "/translations/builds/" + buildId,
 				null,
+				null,
 				token,
+				null,
 				null,
 				String.class,
 				logger
@@ -425,7 +436,7 @@ public class CrowdinAPI {
 		@Nullable Long branchId,
 		@Nullable Log logger
 	) throws MojoExecutionException {
-		HashMap<String, String> parameters = new HashMap<>();
+		HashMap<String, String> parameters = new LinkedHashMap<>();
 		parameters.put("limit", "500");
 		if (branchId != null) {
 			parameters.put("branchId", branchId.toString());
@@ -441,7 +452,9 @@ public class CrowdinAPI {
 				HTTPMethod.GET,
 				"projects/" + projectId + "/translations/builds",
 				parameters,
+				null,
 				token,
+				null,
 				null,
 				String.class,
 				logger
@@ -479,7 +492,7 @@ public class CrowdinAPI {
 		@Nonnull String token,
 		@Nullable Log logger
 	) throws MojoExecutionException {
-		HashMap<String, String> parameters = new HashMap<>();
+		HashMap<String, String> parameters = new LinkedHashMap<>();
 		parameters.put("limit", "500");
 
 		if (logger != null && logger.isDebugEnabled()) {
@@ -492,7 +505,9 @@ public class CrowdinAPI {
 				HTTPMethod.GET,
 				"projects/" + projectId + "/languages/progress",
 				parameters,
+				null,
 				token,
+				null,
 				null,
 				String.class,
 				logger
@@ -541,7 +556,9 @@ public class CrowdinAPI {
 				HTTPMethod.GET,
 				"projects/" + projectId,
 				null,
+				null,
 				token,
+				null,
 				null,
 				String.class,
 				logger
@@ -587,7 +604,9 @@ public class CrowdinAPI {
 				HTTPMethod.GET,
 				"projects/" + projectId + "/translations/builds/" + buildId + "/download",
 				null,
+				null,
 				token,
+				null,
 				null,
 				String.class,
 				logger
@@ -630,7 +649,7 @@ public class CrowdinAPI {
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Requesting file list"); //TODO: (Nad) More detail?
 		}
-		HashMap<String, String> parameters = new HashMap<>();
+		HashMap<String, String> parameters = new LinkedHashMap<>();
 		if (branchId != null) {
 			parameters.put("branchId", branchId.toString());
 		}
@@ -658,7 +677,9 @@ public class CrowdinAPI {
 					HTTPMethod.GET,
 					"projects/" + projectId + "/files",
 					parameters,
+					null,
 					token,
+					null,
 					null,
 					String.class,
 					logger
@@ -711,7 +732,7 @@ public class CrowdinAPI {
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Requesting folder list"); //TODO: (Nad) More detail?
 		}
-		HashMap<String, String> parameters = new HashMap<>();
+		HashMap<String, String> parameters = new LinkedHashMap<>();
 		if (branchId != null) {
 			parameters.put("branchId", branchId.toString());
 		}
@@ -739,7 +760,9 @@ public class CrowdinAPI {
 					HTTPMethod.GET,
 					"projects/" + projectId + "/directories",
 					parameters,
+					null,
 					token,
+					null,
 					null,
 					String.class,
 					logger
@@ -801,8 +824,10 @@ public class CrowdinAPI {
 				HTTPMethod.POST,
 				"projects/" + projectId + "/directories",
 				null,
+				null,
 				token,
 				payload,
+				ContentType.APPLICATION_JSON,
 				String.class,
 				logger
 			);
@@ -829,72 +854,229 @@ public class CrowdinAPI {
 		return result;
 	}
 
-	//TODO: (Nad) JavaDocs all over
 	@Nonnull
-	public static URI buildURI(
-		@Nullable String function,
-		@Nullable Map<String, String> parameters
-	) throws HttpException {
-		StringBuilder uri = new StringBuilder(API_URL).append(function);
-		if (parameters != null) {
-			boolean first = true;
-			String key, value;
-			for (Entry<String, String> parameter : parameters.entrySet()) {
-				if (!isBlank(key = parameter.getKey())) {
-					uri.append(first ? "?" : "&").append(key);
-					if (!isBlank(value = parameter.getValue())) {
-						uri.append('=').append(value);
-					}
-					first = false;
-				}
+	public static List<StorageInfo> listStorages(
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		int chunkSize = 500;
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting list of storages");
+		}
+		HashMap<String, String> parameters = new LinkedHashMap<>();
+		parameters.put("limit", Integer.toString(chunkSize));
+
+		List<StorageInfo> result = new ArrayList<>();
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"storages",
+					parameters,
+					null,
+					token,
+					null,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting list of storages: " + e.getMessage(),
+					e
+				);
 			}
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), StorageInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing storages list response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
 		}
-		try {
-			return new URI(uri.toString());
-		} catch (URISyntaxException e) {
-			throw new HttpException("Invalid URI \"" + uri.toString() + "\": " + e.getMessage(), e);
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with " + result.size() + " storages");
 		}
+		return result;
 	}
 
-	//protected static final Type STRING_MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
+	@Nonnull
+	public static StorageInfo createStorage(
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull String filename,
+		@Nonnull ContentType contentType,
+		@Nonnull InputStream is,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a new storage for: " + filename);
+		}
+		List<Header> headers = new ArrayList<>();
+		headers.add(new BasicHeader(HTTP.CONTENT_TYPE, contentType.toString()));
+		try {
+			headers.add(new BasicHeader("Crowdin-API-FileName", URLEncoder.encode(filename, StandardCharsets.UTF_8.name())));
+		} catch (UnsupportedEncodingException e) {
+			// Can't happen
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"storages",
+				null,
+				headers,
+				token,
+				is,
+				ContentType.APPLICATION_JSON,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while creating storage: " + e.getMessage(),
+				e
+			);
+		}
+
+		StorageInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), StorageInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing storage creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new storage: " + result);
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static void deleteStorage(
+		@Nonnull CloseableHttpClient httpClient,
+		@Nonnull StorageInfo storage,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting to delete storage " + storage.getId());
+		}
+		try {
+			CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.DELETE,
+				"storages/" + storage.getId(),
+				null,
+				null,
+				token,
+				null,
+				null,
+				Void.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while deleting storage: " + e.getMessage(),
+				e
+			);
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin deleted storage: " + storage);
+		}
+	}
 
 	public static <T, V> T sendRequest(
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
 		@Nullable String function,
 		@Nullable Map<String, String> parameters,
+		@Nullable Collection<Header> headers,
 		@Nullable String token,
 		@Nullable V payload,
+		@Nullable ContentType payloadContentType,
 		@Nonnull Class<T> clazz,
 		@Nullable Log logger
 	) throws HttpException {
-		return sendRequest(httpClient, method, buildURI(function, parameters), token, payload, clazz, logger);
+		return sendRequest(
+			httpClient,
+			method,
+			URI.create(API_URL + function),
+			parameters,
+			headers,
+			token,
+			payload,
+			payloadContentType,
+			clazz,
+			logger
+		);
 	}
 
 	public static <T, V> T sendRequest( //TODO: (Nad) Handle HTTP timeout
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
 		@Nonnull URI uri,
+		@Nullable Map<String, String> parameters,
+		@Nullable Collection<Header> headers,
 		@Nullable String token,
 		@Nullable V payload,
+		@Nullable ContentType payloadContentType,
 		@Nonnull Class<T> clazz,
 		@Nullable Log logger
 	) throws HttpException {
 		RequestBuilder requestBuilder = RequestBuilder.create(method.getValue());
 		requestBuilder.setUri(uri);
-		if (!isBlank(token)) { //TODO: (Nad) Content-type - or any other headers..?
+		if (parameters != null) {
+			for (Entry<String, String> entry : parameters.entrySet()) {
+				requestBuilder.addParameter(entry.getKey(), entry.getValue());
+			}
+		}
+		if (!isBlank(token)) {
 			requestBuilder.addHeader("Authorization", "Bearer " + token);
 		}
-		if (logger != null && logger.isDebugEnabled()) {
-			logger.debug("Calling " + requestBuilder.getUri().toString());
+		if (headers != null) {
+			for (Header header : headers) {
+				requestBuilder.addHeader(header);
+			}
 		}
 
 		if (payload != null) {
 			if (payload instanceof String) {
-				requestBuilder.setEntity(new StringEntity((String) payload, ContentType.APPLICATION_OCTET_STREAM)); //toDO: (Nad) Octet stream basically means "unknown" - it this appropriate?
+				requestBuilder.setEntity(new StringEntity(
+					(String) payload,
+					payloadContentType != null ? payloadContentType : ContentType.APPLICATION_OCTET_STREAM
+				));
 			} else if (payload instanceof InputStream) {
-				requestBuilder.setEntity(new InputStreamEntity((InputStream) payload)); //toDO: (Nad) Will this be used? If so, content type..
-			} else { //TODO: (Nad) Is this ever used..?
+				requestBuilder.setEntity(new InputStreamEntity(
+					(InputStream) payload,
+					payloadContentType != null ? payloadContentType : ContentType.APPLICATION_OCTET_STREAM
+				));
+			} else {
 				//Serialize JSON
 				requestBuilder.setEntity(new StringEntity(GSON.toJson(payload), ContentType.APPLICATION_JSON));
 			}
@@ -903,6 +1085,9 @@ public class CrowdinAPI {
 		}
 
 		HttpUriRequest request = requestBuilder.build();
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Calling " + request.getURI().toString());
+		}
 		try (CloseableHttpResponse response = httpClient.execute(request)) {
 			StatusLine statusLine = response.getStatusLine();
 			if (statusLine == null) {
@@ -942,7 +1127,7 @@ public class CrowdinAPI {
 	) throws HttpException, IOException {
 		RequestBuilder requestBuilder = RequestBuilder.create(method.getValue());
 		requestBuilder.setUri(uri);
-		if (!isBlank(token)) { //TODO: (Nad) Content-type - or any other headers..?
+		if (!isBlank(token)) {
 			requestBuilder.addHeader("Authorization", "Bearer " + token);
 		}
 		if (logger != null && logger.isDebugEnabled()) {
