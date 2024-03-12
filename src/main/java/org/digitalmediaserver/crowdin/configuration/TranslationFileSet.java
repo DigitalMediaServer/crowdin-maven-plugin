@@ -368,7 +368,7 @@ public class TranslationFileSet extends AbstractFileSet {
 
 		// File type
 		if (type == null) {
-			int dot = baseFileName.lastIndexOf('.');
+			int dot = baseFileName.lastIndexOf('.'); //TODO: (Nad) USe better logic/StringUtils?
 			if (dot > 0 && dot < baseFileName.length() - 1) {
 				String extension = baseFileName.substring(dot + 1);
 				for (FileType fileType : FileType.values()) {

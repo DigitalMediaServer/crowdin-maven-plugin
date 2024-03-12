@@ -71,6 +71,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
 import org.digitalmediaserver.crowdin.api.request.CreateBranchRequest;
 import org.digitalmediaserver.crowdin.api.request.CreateBuildRequest;
+import org.digitalmediaserver.crowdin.api.request.CreateFolderRequest;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo;
 import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
@@ -619,7 +620,7 @@ public class CrowdinAPI {
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable Long branchId,
-		@Nullable Long directoryId,
+		@Nullable Long directoryId, //Doc: Branch and directory can't be used together
 		@Nullable String filter,
 		boolean recursion,
 		@Nonnull String token,
@@ -700,7 +701,7 @@ public class CrowdinAPI {
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable Long branchId,
-		@Nullable Long directoryId,
+		@Nullable Long directoryId, //Doc: Branch and directory can't be used together
 		@Nullable String filter,
 		boolean recursion,
 		@Nonnull String token,
@@ -772,6 +773,58 @@ public class CrowdinAPI {
 
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin responded with " + result.size() + " folders");
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static FolderInfo createFolder(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull String name,
+		@Nullable Long branchId,
+		@Nullable Long directoryId, //Doc: branch and dir can't be specified at the same call
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		CreateFolderRequest payload = new CreateFolderRequest(name);
+		payload.setBranchId(branchId);
+		payload.setDirectoryId(directoryId);
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a new folder with: " + payload);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"projects/" + projectId + "/directories",
+				null,
+				token,
+				payload,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while creating folder: " + e.getMessage(),
+				e
+			);
+		}
+
+		FolderInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FolderInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing folder creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new folder: " + result);
 		}
 		return result;
 	}

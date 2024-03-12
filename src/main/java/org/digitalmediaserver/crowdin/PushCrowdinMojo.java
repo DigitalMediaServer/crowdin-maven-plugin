@@ -156,7 +156,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 //		}
 
 //		List<FileInfo> files = CrowdinAPI.listFiles(client, projectId, null, null, null, false, token, getLog());
-		List<FolderInfo> folders = CrowdinAPI.listFolders(client, projectId, null, null, null, false, token, getLog());
+//		List<FolderInfo> folders = CrowdinAPI.listFolders(client, projectId, null, null, null, false, token, getLog());
+//		FolderInfo folderInfo = CrowdinAPI.createFolder(client, projectId, "test2", branch.getId(), null, token, getLog());
 
 		// Set values
 		for (TranslationFileSet fileSet : translationFileSets) {
