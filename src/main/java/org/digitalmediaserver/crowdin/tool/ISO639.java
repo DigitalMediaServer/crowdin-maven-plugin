@@ -18,7 +18,8 @@
  */
 package org.digitalmediaserver.crowdin.tool;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1569,14 +1570,14 @@ public enum ISO639 {
 		Map<String, ISO639> names = new HashMap<>();
 		for (ISO639 entry : values()) {
 			for (String name : entry.names) {
-				if (!isBlank(name)) {
+				if (isNotBlank(name)) {
 					names.put(name.replaceAll("\\s*\\([^\\)]*\\)\\s*", "").toLowerCase(Locale.ROOT), entry);
 				}
 			}
-			if (!isBlank(entry.iso639Part1)) {
+			if (isNotBlank(entry.iso639Part1)) {
 				codes.put(entry.iso639Part1, entry);
 			}
-			if (!isBlank(entry.iso639Part2B)) {
+			if (isNotBlank(entry.iso639Part2B)) {
 				codes.put(entry.iso639Part2B, entry);
 			}
 			codes.put(entry.iso639Part2T, entry);
@@ -1700,7 +1701,7 @@ public enum ISO639 {
 	 */
 	@Nonnull
 	public String getShortestCode() {
-		return !isBlank(iso639Part1) ? iso639Part1 : getPart2B();
+		return isNotBlank(iso639Part1) ? iso639Part1 : getPart2B();
 	}
 
 	/**
@@ -1771,7 +1772,7 @@ public enum ISO639 {
 		} else {
 			sb.append("Name=").append("\"").append(names.get(0)).append("\"");
 		}
-		if (!isBlank(iso639Part1)) {
+		if (isNotBlank(iso639Part1)) {
 			sb.append(", 639-1=").append(iso639Part1);
 		}
 		sb.append(", 639-2=");

@@ -19,6 +19,8 @@
 package org.digitalmediaserver.crowdin;
 
 import static org.digitalmediaserver.crowdin.tool.CrowdinFileSystem.*;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +48,7 @@ import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
 import org.digitalmediaserver.crowdin.api.response.StorageInfo;
 import org.digitalmediaserver.crowdin.configuration.UpdateOption;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
+import org.digitalmediaserver.crowdin.tool.FileUtil;
 import org.digitalmediaserver.crowdin.tool.NSISUtil;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -170,16 +173,17 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 //		catch (IOException e1) {
 //			e1.printStackTrace();
 //		}
-		List<StorageInfo> storages = CrowdinAPI.listStorages(client, token, getLog());
+//		List<StorageInfo> storages = CrowdinAPI.listStorages(client, token, getLog());
 //		CrowdinAPI.deleteStorage(client, storages.get(0), token, getLog());
-//		storages = CrowdinAPI.listStorages(client, token, getLog());
+//		storages = CrowdinAPI.listStorages(client, token, getLog()); //2084073772
+//		FileInfo fileInfo = CrowdinAPI.createFile(client, projectId, storages.get(0), "test.properties", FileType.properties, branch.getId(), null, "Test title", "Test context", null, null, null, null, token, getLog());
 
 		// Set values
 		for (TranslationFileSet fileSet : translationFileSets) {
 			Path pushFile = fileSet.getLanguageFilesFolder().toPath().resolve(fileSet.getBaseFileName());
 			if (Files.exists(pushFile)) {
-				String pushFolder = getPushFolder(fileSet, true);
-				if (!isBlank(pushFolder) && !containsFolder(filesElement, pushFolder, getLog())) {
+				String pushFolder = FileUtil.getPushFolder(fileSet, true);
+				if (isNotBlank(pushFolder) && !containsFolder(filesElement, pushFolder, getLog())) {
 					try {
 						createFolders(client, server, filesElement, pushFolder, getLog());
 					} catch (IOException e) {

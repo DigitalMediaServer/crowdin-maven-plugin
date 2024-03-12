@@ -18,6 +18,8 @@
  */
 package org.digitalmediaserver.crowdin;
 
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -25,7 +27,6 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -43,9 +44,7 @@ import org.digitalmediaserver.crowdin.api.CrowdinAPI;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
-import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.digitalmediaserver.crowdin.tool.GitUtil;
-import org.jdom2.Document;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -309,7 +308,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		if (o instanceof PluginDescriptor) {
 			PluginDescriptor descriptor = (PluginDescriptor) o;
 			String result;
-			if (!isBlank(result = descriptor.getVersion())) {
+			if (isNotBlank(result = descriptor.getVersion())) {
 				return result;
 			}
 		}
@@ -440,29 +439,5 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 				);
 			}
 		}
-	}
-
-	/**
-	 * Evaluates if the specified character sequence is {@code null}, empty or
-	 * only consists of whitespace.
-	 *
-	 * @param cs the {@link CharSequence} to evaluate.
-	 * @return true if {@code cs} is {@code null}, empty or only consists of
-	 *         whitespace, {@code false} otherwise.
-	 */
-	public static boolean isBlank(@Nullable CharSequence cs) {
-		if (cs == null) {
-			return true;
-		}
-		int strLen = cs.length();
-		if (strLen == 0) {
-			return true;
-		}
-		for (int i = 0; i < strLen; i++) {
-			if (!Character.isWhitespace(cs.charAt(i))) {
-				return false;
-			}
-		}
-		return true;
 	}
 }

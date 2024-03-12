@@ -19,6 +19,8 @@
 package org.digitalmediaserver.crowdin;
 
 import static org.digitalmediaserver.crowdin.tool.Constants.*;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -52,6 +54,7 @@ import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.digitalmediaserver.crowdin.tool.FIFOProperties;
+import org.digitalmediaserver.crowdin.tool.FileUtil;
 import org.digitalmediaserver.crowdin.tool.GroupSortedProperties;
 import org.digitalmediaserver.crowdin.tool.ISO639;
 import org.digitalmediaserver.crowdin.tool.NSISUtil;
@@ -655,8 +658,8 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 				continue;
 			}
 			StringBuilder sb = new StringBuilder();
-			String pushFolder = CrowdinFileSystem.getPushFolder(fileSet, true);
-			if (!isBlank(pushFolder)) {
+			String pushFolder = FileUtil.getPushFolder(fileSet, true);
+			if (isNotBlank(pushFolder)) {
 				sb.append(Pattern.quote(CrowdinFileSystem.formatPath(pushFolder, true)));
 			}
 			String remaining = fileSet.getFileNameWhenExported();

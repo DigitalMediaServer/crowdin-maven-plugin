@@ -18,7 +18,7 @@
  */
 package org.digitalmediaserver.crowdin.api;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
 import java.util.Locale;
 import javax.annotation.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

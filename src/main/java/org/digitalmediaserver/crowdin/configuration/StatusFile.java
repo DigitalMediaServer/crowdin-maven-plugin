@@ -18,7 +18,7 @@
  */
 package org.digitalmediaserver.crowdin.configuration;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;

@@ -18,7 +18,8 @@
  */
 package org.digitalmediaserver.crowdin.configuration;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -440,7 +441,7 @@ public class TranslationFileSet extends AbstractFileSet {
 			case yaml:
 			default:
 				// Parse the encoding parameter
-				if (!isBlank(encoding)) {
+				if (isNotBlank(encoding)) {
 					charset = Charset.forName(encoding);
 					break;
 				}

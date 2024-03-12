@@ -26,8 +26,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -50,6 +48,7 @@ import org.digitalmediaserver.crowdin.api.response.DownloadLinkInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo.ProjectBuildStatus;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
+import org.digitalmediaserver.crowdin.tool.FileUtil;
 
 
 /**
@@ -179,7 +178,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (filterBranchNames != null) {
-					pathElements = splitPath(entry.getName());
+					pathElements = FileUtil.splitPath(entry.getName(), true);
 					filter = false;
 					for (int i = 1; i < pathElements.size(); i++) {
 						if (filterBranchNames.contains(pathElements.get(i))) {
@@ -227,40 +226,6 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		}
 
 		downloadStatusFile();
-	}
-
-	/**
-	 * Splits a file path into its folder elements, omitting the filename if
-	 * there is one.
-	 *
-	 * @param path the file path to split.
-	 * @return The {@link List} of folder elements.
-	 */
-	@Nonnull
-	protected List<String> splitPath(@Nullable String path) {
-		if (path == null || path.isEmpty()) {
-			return Collections.emptyList();
-		}
-
-		List<String> result = new ArrayList<>();
-		int len = path.length();
-		int i = 0;
-		int start = 0;
-		boolean match = false;
-		char c;
-		while (i < len) {
-			if ((c = path.charAt(i)) == '/' || c == '\\') {
-				if (match) {
-					result.add(path.substring(start, i));
-					match = false;
-				}
-				start = ++i;
-				continue;
-			}
-			match = true;
-			i++;
-		}
-		return result;
 	}
 
 	@Nonnull

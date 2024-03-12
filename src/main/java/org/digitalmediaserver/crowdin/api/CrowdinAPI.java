@@ -18,8 +18,9 @@
  */
 package org.digitalmediaserver.crowdin.api;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
 import static org.digitalmediaserver.crowdin.tool.Constants.*;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -75,6 +76,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Server;
 import org.digitalmediaserver.crowdin.api.request.CreateBranchRequest;
 import org.digitalmediaserver.crowdin.api.request.CreateBuildRequest;
+import org.digitalmediaserver.crowdin.api.request.CreateFileRequest;
 import org.digitalmediaserver.crowdin.api.request.CreateFolderRequest;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.BuildInfo;
@@ -211,6 +213,27 @@ public class CrowdinAPI {
 		return projectDetails.getRootElement().getChild("files");
 	}
 
+	@Nullable
+	public static FolderInfo ensureFolderExists(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nullable BranchInfo branch,
+		@Nonnull String folderPath,
+		@Nonnull String token,
+		@Nullable Log logger
+	) {
+		if (isBlank(folderPath)) {
+			return null;
+		}
+		char c;
+		if ((c = folderPath.charAt(folderPath.length() - 1)) != '/' && c != '\\') {
+
+		}
+
+
+		return null; //TODO: (Nad) Temp
+	}
+
 	@Nonnull
 	public static BranchInfo createBranch( //TODO: (Nad) JavaDocs,
 		@Nonnull CloseableHttpClient httpClient,
@@ -274,7 +297,7 @@ public class CrowdinAPI {
 	) throws MojoExecutionException {
 		HashMap<String, String> parameters = new LinkedHashMap<>();
 		parameters.put("limit", "500");
-		if (!isBlank(branchName)) {
+		if (isNotBlank(branchName)) {
 			parameters.put("name", branchName);
 		}
 
@@ -656,7 +679,7 @@ public class CrowdinAPI {
 		if (directoryId != null) {
 			parameters.put("directoryId", directoryId.toString());
 		}
-		if (!isBlank(filter)) {
+		if (isNotBlank(filter)) {
 			parameters.put("filter", filter);
 		}
 		if (recursion) {
@@ -739,7 +762,7 @@ public class CrowdinAPI {
 		if (directoryId != null) {
 			parameters.put("directoryId", directoryId.toString());
 		}
-		if (!isBlank(filter)) {
+		if (isNotBlank(filter)) {
 			parameters.put("filter", filter);
 		}
 		if (recursion) {
@@ -850,6 +873,79 @@ public class CrowdinAPI {
 		}
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin responded with new folder: " + result);
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static FileInfo createFile(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		@Nonnull StorageInfo storage,
+		@Nonnull String name,
+		@Nullable FileType type,
+		@Nullable Long branchId,
+		@Nullable Long directoryId, //Doc: branch and dir can't be specified at the same call
+		@Nullable String title,
+		@Nullable String context,
+		@Nullable String[] excludedTargetLanguages,
+		@Nullable FileExportOptions exportOptions,
+		@Nullable FileImportOptions importOptions,
+		@Nullable Integer parserVersion,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		CreateFileRequest payload = new CreateFileRequest(storage, name);
+		payload.setBranchId(branchId);
+		if (isNotBlank(context)) {
+			payload.setContext(context);
+		}
+		payload.setDirectoryId(directoryId);
+		payload.setExcludedTargetLanguages(excludedTargetLanguages);
+		payload.setExportOptions(exportOptions);
+		payload.setImportOptions(importOptions);
+		payload.setParserVersion(parserVersion);
+		if (isNotBlank(title)) {
+			payload.setTitle(title);
+		}
+		payload.setType(type);
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting a new file with: " + payload);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.POST,
+				"projects/" + projectId + "/files",
+				null,
+				null,
+				token,
+				payload,
+				ContentType.APPLICATION_JSON,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while creating file: " + e.getMessage(),
+				e
+			);
+		}
+
+		FileInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FileInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing file creation response: " + e.getMessage(),
+				e
+			);
+		}
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with new file: " + result);
 		}
 		return result;
 	}
@@ -1056,7 +1152,7 @@ public class CrowdinAPI {
 				requestBuilder.addParameter(entry.getKey(), entry.getValue());
 			}
 		}
-		if (!isBlank(token)) {
+		if (isNotBlank(token)) {
 			requestBuilder.addHeader("Authorization", "Bearer " + token);
 		}
 		if (headers != null) {
@@ -1127,7 +1223,7 @@ public class CrowdinAPI {
 	) throws HttpException, IOException {
 		RequestBuilder requestBuilder = RequestBuilder.create(method.getValue());
 		requestBuilder.setUri(uri);
-		if (!isBlank(token)) {
+		if (isNotBlank(token)) {
 			requestBuilder.addHeader("Authorization", "Bearer " + token);
 		}
 		if (logger != null && logger.isDebugEnabled()) {

@@ -1,6 +1,6 @@
 package org.digitalmediaserver.crowdin.tool;
 
-import static org.digitalmediaserver.crowdin.AbstractCrowdinMojo.isBlank;
+import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
