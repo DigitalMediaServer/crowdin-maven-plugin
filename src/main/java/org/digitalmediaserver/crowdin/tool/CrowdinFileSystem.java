@@ -21,7 +21,6 @@ package org.digitalmediaserver.crowdin.tool;
 import static org.digitalmediaserver.crowdin.api.CrowdinAPI.*;
 import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -535,38 +534,6 @@ public class CrowdinFileSystem {
 		parameters.put("name", branchName);
 		parameters.put("is_branch", "1");
 		requestPostDocument(httpClient, server, "add-directory", parameters, null, true, logger);
-	}
-
-	/**
-	 * Formats a {@link Path} by converting backslashes to slashes and
-	 * optionally appends a slash to the end of the {@link Path}.
-	 *
-	 * @param path the {@link Path} to format.
-	 * @param appendSeparator if {@code true} a slash will be appended to the
-	 *            {@link Path}.
-	 * @return The formatted file path.
-	 */
-	@Nonnull
-	public static String formatPath(@Nonnull Path path, boolean appendSeparator) {
-		return formatPath(path.toString(), appendSeparator);
-	}
-
-	/**
-	 * Formats a file path by converting backslashes to slashes and optionally
-	 * appends a slash to the end of the path if it's not already present.
-	 *
-	 * @param path the file path to format.
-	 * @param appendSeparator if {@code true} a slash will be appended to the
-	 *            path if one isn't already there.
-	 * @return The formatted file path.
-	 */
-	@Nonnull
-	public static String formatPath(@Nonnull String path, boolean appendSeparator) {
-		path = path.replace('\\', '/');
-		if (appendSeparator && !path.isEmpty() && !path.endsWith("/")) {
-			path += "/";
-		}
-		return path;
 	}
 
 	/**

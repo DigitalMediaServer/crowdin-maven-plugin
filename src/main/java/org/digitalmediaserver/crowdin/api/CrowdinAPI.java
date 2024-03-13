@@ -87,6 +87,7 @@ import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
 import org.digitalmediaserver.crowdin.api.response.StorageInfo;
 import org.digitalmediaserver.crowdin.tool.Constants;
 import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
+import org.digitalmediaserver.crowdin.tool.FileUtil;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -214,24 +215,59 @@ public class CrowdinAPI {
 	}
 
 	@Nullable
-	public static FolderInfo ensureFolderExists(
+	public static FolderInfo ensureFolderExists( //TODO: (Nad) Here
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable BranchInfo branch,
 		@Nonnull String folderPath,
 		@Nonnull String token,
 		@Nullable Log logger
-	) {
+	) throws MojoExecutionException {
 		if (isBlank(folderPath)) {
 			return null;
 		}
-		char c;
-		if ((c = folderPath.charAt(folderPath.length() - 1)) != '/' && c != '\\') {
-
+		FolderInfo result = null;
+		List<FolderInfo> folders;
+		boolean found;
+		Long parentFolderId = null;
+		List<String> elements = FileUtil.splitPath(folderPath, true); //TODO: (Nad) true or false...? Should we accept folders without final sep?
+		for (String element : elements) {
+			found = false;
+			folders = listFolders(
+				httpClient,
+				projectId,
+				branch == null || parentFolderId != null ? null : branch.getId(),
+				parentFolderId,
+				null,
+				false,
+				token,
+				logger
+			);
+			for (FolderInfo folder : folders) {
+				if (element.equals(folder.getName())) {
+					found = true;
+					result = folder;
+					parentFolderId = Long.valueOf(folder.getId());
+					break;
+				}
+			}
+			if (!found) {
+				//Create folder
+				FolderInfo folder = createFolder(
+					httpClient,
+					projectId,
+					element,
+					branch == null || parentFolderId != null ? null : branch.getId(),
+					parentFolderId,
+					token,
+					logger
+				);
+				result = folder;
+				parentFolderId = Long.valueOf(folder.getId());
+			}
 		}
 
-
-		return null; //TODO: (Nad) Temp
+		return result;
 	}
 
 	@Nonnull
@@ -819,6 +855,55 @@ public class CrowdinAPI {
 
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin responded with " + result.size() + " folders");
+		}
+		return result;
+	}
+
+	@Nonnull
+	public static FolderInfo getFolder(
+		@Nonnull CloseableHttpClient httpClient,
+		long projectId,
+		long directoryId,
+		@Nonnull String token,
+		@Nullable Log logger
+	) throws MojoExecutionException {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Requesting folder with ID " + directoryId);
+		}
+		String response;
+		try {
+			response = CrowdinAPI.sendRequest(
+				httpClient,
+				HTTPMethod.GET,
+				"projects/" + projectId + "/directories/" + directoryId,
+				null,
+				null,
+				token,
+				null,
+				null,
+				String.class,
+				logger
+			);
+		} catch (HttpException e) {
+			throw new MojoExecutionException(
+				"Error while requesting folder list: " + e.getMessage(),
+				e
+			);
+		}
+
+		FolderInfo result;
+		try {
+			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+			result = GSON.fromJson(jsonObject.get("data"), FolderInfo.class);
+		} catch (JsonParseException | IllegalStateException e) {
+			throw new MojoExecutionException(
+				"Error while parsing folder response: " + e.getMessage(),
+				e
+			);
+		}
+
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug("Crowdin responded with folder: " + result);
 		}
 		return result;
 	}

@@ -52,7 +52,6 @@ import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.configuration.Conversion;
 import org.digitalmediaserver.crowdin.configuration.StatusFile;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
-import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.digitalmediaserver.crowdin.tool.FIFOProperties;
 import org.digitalmediaserver.crowdin.tool.FileUtil;
 import org.digitalmediaserver.crowdin.tool.GroupSortedProperties;
@@ -155,7 +154,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 									file.getNameCount() + ", downloadFolderLength=" + downloadFolderLength
 								);
 							}
-							String relativeFile = CrowdinFileSystem.formatPath(
+							String relativeFile = FileUtil.formatPath(
 								file.subpath(downloadFolderLength, file.getNameCount()),
 								false
 							);
@@ -270,7 +269,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 											writer.write(" -->");
 										} else {
 											writer.write(fileSet.getCommentTag());
-											writer.write(" ");
+											writer.write(' ');
 											writer.write(commentHeader);
 										}
 										OrderedProperties.writeNewLine(writer, currentLineSeparator);
@@ -341,7 +340,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			// File is not inside a Crowdin-code subfolder, so it's not a translation file
 			return null;
 		}
-		String fileName = CrowdinFileSystem.formatPath(path.subpath(downloadFolderLength + 1, path.getNameCount()), false);
+		String fileName = FileUtil.formatPath(path.subpath(downloadFolderLength + 1, path.getNameCount()), false);
 		Matcher matcher = null;
 		MatchInfo matchedfileSetMatchInfo = null;
 
@@ -363,9 +362,10 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			// Convert placeholders
 			int groupCount = matcher.groupCount();
 			if (groupCount > 0) {
+				int literalStart, literalEnd;
 				for (int group = 1; group <= groupCount; group++) {
-					int literalStart = group == 1 ? 0 : matcher.end(group - 1);
-					int literalEnd = matcher.start(group);
+					literalStart = group == 1 ? 0 : matcher.end(group - 1);
+					literalEnd = matcher.start(group);
 					if (literalEnd - literalStart > 0) {
 						targetFileName.append(fileName.substring(literalStart, literalEnd));
 					}
@@ -375,9 +375,9 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			} else {
 				targetFileName.append(fileName);
 			}
-			String crowdinPath = matchedfileSetMatchInfo.getFileSet().getCrowdinPath();
+			String crowdinPath = FileUtil.formatPath(matchedfileSetMatchInfo.getFileSet().getCrowdinPath(), true);
 			if (crowdinPath != null && targetFileName.toString().startsWith(crowdinPath)) {
-				targetFileName = new StringBuilder(targetFileName.substring(crowdinPath.length() + 1));
+				targetFileName = new StringBuilder(targetFileName.substring(crowdinPath.length()));
 			}
 		} else {
 			String remaining = matchedfileSetMatchInfo.getFileSet().getTargetFileName();
@@ -423,7 +423,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 							}
 						} else if (placeholder != null) {
 							throw new MojoExecutionException(
-								"targetFileName refers placeholder \"" + placeholder.getIdentifier() +
+								"targetFileName refers to placeholder \"" + placeholder.getIdentifier() +
 								"\" not found in the exported file name \"" +
 								matchedfileSetMatchInfo.getFileSet().getFileNameWhenExported() + "\""
 							);
@@ -445,7 +445,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			}
 
 		}
-		if (targetFileName.length() == 0) {
+		if (isBlank(targetFileName)) {
 			throw new IOException("Resolved target filename for file \"" + path.toAbsolutePath() + "\" is blank");
 		}
 		return new ParseResult(Paths.get(targetFileName.toString()), matchedfileSetMatchInfo);
@@ -660,7 +660,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			StringBuilder sb = new StringBuilder();
 			String pushFolder = FileUtil.getPushFolder(fileSet, true);
 			if (isNotBlank(pushFolder)) {
-				sb.append(Pattern.quote(CrowdinFileSystem.formatPath(pushFolder, true)));
+				sb.append(Pattern.quote(pushFolder));
 			}
 			String remaining = fileSet.getFileNameWhenExported();
 			List<PathPlaceholder> matchPlaceHolders = new ArrayList<>();

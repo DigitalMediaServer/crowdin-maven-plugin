@@ -164,6 +164,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 //		List<FileInfo> files = CrowdinAPI.listFiles(client, projectId, null, null, null, false, token, getLog());
 //		List<FolderInfo> folders = CrowdinAPI.listFolders(client, projectId, null, null, null, false, token, getLog());
+//		FolderInfo folderInfo = CrowdinAPI.getFolder(client, projectId, 58L, token, getLog());
 //		FolderInfo folderInfo = CrowdinAPI.createFolder(client, projectId, "test3", null /*branch.getId()*/, 60L, token, getLog());
 //		StorageInfo storage;
 //		try (InputStream is = Files.newInputStream(Paths.get("C:\\Repos\\Java\\DigitalMediaServer\\extras\\crowdin\\fi\\messages_fi_FI.properties"))) {
@@ -177,6 +178,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 //		CrowdinAPI.deleteStorage(client, storages.get(0), token, getLog());
 //		storages = CrowdinAPI.listStorages(client, token, getLog()); //2084073772
 //		FileInfo fileInfo = CrowdinAPI.createFile(client, projectId, storages.get(0), "test.properties", FileType.properties, branch.getId(), null, "Test title", "Test context", null, null, null, null, token, getLog());
+		FolderInfo folder = CrowdinAPI.ensureFolderExists(client, projectId, branch, "sub1\\sub2/sub3/", token, getLog());
 
 		// Set values
 		for (TranslationFileSet fileSet : translationFileSets) {
@@ -200,7 +202,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 				String pushName = isBlank(fileSet.getCrowdinPath()) ?
 					fileSet.getBaseFileName() :
-					formatPath(fileSet.getCrowdinPath(), true) + fileSet.getBaseFileName();
+					FileUtil.formatPath(fileSet.getCrowdinPath(), true) + fileSet.getBaseFileName();
 				boolean update = containsFile(filesElement, pushName, getLog());
 
 				try {
