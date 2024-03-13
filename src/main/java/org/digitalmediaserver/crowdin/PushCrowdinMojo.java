@@ -93,14 +93,15 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 * The default update behavior for updates string when pushing. Valid values
 	 * are:
 	 * <ul>
-	 * <li>delete_translations — Delete translations of changed strings</li>
-	 * <li>update_as_unapproved — Preserve translations of changed strings but
-	 * remove validations of those translations if they exist</li>
-	 * <li>update_without_changes — Preserve translations and validations of
-	 * changed strings</li>
+	 * <li>clear_translations_and_approvals — Delete translations of changed
+	 * strings</li>
+	 * <li>keep_translations — Preserve translations of changed strings but
+	 * remove approvals of those translations if they exist</li>
+	 * <li>keep_translations_and_approvals — Preserve translations and approvals
+	 * of changed strings</li>
 	 * </ul>
 	 */
-	@Parameter(property = "updateOption", defaultValue = "delete_translations")
+	@Parameter(property = "updateOption", defaultValue = "clear_translations_and_approvals")
 	protected UpdateOption updateOption;
 
 	@Override
@@ -178,23 +179,55 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 //		CrowdinAPI.deleteStorage(client, storages.get(0), token, getLog());
 //		storages = CrowdinAPI.listStorages(client, token, getLog()); //2084073772
 //		FileInfo fileInfo = CrowdinAPI.createFile(client, projectId, storages.get(0), "test.properties", FileType.properties, branch.getId(), null, "Test title", "Test context", null, null, null, null, token, getLog());
-		FolderInfo folder = CrowdinAPI.ensureFolderExists(client, projectId, branch, "sub1\\sub2/sub3/", token, getLog());
+//		FolderInfo folder = CrowdinAPI.ensureFolderExists(client, projectId, branch, "sub1\\sub2/sub3/", token, getLog());
 
 		// Set values
+		FolderInfo folder;
+		FileInfo file, noBranchFile; // noBranchFile is the corresponding file from the "root" branch
 		for (TranslationFileSet fileSet : translationFileSets) {
 			Path pushFile = fileSet.getLanguageFilesFolder().toPath().resolve(fileSet.getBaseFileName());
 			if (Files.exists(pushFile)) {
+				folder = null;
+				noBranchFile = null;
 				String pushFolder = FileUtil.getPushFolder(fileSet, true);
-				if (isNotBlank(pushFolder) && !containsFolder(filesElement, pushFolder, getLog())) {
-					try {
-						createFolders(client, server, filesElement, pushFolder, getLog());
-					} catch (IOException e) {
-						throw new MojoExecutionException(
-							"An error occurred while creating folder \"" + pushFolder + "\" on Crowdin: " + e.getMessage(),
-							e
+				if (isNotBlank(pushFolder)) {
+					folder = CrowdinAPI.getFolder(client, projectId, branch, pushFolder, true, token, getLog());
+				}
+				file = CrowdinAPI.getFileIfExists(
+					client,
+					projectId,
+					branch,
+					folder,
+					fileSet.getBaseFileName(),
+					token,
+					getLog()
+				);
+				boolean update = file != null; //TODO: (Nad) Is this variable needed when all is said and done?
+				if (!update && branch != null) {
+					FolderInfo noBranchFolder = folder == null ? null : CrowdinAPI.getFolder(
+						client,
+						projectId,
+						null,
+						pushFolder,
+						false,
+						token,
+						getLog()
+					);
+					if (folder == null || noBranchFolder != null) {
+						noBranchFile = CrowdinAPI.getFileIfExists(
+							client,
+							projectId,
+							null,
+							noBranchFolder,
+							fileSet.getBaseFileName(),
+							token, getLog()
 						);
 					}
 				}
+
+				// At this stage we know if the file exists at Crowdin, and if not we know
+				// if we have a corresponding "root" file to copy settings from.
+
 
 				Map<String, AbstractContentBody> fileMap = new HashMap<>();
 				Map<String, String> titleMap = new HashMap<>();
@@ -202,8 +235,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 				String pushName = isBlank(fileSet.getCrowdinPath()) ?
 					fileSet.getBaseFileName() :
-					FileUtil.formatPath(fileSet.getCrowdinPath(), true) + fileSet.getBaseFileName();
-				boolean update = containsFile(filesElement, pushName, getLog());
+					FileUtil.formatPath(fileSet.getCrowdinPath(), true) + FileUtil.formatPath(fileSet.getBaseFileName(), false);
+//				boolean update = containsFile(filesElement, pushName, getLog());
 
 				try {
 					Path pushFileName = pushFile.getFileName();
@@ -215,7 +248,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 								ContentType.DEFAULT_BINARY,
 								pushFileName == null ? null : pushFileName.toString()
 							) :
-							new FileBody(pushFile.toFile())
+							new FileBody(pushFile.toFile()) //TODO: (Nad) ContentType?
 					);
 				} catch (FileNotFoundException e) {
 					if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
@@ -243,7 +276,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					}
 					continue;
 				}
-				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
+				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) { //TODO: (Nad) Check/Figure out this
 					titleMap.put(pushName, fileSet.getTitle());
 				}
 				patternMap.put(pushName, fileSet.getFileNameWhenExported());
@@ -265,7 +298,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 				try {
 					if (update) {
 						UpdateOption tmpUpdateOption = getUpdateOption(fileSet);
-						if (tmpUpdateOption != UpdateOption.delete_translations) {
+						if (tmpUpdateOption != UpdateOption.clear_translations_and_approvals) {
 							parameters.put("update_option", tmpUpdateOption.name());
 						}
 						CrowdinAPI.requestPostDocument(
@@ -360,7 +393,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 
 		// Check updateOption
 		if (updateOption == null) {
-			updateOption = UpdateOption.delete_translations;
+			updateOption = UpdateOption.clear_translations_and_approvals;
 		}
 	}
 }
