@@ -155,14 +155,14 @@ public class TranslationFileSet extends AbstractFileSet {
 	/**
 	 * The {@code escapeQuotes} API parameter to use. Valid values are:
 	 * <ul>
-	 * <li>0 — Do not escape single quote</li>
+	 * <li>0 — Do not escape single quote (<b>default</b>)</li>
 	 * <li>1 — Escape single quote by another single quote</li>
 	 * <li>2 — Escape single quote by backslash</li>
 	 * <li>3 — Escape single quote by another single quote only in strings
 	 * containing variables (<code>{0}</code>)</li>
 	 * </ul>
 	 *
-	 * @parameter
+	 * @parameter default-value="0"
 	 */
 	@Nullable
 	protected Integer escapeQuotes;

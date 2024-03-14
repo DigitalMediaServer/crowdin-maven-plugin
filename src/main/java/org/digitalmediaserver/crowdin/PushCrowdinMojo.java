@@ -69,19 +69,6 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	protected String confirm;
 
 	/**
-	 * The default {@code escapeQuotes} parameter to use. Valid values are:
-	 * <ul>
-	 * <li>0 — Do not escape single quote</li>
-	 * <li>1 — Escape single quote by another single quote</li>
-	 * <li>2 — Escape single quote by backslash</li>
-	 * <li>3 — Escape single quote by another single quote only in strings
-	 * containing variables (<code>{0}</code>)</li>
-	 * </ul>
-	 */
-	@Parameter(property = "escapeQuotes", defaultValue = "0")
-	protected int escapeQuotes;
-
-	/**
 	 * The default update behavior for updates string when pushing. Valid values
 	 * are:
 	 * <ul>
@@ -333,17 +320,6 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	}
 
 	/**
-	 * Gets the effective "{@code escapeQuotes}" value from either the
-	 * {@link TranslationFileSet} or the default parameter.
-	 *
-	 * @param fileSet the {@link TranslationFileSet} to use.
-	 * @return The effective "{@code escapeQuotes}" value.
-	 */
-	protected int getEscapeQuotes(TranslationFileSet fileSet) { //TODO: (Nad) Figure out..
-		return fileSet != null && fileSet.getEscapeQuotes() != null ? fileSet.getEscapeQuotes().intValue() : escapeQuotes;
-	}
-
-	/**
 	 * Gets the effective "{@code updateOption}" value from either the
 	 * {@link TranslationFileSet} or the default parameter.
 	 *
@@ -357,11 +333,6 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	@Override
 	protected void initializeParameters() throws MojoExecutionException {
 		super.initializeParameters();
-
-		// Check escapeQuotes
-		if (escapeQuotes < 0 || escapeQuotes > 3) {
-			throw new MojoExecutionException("Invalid default \"escapeQuotes\" value " + escapeQuotes);
-		}
 
 		// Check updateOption
 		if (updateOption == null) {
