@@ -137,7 +137,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		Log logger = getLog();
 		String token = server.getPassword();
 		List<BranchInfo> branches = CrowdinAPI.listBranches(client, projectId, token, null, logger);
-		BranchInfo branch = null; //getBranch(false, branches); //TODO: (Nad) Temp test
+		BranchInfo branch = getBranch(false, branches);
 		BuildInfo build = buildTranslations(branch, token);
 		cleanDownloadFolder();
 

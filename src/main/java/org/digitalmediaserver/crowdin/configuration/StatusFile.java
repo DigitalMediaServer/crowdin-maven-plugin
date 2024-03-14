@@ -62,7 +62,7 @@ public class StatusFile extends AbstractFileSet {
 
 		// File type and file type defaults
 		if (type == null) {
-			int dot = targetFile.lastIndexOf('.');
+			int dot = targetFile.lastIndexOf('.'); //TODO: (Nad) Use FileUtil..
 			if (dot > 0 && dot < targetFile.length() - 1) {
 				String extension = targetFile.substring(dot + 1).toLowerCase(Locale.ROOT);
 				type = "xml".equals(extension) ? FileType.xml : FileType.properties;

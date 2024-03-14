@@ -18,7 +18,6 @@
  */
 package org.digitalmediaserver.crowdin;
 
-import static org.digitalmediaserver.crowdin.tool.CrowdinFileSystem.*;
 import static org.digitalmediaserver.crowdin.tool.StringUtil.isBlank;
 import static org.digitalmediaserver.crowdin.tool.StringUtil.isNotBlank;
 import java.io.FileNotFoundException;
@@ -26,16 +25,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.entity.mime.content.AbstractContentBody;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -51,8 +44,6 @@ import org.digitalmediaserver.crowdin.configuration.UpdateOption;
 import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.digitalmediaserver.crowdin.tool.FileUtil;
 import org.digitalmediaserver.crowdin.tool.NSISUtil;
-import org.jdom2.Document;
-import org.jdom2.Element;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
@@ -123,19 +114,10 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 		createClient();
 		TranslationFileSet.initialize(translationFileSets);
 
-		// Retrieve project information
 		getLog().info("Retrieving Crowdin project information");
 
 		String token = server.getPassword();
 		ProjectInfo projectInfo = CrowdinAPI.getProjectInfo(client, projectId, token, getLog());
-
-		Document projectDetails = new Document(); //TODO: (Nad) Remove
-//		try {
-//			projectDetails = CrowdinAPI.requestPostDocument(client, server, "info", null, null, true, getLog());
-//		} catch (IOException e) {
-//			throw new MojoExecutionException("An error occurred while getting Crowdin information: " + e.getMessage(), e);
-//		}
-
 		if (projectInfo.getName() == null || !projectInfo.getName().equals(projectName)) {
 			throw new MojoExecutionException(
 				"Crowdin project name (" + projectInfo.getName() +
@@ -145,44 +127,6 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 		}
 
 		BranchInfo branch = getBranch(true, null);
-
-		// Update project information in case the branch was created in the
-		// previous step
-//		if (branch != null && !containsBranch(projectDetails.getRootElement().getChild("files"), branch, getLog())) {
-//			try {
-//				projectDetails = CrowdinAPI.requestPostDocument(client, server, "info", null, null, true, getLog());
-//			} catch (IOException e) {
-//				throw new MojoExecutionException("An error occurred while getting Crowdin information: " + e.getMessage(), e);
-//			}
-//		}
-
-		// Get Crowdin files
-		Element filesElement = new Element("test"); //TODO: (Nad) Remove
-//		try {
-//			filesElement = CrowdinAPI.getFiles(client, server, "branch", projectDetails, getLog());
-//		} catch (IOException e) {
-//			throw new MojoExecutionException("An error occurred while getting Crowdin files: " + e.getMessage(), e);
-//		}
-
-//		List<FileInfo> files = CrowdinAPI.listFiles(client, projectId, null, null, null, false, token, getLog());
-//		List<FolderInfo> folders = CrowdinAPI.listFolders(client, projectId, null, null, null, false, token, getLog());
-//		FolderInfo folderInfo = CrowdinAPI.getFolder(client, projectId, 58L, token, getLog());
-//		FolderInfo folderInfo = CrowdinAPI.createFolder(client, projectId, "test3", null /*branch.getId()*/, 60L, token, getLog());
-//		StorageInfo storage;
-//		try (InputStream is = Files.newInputStream(Paths.get("C:\\Repos\\Java\\DigitalMediaServer\\extras\\crowdin\\fi\\messages_fi_FI.properties"))) {
-//			storage = CrowdinAPI.createStorage(client, "fånu€.properties", ContentType.TEXT_PLAIN, is, token, getLog());
-//
-//		}
-//		catch (IOException e1) {
-//			e1.printStackTrace();
-//		}
-//		List<StorageInfo> storages = CrowdinAPI.listStorages(client, token, getLog());
-//		CrowdinAPI.deleteStorage(client, storages.get(0), token, getLog());
-//		storages = CrowdinAPI.listStorages(client, token, getLog()); //2084073772
-//		FileInfo fileInfo = CrowdinAPI.createFile(client, projectId, storages.get(0), "test.properties", FileType.properties, branch.getId(), null, "Test title", "Test context", null, null, null, null, token, getLog());
-//		FolderInfo folder = CrowdinAPI.ensureFolderExists(client, projectId, branch, "sub1\\sub2/sub3/", token, getLog());
-
-		// Set values // TODO: (Nad) Does this comment still make sense?
 		String loggingTitle, pushFileName;
 		FolderInfo folder;
 		FileInfo file, templateFile; // templateFile is the corresponding file from the "root" branch

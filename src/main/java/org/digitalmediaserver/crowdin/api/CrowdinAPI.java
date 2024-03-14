@@ -36,21 +36,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
@@ -64,16 +61,12 @@ import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.HTTP;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.settings.Server;
 import org.digitalmediaserver.crowdin.api.request.CreateBranchRequest;
 import org.digitalmediaserver.crowdin.api.request.CreateBuildRequest;
 import org.digitalmediaserver.crowdin.api.request.CreateFileRequest;
@@ -87,12 +80,7 @@ import org.digitalmediaserver.crowdin.api.response.FolderInfo;
 import org.digitalmediaserver.crowdin.api.response.ProjectInfo;
 import org.digitalmediaserver.crowdin.api.response.StorageInfo;
 import org.digitalmediaserver.crowdin.configuration.UpdateOption;
-import org.digitalmediaserver.crowdin.tool.Constants;
-import org.digitalmediaserver.crowdin.tool.CrowdinFileSystem;
 import org.digitalmediaserver.crowdin.tool.FileUtil;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -171,49 +159,6 @@ public class CrowdinAPI {
 			clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
 		}
 		return clientBuilder.build();
-	}
-
-	/**
-	 * Requests project information including all files and returns the files
-	 * element. Branch may be {@code null} in which case the root files
-	 * {@link Element} is returned.
-	 *
-	 * @param httpClient the {@link HttpClient} to use.
-	 * @param server the {@link Server} to use for Crowdin credentials.
-	 * @param branch the branch name.
-	 * @param projectDetails the project details.
-	 * @param logger the {@link Log} instance to use for logging.
-	 * @return The relevant files {@link Element}.
-	 * @throws IOException If an error occurs during the operation.
-	 */
-	@Nullable
-	public static Element getFiles(
-		@Nonnull HttpClient httpClient,
-		@Nonnull Server server,
-		@Nullable String branch,
-		@Nullable Document projectDetails,
-		@Nullable Log logger
-	) throws IOException {
-		if (projectDetails == null) {
-			// Retrieve project informations
-			if (logger != null) {
-				logger.info("Retrieving Crowdin project information");
-			}
-			projectDetails = requestPostDocument(httpClient, server, "info", null, null, true, logger);
-		}
-
-		// Get Crowdin files
-		if (branch != null) {
-			Element branchElement = CrowdinFileSystem.getBranch(
-				projectDetails.getRootElement().getChild("files").getChildren(),
-				branch
-			);
-			if (branchElement == null || !CrowdinFileSystem.isBranch(branchElement)) {
-				throw new IOException("Can't find branch \"" + branch + "\" in Crowdin project information");
-			}
-			return branchElement.getChild("files");
-		}
-		return projectDetails.getRootElement().getChild("files");
 	}
 
 	@Nullable
@@ -1544,317 +1489,7 @@ public class CrowdinAPI {
 		return result.toString();
 	}
 
-//    private <T, V> T request(String url,
-//        V data,
-//        HttpRequestConfig config,
-//        Class<T> clazz,
-//        String method) throws HttpException, HttpBadRequestException
-//    {
-//		HttpUriRequest request = this.buildRequest(method, url, data, config);
-//		try (CloseableHttpResponse response = httpClient.execute(request)) {
-//			int statusCode = response.getStatusLine().getStatusCode();
-//			if (statusCode < 200 || statusCode >= 300) {
-//				String error = this.toString(response.getEntity());
-//				throw this.jsonTransformer.parse(error, CrowdinApiException.class);
-//			}
-//			//plain response
-//			if (String.class.equals(clazz)) {
-//				return (T) this.toString(response.getEntity());
-//			}
-//			//not interested in response at all
-//			if (Void.class.equals(clazz)) {
-//				return null;
-//			}
-//			return this.jsonTransformer.parse(this.toString(response.getEntity()), clazz);
-//		} catch (IOException e) {
-//			throw HttpException.fromMessage(e.getMessage());
-//		}
-//    }
-
-
-	// TODO (Nad) Request stuff
-//    private <V> HttpUriRequest buildRequest(String httpMethod, String url, V data, HttpRequestConfig config) {
-//        RequestBuilder requestBuilder = RequestBuilder.create(httpMethod);
-//        requestBuilder.setUri(URI.create(this.appendUrlParams(url, config.getUrlParams())));
-//        requestBuilder.addHeader("Authorization", "Bearer " + this.credentials.getToken());
-//        if (data != null) {
-//            HttpEntity entity;
-//            if (data instanceof InputStream) {
-//                entity = new InputStreamEntity((InputStream) data);
-//            } else if (data instanceof String) {
-//                entity = new StringEntity((String) data, ContentType.APPLICATION_OCTET_STREAM);
-//            } else {
-//                entity = new StringEntity(this.jsonTransformer.convert(data), ContentType.APPLICATION_JSON);
-//            }
-//            requestBuilder.setEntity(entity);
-//        } else if (HttpPost.METHOD_NAME.equals(httpMethod)) {
-//            requestBuilder.setEntity(new StringEntity("", ContentType.APPLICATION_JSON));
-//        }
-//        Map<String, Object> headers = new HashMap<>();
-//        headers.putAll(config.getHeaders());
-//        headers.putAll(this.defaultHeaders);
-//        for (Map.Entry<String, ?> entry : headers.entrySet()) {
-//            requestBuilder = requestBuilder.addHeader(entry.getKey(), entry.getValue().toString());
-//        }
-//        return requestBuilder.build();
-//    }
-//
-//    private String toString(HttpEntity entity) throws IOException {
-//        final InputStream stream = entity.getContent();
-//        final int bufferSize = 1024;
-//        final char[] buffer = new char[bufferSize];
-//        final StringBuilder out = new StringBuilder();
-//        Reader in = new InputStreamReader(stream, StandardCharsets.UTF_8);
-//        int charsRead;
-//        while ((charsRead = in.read(buffer, 0, buffer.length)) > 0) {
-//            out.append(buffer, 0, charsRead);
-//        }
-//        return out.toString();
-//    }
-
-	/**
-	 * Makes a GET request to the Crowdin API and returns the result as a
-	 * {@link Document}.
-	 *
-	 * @param httpClient the {@link HttpClient} to use.
-	 * @param server the {@link Server} to use for Crowdin credentials.
-	 * @param method the API method to use.
-	 * @param parameters the {@link Map} of API parameters to use.
-	 * @param logger the {@link Log} instance to use for logging.
-	 * @return The retrieved {@link Document}.
-	 * @throws IOException If an error occurs during the operation.
-	 * @throws IllegalArgumentException If {@code method} is blank.
-	 */
-	@Nonnull
-	public static Document requestGetDocument(
-		@Nonnull HttpClient httpClient,
-		@Nonnull Server server,
-		@Nonnull String method,
-		@Nullable Map<String, String> parameters,
-		@Nullable Log logger
-	) throws IOException {
-		if (isBlank(method)) {
-			throw new IllegalArgumentException("method cannot be blank");
-		}
-		StringBuilder url = new StringBuilder(API_URL);
-		url.append(server.getUsername()).append("/").append(method);
-		boolean first = true;
-		if (parameters != null) {
-			for (Entry<String, String> parameter : parameters.entrySet()) {
-				url.append(first ? "?" : "&").append(parameter.getKey()).append("=").append(parameter.getValue());
-				first = false;
-			}
-		}
-		url.append(first ? "?" : "&").append("key=");
-		if (logger != null) {
-			logger.debug("Calling " + url + "<API Key>");
-		}
-		url.append(server.getPassword());
-
-		HttpGet getMethod = new HttpGet(url.toString());
-		HttpResponse response = httpClient.execute(getMethod);
-
-		int returnCode = response.getStatusLine().getStatusCode();
-		if (logger != null) {
-			logger.debug("Return code: " + returnCode);
-		}
-		if (returnCode != 200) {
-			throw new IOException("Failed to call API with return code " + returnCode);
-		}
-
-		Document document;
-		InputStream responseBodyAsStream;
-		responseBodyAsStream = response.getEntity().getContent();
-		try {
-			document = Constants.SAX_BUILDER.build(responseBodyAsStream);
-		} catch (JDOMException e) {
-			throw new IOException("Failed to parse API reponse: " + e.getMessage(), e);
-		}
-
-		if (!document.getRootElement().getName().equals("success")) {
-			String code = document.getRootElement().getChildTextNormalize("code");
-			String message = document.getRootElement().getChildTextNormalize("message");
-			throw new IOException("Failed to call API, response was: " + code + " - " + message);
-		}
-		return document;
-	}
-
-	/**
-	 * Makes a POST request to the Crowdin API and returns the result as a
-	 * {@link Document}.
-	 *
-	 * @param httpClient the {@link HttpClient} to use.
-	 * @param server the {@link Server} to use for Crowdin credentials.
-	 * @param method the API method to use.
-	 * @param parameters the {@link Map} of API parameters to use.
-	 * @param files the {@link Map} of files to use.
-	 * @param mustSucceed whether to throw a {@link IOException} if the returned
-	 *            {@link Document} contains an error code.
-	 * @param logger the {@link Log} instance to use for logging.
-	 * @return The retrieved {@link Document}.
-	 * @throws IOException If an error occurs during the operation.
-	 * @throws IllegalArgumentException If {@code method} is blank.
-	 */
-	@Nonnull
-	public static Document requestPostDocument(
-		@Nonnull HttpClient httpClient,
-		@Nonnull Server server,
-		@Nonnull String method,
-		@Nullable Map<String, String> parameters,
-		@Nullable Map<String, AbstractContentBody> files,
-		boolean mustSucceed,
-		@Nullable Log logger
-	) throws IOException {
-		return requestPostDocument(httpClient, server, method, parameters, files, null, null, mustSucceed, logger);
-	}
-
-	/**
-	 * Makes a POST request to the Crowdin API and returns the result as a
-	 * {@link Document}.
-	 *
-	 * @param httpClient the {@link HttpClient} to use.
-	 * @param server the {@link Server} to use for Crowdin credentials.
-	 * @param method the API method to use.
-	 * @param parameters the {@link Map} of API parameters to use.
-	 * @param files the {@link Map} of files to use.
-	 * @param titles the {@link Map} of titles to use.
-	 * @param patterns the {@link Map} of patterns to use.
-	 * @param mustSucceed whether to throw a {@link IOException} if the returned
-	 *            {@link Document} contains an error code.
-	 * @param logger the {@link Log} instance to use for logging.
-	 * @return The retrieved {@link Document}.
-	 * @throws IOException If an error occurs during the operation.
-	 * @throws IllegalArgumentException If {@code method} is blank.
-	 */
-	@Nonnull
-	public static Document requestPostDocument(
-		@Nonnull HttpClient httpClient,
-		@Nonnull Server server,
-		@Nonnull String method,
-		@Nullable Map<String, String> parameters,
-		@Nullable Map<String, AbstractContentBody> files,
-		@Nullable Map<String, String> titles,
-		@Nullable Map<String, String> patterns,
-		boolean mustSucceed,
-		@Nullable Log logger
-	) throws IOException {
-		try {
-			HttpResponse response = requestPost(httpClient, server, method, parameters, files, titles, patterns, logger);
-			int returnCode = response.getStatusLine().getStatusCode();
-			if (logger != null) {
-				logger.debug("Return code : " + returnCode);
-			}
-			InputStream responseBodyAsStream = response.getEntity().getContent();
-			Document document = SAX_BUILDER.build(responseBodyAsStream);
-			if (mustSucceed && document.getRootElement().getName().equals("error")) {
-				String code = document.getRootElement().getChildTextNormalize("code");
-				String message = document.getRootElement().getChildTextNormalize("message");
-				throw new IOException("Failed to call API (" + returnCode + "): " + code + " - " + message);
-			}
-			return document;
-		} catch (JDOMException e) {
-			throw new IOException("Failed to parse API reponse: " + e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Makes a POST request to the Crowdin API and returns the
-	 * {@link HttpResponse}.
-	 *
-	 * @param httpClient the {@link HttpClient} to use.
-	 * @param server the {@link Server} to use for Crowdin credentials.
-	 * @param method the API method to use.
-	 * @param parameters the {@link Map} of API parameters to use.
-	 * @param logger the {@link Log} instance to use for logging.
-	 * @return The resulting {@link HttpResponse}.
-	 * @throws IOException If an error occurs during the operation.
-	 * @throws IllegalArgumentException If {@code method} is blank.
-	 */
-	@Nonnull
-	public static HttpResponse requestPost(
-		@Nonnull HttpClient httpClient,
-		@Nonnull Server server,
-		@Nonnull String method,
-		@Nullable Map<String, String> parameters,
-		@Nullable Log logger
-	) throws IOException {
-		return requestPost(httpClient, server, method, parameters, null, null, null, logger);
-	}
-
-	/**
-	 * Makes a POST request to the Crowdin API and returns the
-	 * {@link HttpResponse}.
-	 *
-	 * @param httpClient the {@link HttpClient} to use.
-	 * @param server the {@link Server} to use for Crowdin credentials.
-	 * @param method the API method to use.
-	 * @param parameters the {@link Map} of API parameters to use.
-	 * @param files the {@link Map} of files to use.
-	 * @param titles the {@link Map} of titles to use.
-	 * @param patterns the {@link Map} of patterns to use.
-	 * @param logger the {@link Log} instance to use for logging.
-	 * @return The resulting {@link HttpResponse}.
-	 * @throws IOException If an error occurs during the operation.
-	 * @throws IllegalArgumentException If {@code method} is blank.
-	 */
-	@Nonnull
-	public static HttpResponse requestPost(
-		@Nonnull HttpClient httpClient,
-		@Nonnull Server server,
-		@Nonnull String method,
-		@Nullable Map<String, String> parameters,
-		@Nullable Map<String, AbstractContentBody> files,
-		@Nullable Map<String, String> titles,
-		@Nullable Map<String, String> patterns,
-		@Nullable Log logger
-	) throws IOException {
-		if (isBlank(method)) {
-			throw new IllegalArgumentException("method cannot be blank");
-		}
-
-		StringBuilder url = new StringBuilder(API_URL);
-		url.append(server.getUsername()).append("/").append(method).append("?key=");
-		if (logger != null) {
-			logger.debug("Calling " + url + "<API Key>");
-		}
-		url.append(server.getPassword());
-		HttpPost postMethod = new HttpPost(url.toString());
-
-		MultipartEntityBuilder reqEntityBuilder = MultipartEntityBuilder.create();
-
-		if (parameters != null && !parameters.isEmpty()) {
-			Set<Entry<String, String>> entrySetParameters = parameters.entrySet();
-			for (Entry<String, String> entryParameter : entrySetParameters) {
-				reqEntityBuilder.addTextBody(entryParameter.getKey(), entryParameter.getValue());
-			}
-		}
-		if (files != null && !files.isEmpty()) {
-			for (Entry<String, AbstractContentBody> entryFile : files.entrySet()) {
-				String key = "files[" + entryFile.getKey() + "]";
-				reqEntityBuilder.addPart(key, entryFile.getValue());
-			}
-		}
-
-		if (titles != null && !titles.isEmpty()) {
-			Set<Entry<String, String>> entrySetTitles = titles.entrySet();
-			for (Entry<String, String> entryTitle : entrySetTitles) {
-				reqEntityBuilder.addTextBody("titles[" + entryTitle.getKey() + "]", entryTitle.getValue());
-			}
-		}
-
-		if (patterns != null && !patterns.isEmpty()) {
-			Set<Entry<String, String>> entrySetPatterns = patterns.entrySet();
-			for (Entry<String, String> entryPattern : entrySetPatterns) {
-				reqEntityBuilder.addTextBody("export_patterns[" + entryPattern.getKey() + "]", entryPattern.getValue());
-			}
-		}
-
-		postMethod.setEntity(reqEntityBuilder.build());
-
-		return httpClient.execute(postMethod);
-	}
-
-	public enum HTTPMethod {
+	public enum HTTPMethod { //TODO: (Nad) Move somewhere more sensible..?
 		DELETE(HttpDelete.METHOD_NAME),
 		GET(HttpGet.METHOD_NAME),
 		HEAD(HttpHead.METHOD_NAME),
