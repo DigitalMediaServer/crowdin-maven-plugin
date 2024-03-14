@@ -19,7 +19,6 @@
 package org.digitalmediaserver.crowdin.tool;
 
 import java.util.regex.Pattern;
-import org.jdom2.input.SAXBuilder;
 
 
 /**
@@ -43,9 +42,6 @@ public class Constants {
 
 	/** The path filter delimiters to use when building a regular expression */
 	public static final Pattern FILTER_DELIMITERS = Pattern.compile("\\?|\\*|\\\\");
-
-	/** The static {@link SAXBuilder} instance */
-	public static final SAXBuilder SAX_BUILDER = new SAXBuilder();
 
 	/** The Crowdin API URL */
 	public static final String API_URL = "https://api.crowdin.com/api/v2/";
