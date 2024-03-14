@@ -26,12 +26,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.FileEntity;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
@@ -181,14 +182,18 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 //		FileInfo fileInfo = CrowdinAPI.createFile(client, projectId, storages.get(0), "test.properties", FileType.properties, branch.getId(), null, "Test title", "Test context", null, null, null, null, token, getLog());
 //		FolderInfo folder = CrowdinAPI.ensureFolderExists(client, projectId, branch, "sub1\\sub2/sub3/", token, getLog());
 
-		// Set values
+		// Set values // TODO: (Nad) Does this comment still make sense?
+		String loggingTitle, pushFileName;
 		FolderInfo folder;
-		FileInfo file, noBranchFile; // noBranchFile is the corresponding file from the "root" branch
+		FileInfo file, templateFile; // templateFile is the corresponding file from the "root" branch
 		for (TranslationFileSet fileSet : translationFileSets) {
 			Path pushFile = fileSet.getLanguageFilesFolder().toPath().resolve(fileSet.getBaseFileName());
+			loggingTitle = fileSet.getTitle();
+			loggingTitle = isBlank(loggingTitle) || loggingTitle.equals(fileSet.getBaseFileName()) ? null : loggingTitle;
 			if (Files.exists(pushFile)) {
 				folder = null;
-				noBranchFile = null;
+				templateFile = null;
+				pushFileName = pushFile.getFileName().toString();
 				String pushFolder = FileUtil.getPushFolder(fileSet, true);
 				if (isNotBlank(pushFolder)) {
 					folder = CrowdinAPI.getFolder(client, projectId, branch, pushFolder, true, token, getLog());
@@ -202,9 +207,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					token,
 					getLog()
 				);
-				boolean update = file != null; //TODO: (Nad) Is this variable needed when all is said and done?
-				if (!update && branch != null) {
-					FolderInfo noBranchFolder = folder == null ? null : CrowdinAPI.getFolder(
+				if (file == null && branch != null) {
+					FolderInfo templateFolder = folder == null ? null : CrowdinAPI.getFolder(
 						client,
 						projectId,
 						null,
@@ -213,48 +217,53 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 						token,
 						getLog()
 					);
-					if (folder == null || noBranchFolder != null) {
-						noBranchFile = CrowdinAPI.getFileIfExists(
+					if (folder == null || templateFolder != null) {
+						templateFile = CrowdinAPI.getFileIfExists(
 							client,
 							projectId,
 							null,
-							noBranchFolder,
+							templateFolder,
 							fileSet.getBaseFileName(),
 							token, getLog()
 						);
 					}
 				}
 
-				// At this stage we know if the file exists at Crowdin, and if not we know
-				// if we have a corresponding "root" file to copy settings from.
+				// At this stage we know if the file exists at Crowdin, and if it doesn't
+				// we know if we have a corresponding "root" file to copy settings from.
 
-
-				Map<String, AbstractContentBody> fileMap = new HashMap<>();
-				Map<String, String> titleMap = new HashMap<>();
-				Map<String, String> patternMap = new HashMap<>();
-
-				String pushName = isBlank(fileSet.getCrowdinPath()) ?
-					fileSet.getBaseFileName() :
-					FileUtil.formatPath(fileSet.getCrowdinPath(), true) + FileUtil.formatPath(fileSet.getBaseFileName(), false);
-//				boolean update = containsFile(filesElement, pushName, getLog());
-
-				try {
-					Path pushFileName = pushFile.getFileName();
-					fileMap.put(
-						pushName,
-						fileSet.getType() == FileType.nsh ?
-							new InputStreamBody(
-								new NSISUtil.NSISInputStream(pushFile),
-								ContentType.DEFAULT_BINARY,
-								pushFileName == null ? null : pushFileName.toString()
-							) :
-							new FileBody(pushFile.toFile()) //TODO: (Nad) ContentType?
+				if (loggingTitle != null) {
+					getLog().info(
+						"Uploading \"" + fileSet.getBaseFileName() +
+						"\" for fileset \"" + loggingTitle + "\" to Crowdin"
 					);
+				} else {
+					getLog().info("Uploading \"" + fileSet.getBaseFileName() + "\" to Crowdin");
+				}
+
+				StorageInfo storage;
+				InputStream is = null;
+				try {
+					HttpEntity entity;
+					ContentType contentType;
+					FileType fileType = fileSet.getType();
+					if (fileType == null || fileType == FileType.auto || isBlank(fileType.getContentType())) {
+						contentType = ContentType.APPLICATION_OCTET_STREAM;
+					} else {
+						contentType = ContentType.create(fileType.getContentType(), fileSet.getCharset());
+					}
+					if (fileSet.getType() == FileType.nsh) {
+						is = new NSISUtil.NSISInputStream(pushFile);
+						entity = new InputStreamEntity(is, contentType);
+					} else {
+						entity = new FileEntity(pushFile.toFile(), contentType);
+					}
+					storage = CrowdinAPI.createStorage(client, pushFileName, entity, token, getLog());
 				} catch (FileNotFoundException e) {
-					if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
+					if (loggingTitle != null) {
 						getLog().warn(
 							"\"" + pushFile.toAbsolutePath() + "\" not found - upload skipped for fileset \"" +
-							fileSet.getTitle() + "\": " + e.getMessage()
+							loggingTitle + "\": " + e.getMessage()
 						);
 					} else {
 						getLog().warn(
@@ -263,10 +272,10 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					}
 					continue;
 				} catch (IOException e) {
-					if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
+					if (loggingTitle != null) {
 						getLog().error(
 							"An error occurred while reading \"" + pushFile.toAbsolutePath() +
-							"\" - upload skipped for fileset \"" + fileSet.getTitle() + "\": " + e.getMessage()
+							"\" - upload skipped for fileset \"" + loggingTitle + "\": " + e.getMessage()
 						);
 					} else {
 						getLog().error(
@@ -275,78 +284,97 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 						);
 					}
 					continue;
-				}
-				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) { //TODO: (Nad) Check/Figure out this
-					titleMap.put(pushName, fileSet.getTitle());
-				}
-				patternMap.put(pushName, fileSet.getFileNameWhenExported());
-
-				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
-					getLog().info(
-						(update ? "Updating" : "Adding") + " file \"" + fileSet.getBaseFileName() +
-						"\" for fileset \"" + fileSet.getTitle() + "\" on Crowdin"
-					);
-				} else {
-					getLog().info((update ? "Updating" : "Adding") + " file \"" + fileSet.getBaseFileName() + "\" on Crowdin");
-				}
-
-				Map<String, String> parameters = new LinkedHashMap<>();
-//				if (branch != null) {
-//					parameters.put("branch", branch);
-//				}
-				parameters.put("escape_quotes", Integer.toString(getEscapeQuotes(fileSet)));
-				try {
-					if (update) {
-						UpdateOption tmpUpdateOption = getUpdateOption(fileSet);
-						if (tmpUpdateOption != UpdateOption.clear_translations_and_approvals) {
-							parameters.put("update_option", tmpUpdateOption.name());
+				} finally {
+					if (is != null) {
+						try {
+							is.close();
+						} catch (IOException e) {
+							getLog().warn("Couldn't close \"" + pushFile.toAbsolutePath() + "\" after reading");
 						}
-						CrowdinAPI.requestPostDocument(
-							client,
-							server,
-							"update-file",
-							parameters,
-							fileMap,
-							titleMap,
-							patternMap,
-							true,
-							getLog()
+					}
+				}
+
+				try {
+					if (loggingTitle != null) {
+						getLog().info(
+							(file != null ? "Updating" : "Adding") + " file \"" + fileSet.getBaseFileName() +
+							"\" for fileset \"" + loggingTitle + "\" at Crowdin"
 						);
 					} else {
-						parameters.put("type", fileSet.getType().name());
-						CrowdinAPI.requestPostDocument(
-							client,
-							server,
-							"add-file",
-							parameters,
-							fileMap,
-							titleMap,
-							patternMap,
-							true,
-							getLog()
+						getLog().info(
+							(file != null ? "Updating" : "Adding") + " file \"" + fileSet.getBaseFileName() + "\" at Crowdin"
 						);
 					}
-				} catch (IOException e) {
-					throw new MojoExecutionException(
-						"An error occurred while " + (update ? "updating" : "adding") +
-						" file \"" + pushFile + "\": " + e.getMessage(),
-						e
-					);
-				}
-				if (!fileMap.isEmpty()) {
-					for (AbstractContentBody contentBody : fileMap.values()) {
-						if (contentBody instanceof InputStreamBody) {
-							InputStreamBody inputStreamBody = (InputStreamBody) contentBody;
-							if (inputStreamBody.getInputStream() != null) {
-								try {
-									inputStreamBody.getInputStream().close();
-								} catch (IOException e) {
-									getLog().warn("Couldn't close \"" + pushFile + "\" after reading");
-								}
+
+					if (file != null) {
+						if (CrowdinAPI.updateFile(
+							client,
+							projectId,
+							file.getId(),
+							storage,
+							updateOption,
+							file.getImportOptions(),
+							file.getExportOptions(),
+							null, //TODO: (Nad) Handle replaceModifiedContext
+							token,
+							getLog()
+						) != null) {
+							if (loggingTitle != null) {
+								getLog().info(
+									"Successfully updated file \"" + fileSet.getBaseFileName() +
+									"\" for fileset \"" + loggingTitle + "\" at Crowdin"
+								);
+							} else {
+								getLog().info(
+									"Successfully updated file \"" + fileSet.getBaseFileName() + "\" at Crowdin"
+								);
+							}
+						} else {
+							if (loggingTitle != null) {
+								getLog().info(
+									"No updates were needed for file \"" + fileSet.getBaseFileName() +
+									"\" for fileset \"" + loggingTitle + "\" at Crowdin"
+								);
+							} else {
+								getLog().info(
+									"No updates were needed for file \"" + fileSet.getBaseFileName() + "\" at Crowdin"
+								);
 							}
 						}
+					} else {
+						CrowdinAPI.createFile(
+							client,
+							projectId,
+							storage,
+							pushFileName,
+							fileSet.getType(),
+							folder == null && branch != null ? branch.getId() : null,
+							folder == null ? null : folder.getId(),
+							fileSet.getTitle(),
+							null, //TODO: (Nad) Handle context?
+							null, //TODO: (Nad) Handle excludeTargetLanguages?
+							templateFile == null ? null : templateFile.getExportOptions(), //TODO: (Nad) Make some default if no template
+							templateFile == null ? null : templateFile.getImportOptions(),
+							null, //TODO: (Nad) Handle perserVersion?
+							token,
+							getLog()
+						);
+						if (loggingTitle != null) {
+							getLog().info(
+								"Successfully added file \"" + fileSet.getBaseFileName() +
+								"\" for fileset \"" + loggingTitle + "\" at Crowdin"
+							);
+						} else {
+							getLog().info(
+								"Successfully added file \"" + fileSet.getBaseFileName() + "\" at Crowdin"
+							);
+						}
 					}
+				} finally {
+					// Delete storage
+					CrowdinAPI.deleteStorage(client, storage, token, getLog());
 				}
+//				parameters.put("escape_quotes", Integer.toString(getEscapeQuotes(fileSet))); //TODO: (Nad) What to do with this parameter
 			} else {
 				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
 					getLog().warn(
@@ -367,7 +395,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 * @param fileSet the {@link TranslationFileSet} to use.
 	 * @return The effective "{@code escapeQuotes}" value.
 	 */
-	protected int getEscapeQuotes(TranslationFileSet fileSet) {
+	protected int getEscapeQuotes(TranslationFileSet fileSet) { //TODO: (Nad) Figure out..
 		return fileSet != null && fileSet.getEscapeQuotes() != null ? fileSet.getEscapeQuotes().intValue() : escapeQuotes;
 	}
 

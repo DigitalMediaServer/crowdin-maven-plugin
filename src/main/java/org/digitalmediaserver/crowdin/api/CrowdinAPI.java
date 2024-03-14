@@ -1152,7 +1152,6 @@ public class CrowdinAPI {
 		long projectId,
 		long fileId,
 		@Nonnull StorageInfo storage,
-		@Nullable String name,
 		@Nullable UpdateOption updateOption,
 		@Nullable FileImportOptions importOptions,
 		@Nullable FileExportOptions exportOptions,
@@ -1161,7 +1160,6 @@ public class CrowdinAPI {
 		@Nullable Log logger
 	) throws MojoExecutionException {
 		UpdateFileRequest payload = new UpdateFileRequest(storage);
-		payload.setName(name);
 		payload.setUpdateOption(updateOption);
 		payload.setImportOptions(importOptions);
 		payload.setExportOptions(exportOptions);
@@ -1299,8 +1297,7 @@ public class CrowdinAPI {
 	public static StorageInfo createStorage(
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull String filename,
-		@Nonnull ContentType contentType,
-		@Nonnull InputStream is,
+		@Nonnull HttpEntity entity,
 		@Nonnull String token,
 		@Nullable Log logger
 	) throws MojoExecutionException {
@@ -1308,7 +1305,6 @@ public class CrowdinAPI {
 			logger.debug("Requesting a new storage for: " + filename);
 		}
 		List<Header> headers = new ArrayList<>();
-		headers.add(new BasicHeader(HTTP.CONTENT_TYPE, contentType.toString()));
 		try {
 			headers.add(new BasicHeader("Crowdin-API-FileName", URLEncoder.encode(filename, StandardCharsets.UTF_8.name())));
 		} catch (UnsupportedEncodingException e) {
@@ -1323,8 +1319,8 @@ public class CrowdinAPI {
 				null,
 				headers,
 				token,
-				is,
-				ContentType.APPLICATION_JSON,
+				entity,
+				null,
 				String.class,
 				logger
 			);
@@ -1420,7 +1416,7 @@ public class CrowdinAPI {
 		@Nullable Collection<Header> headers,
 		@Nullable String token,
 		@Nullable V payload,
-		@Nullable ContentType payloadContentType,
+		@Nullable ContentType payloadContentType, //Doc: Only used for Sting and InputStream payloads
 		@Nonnull Class<T> clazz,
 		@Nullable Log logger
 	) throws HttpException {
@@ -1441,7 +1437,9 @@ public class CrowdinAPI {
 		}
 
 		if (payload != null) {
-			if (payload instanceof String) {
+			if (payload instanceof HttpEntity) {
+				requestBuilder.setEntity((HttpEntity) payload);
+			} else if (payload instanceof String) {
 				requestBuilder.setEntity(new StringEntity(
 					(String) payload,
 					payloadContentType != null ? payloadContentType : ContentType.APPLICATION_OCTET_STREAM
