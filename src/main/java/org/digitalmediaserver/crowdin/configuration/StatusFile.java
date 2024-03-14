@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.tool.FileUtil;
+import org.digitalmediaserver.crowdin.tool.FileUtil.LetterCase;
 
 
 /**
@@ -55,20 +56,10 @@ public class StatusFile extends AbstractFileSet {
 	@Override
 	protected void initializeInstance() throws MojoExecutionException {
 
-		// Add comment
-		if (addComment == null) {
-			addComment = Boolean.TRUE; //TODO: (Nad) ..ok?
-		}
-
 		// File type and file type defaults
 		if (type == null) {
-			int dot = targetFile.lastIndexOf('.'); //TODO: (Nad) Use FileUtil..
-			if (dot > 0 && dot < targetFile.length() - 1) {
-				String extension = targetFile.substring(dot + 1).toLowerCase(Locale.ROOT);
-				type = "xml".equals(extension) ? FileType.xml : FileType.properties;
-			} else {
-				type = FileType.properties;
-			}
+			String extension = FileUtil.getExtension(targetFile, LetterCase.LOWER, Locale.ROOT);
+			type = "json".equals(extension) ? FileType.json : FileType.properties;
 		}
 		switch (type) {
 			case properties:
@@ -77,6 +68,9 @@ public class StatusFile extends AbstractFileSet {
 					encoding = charset.name();
 				} else {
 					charset = Charset.forName(encoding);
+				}
+				if (addComment == null) {
+					addComment = Boolean.TRUE;
 				}
 				if (sortLines == null) {
 					sortLines = Boolean.TRUE;

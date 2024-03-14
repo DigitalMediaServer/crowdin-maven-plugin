@@ -458,8 +458,8 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			JsonElement document;
 			try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
 				document = gson.fromJson(reader, JsonElement.class);
-			} catch (JsonParseException /*JDOMException*/ e) {
-				throw new IOException("Could not parse XML document \"" + file + "\"", e);
+			} catch (JsonParseException e) {
+				throw new IOException("Could not parse JSON file \"" + file + "\"", e);
 			}
 			for (StatusFile fileSet : statusFiles) {
 

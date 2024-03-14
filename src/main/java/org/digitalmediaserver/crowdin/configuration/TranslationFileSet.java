@@ -369,9 +369,8 @@ public class TranslationFileSet extends AbstractFileSet {
 
 		// File type
 		if (type == null) {
-			int dot = baseFileName.lastIndexOf('.'); //TODO: (Nad) USe better logic/StringUtils?
-			if (dot > 0 && dot < baseFileName.length() - 1) {
-				String extension = baseFileName.substring(dot + 1);
+			String extension = FileUtil.getExtension(baseFileName, null, null);
+			if (extension != null) {
 				for (FileType fileType : FileType.values()) {
 					if (fileType.hasExtension(extension)) {
 						type = fileType;
@@ -384,7 +383,7 @@ public class TranslationFileSet extends AbstractFileSet {
 			}
 		}
 
-		// CharSet
+		// Charset
 		switch (type) {
 			// Set charset from type when it is defined
 			case properties:
@@ -451,7 +450,6 @@ public class TranslationFileSet extends AbstractFileSet {
 				break;
 		}
 
-
 		// Sort lines
 		if (sortLines == null) {
 			sortLines = Boolean.FALSE;
@@ -475,7 +473,7 @@ public class TranslationFileSet extends AbstractFileSet {
 		}
 
 		// Escape single quotes
-		if (escapeQuotes != null && (escapeQuotes.intValue() < 0 || escapeQuotes.intValue() > 3)) {
+		if (escapeQuotes != null && (escapeQuotes.intValue() < 0 || escapeQuotes.intValue() > 3)) { //TODO: (Nad) only for properties..
 			throw new MojoExecutionException(
 				"Invalid \"escapeQuotes\" value " + escapeQuotes.intValue() + " for translation fileset \"" + title + "\""
 			);
