@@ -301,7 +301,12 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		}
 	}
 
-	//TODO: (Nad) JavaDocs
+	/**
+	 * Retrieves the version of this plugin from Maven's
+	 * {@code pluginDescriptor}.
+	 *
+	 * @return A {@link String} with current version.
+	 */
 	protected String getPluginVersion() {
 		Map<?, ?> context = getPluginContext();
 		Object o = context.get("pluginDescriptor");

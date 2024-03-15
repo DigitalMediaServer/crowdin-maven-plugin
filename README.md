@@ -467,10 +467,9 @@ This short form will be used in the descriptions below.
 
 |*Goal* | *Command* | *Description*|
 |--|--|--|
-|**build** | `mvn crowdin:build` | Asks Crowdin to build a downloadable zip file containing all the latest translations. This file is used by the `fetch` goal, so if the zip file isn't up to date, `fetch` will download stale translations.<br><br>Unpaid projects can only build once every 30 minutes via the API, but it's possible to build from the Crowdin web interface at any time. Unfortunately, it's not possible to build branches from the Crowdin web interface. The API replies with status `skipped` both if there are no changes in the translations since the last build and if the previous build was less than 30 minutes ago, so there is no way to tell the two apart.|
-|**fetch** | `mvn crowdin:fetch` | Downloads and extracts the last built zip file from Crowdin to `downloadFolder`.|
+|**fetch** | `mvn crowdin:fetch` | Builds a downloadable zip file containing the latest translations, then downloads and extracts the zip file from Crowdin to `downloadFolder`.|
 |**deploy** | `mvn crowdin:deploy` | Applies any transformations and deploys the files from `downloadFolder` into their intended locations as defined by the [translationsFileSets](#1222-translationfileset-parameter-description) and the [statusFiles](#1221-statusfile-parameter-description).|
-|**pull** | `mvn crowdin:pull` | Executes `build`, `fetch` and `deploy` in sequence. This is a convenience goal combining the individual steps needed to get the latest translations from Crowdin built and deployed into your local project.|
+|**pull** | `mvn crowdin:pull` | Executes `fetch` and `deploy` in sequence. This is a convenience goal combining the individual steps needed to get the latest translations from Crowdin built and deployed into your local project.|
 
 ### 2.3 Cleaning the intermediate folder
 

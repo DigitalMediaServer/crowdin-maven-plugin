@@ -27,9 +27,9 @@ import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 
 
 /**
- * Executes {@link BuildCrowdinMojo}, {@link FetchCrowdinMojo} and
- * {@link DeployCrowdinMojo} in that order. This effectively downloads the
- * latest translations from Crowdin and deploys them to the local project.
+ * Executes {@link FetchCrowdinMojo} and {@link DeployCrowdinMojo} in that
+ * order. This effectively builds and downloads the latest translations from
+ * Crowdin and then deploys them to the local project.
  */
 @Mojo(name = "pull", defaultPhase = LifecyclePhase.NONE)
 public class PullCrowdinMojo extends AbstractCrowdinMojo {
