@@ -97,7 +97,7 @@ import com.google.gson.JsonParser;
  */
 public class CrowdinAPI {
 
-	//TODO: (Nad) JavaDocs
+	/** The static {@link Gson} instance used for JSON (de)serialization */
 	public static final Gson GSON = new Gson();
 
 	/**
@@ -106,6 +106,9 @@ public class CrowdinAPI {
 	private CrowdinAPI() {
 	}
 
+	/**
+	 * @return The static {@link Gson} instance used for JSON (de)serialization.
+	 */
 	public static Gson getGsonInstance() {
 		return GSON;
 	}
@@ -113,6 +116,8 @@ public class CrowdinAPI {
 	/**
 	 * Creates a new {@link CloseableHttpClient} instance.
 	 *
+	 * @param projectVersion a {@link String} containing the current version of
+	 *            this plugin.
 	 * @return The new {@link CloseableHttpClient}.
 	 * @throws IOException If an error occurs during the operation.
 	 */
@@ -161,8 +166,29 @@ public class CrowdinAPI {
 		return clientBuilder.build();
 	}
 
+	/**
+	 * Queries Crowdin for information about the specified folder. If the folder
+	 * doesn't exist, it can optionally be created.
+	 * <p>
+	 * <b>Note:</b> This method will <i>not</i> strip a path element that
+	 * doesn't end in a separator, but will consider the last element to be a
+	 * folder as well. Example: {@code foo/bar} - both {@code foo} and
+	 * {@code bar} is assumed to be folders.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branch the {@link BranchInfo} if the folder belongs to a branch.
+	 * @param folderPath the folder path.
+	 * @param create if {@code true} the folder will be created if it doesn't
+	 *            exist, if {@code false} the method will return {@code null}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FolderInfo} if the folder exists or is
+	 *         created, {@code null} otherwise.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nullable
-	public static FolderInfo getFolder( //Doc: WIll not strip final element but consider it a folder
+	public static FolderInfo getFolder(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable BranchInfo branch,
@@ -198,7 +224,7 @@ public class CrowdinAPI {
 						(branch != null && folder.getBranchId() == branch.getId())
 					) && (
 						(parentFolderId == null && folder.getDirectoryId() == null) ||
-						(parentFolderId != null && folder.getDirectoryId() == parentFolderId)
+						(parentFolderId != null && parentFolderId.equals(folder.getDirectoryId()))
 					)
 				) {
 					found = true;
@@ -229,8 +255,19 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Creates a branch at Crowdin.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param token the API token.
+	 * @param branchName the name of the new branch.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link BranchInfo} for the newly created branch.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
-	public static BranchInfo createBranch( //TODO: (Nad) JavaDocs,
+	public static BranchInfo createBranch(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nonnull String token,
@@ -282,12 +319,23 @@ public class CrowdinAPI {
 		return branch;
 	}
 
+	/**
+	 * Queries Crowdin for a list of branches.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param token the API token.
+	 * @param branchName an optional filter for filtering the results.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link List} of {@link BranchInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static List<BranchInfo> listBranches(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nonnull String token,
-		@Nullable String branchName, //Doc: filters the result
+		@Nullable String branchName,
 		@Nullable Log logger
 	) throws MojoExecutionException {
 		HashMap<String, String> parameters = new LinkedHashMap<>();
@@ -1172,6 +1220,15 @@ public class CrowdinAPI {
 		return modified ? result : null;
 	}
 
+	/**
+	 * Lists the Crowdin storages for the current API user.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link List} of {@link StorageInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static List<StorageInfo> listStorages(
 		@Nonnull CloseableHttpClient httpClient,
@@ -1238,6 +1295,17 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Creates a new storage on Crowdin by uploading content.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param filename the filename for the newly created storage.
+	 * @param entity the {@link HttpEntity} containing the content to upload.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link StorageInfo} for the newly created storage.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static StorageInfo createStorage(
 		@Nonnull CloseableHttpClient httpClient,
@@ -1292,6 +1360,15 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Deletes the specified storage at Crowdin.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param storage the {@link StorageInfo} for the storage to delete.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static void deleteStorage(
 		@Nonnull CloseableHttpClient httpClient,
@@ -1353,6 +1430,7 @@ public class CrowdinAPI {
 		);
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <T, V> T sendRequest( //TODO: (Nad) Handle HTTP timeout
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
@@ -1472,6 +1550,19 @@ public class CrowdinAPI {
 		return response;
 	}
 
+	/**
+	 * Extracts the content of an {@link HttpEntity} to a string and returns it,
+	 * making some assumptions along the way. Assumptions are that the content
+	 * isn't very large, so that a small buffer will suffice, and that the
+	 * content is UTF-8 encoded.
+	 * <p>
+	 * <b>Note:</b> This method does <b>NOT</b> close the {@link InputStream}
+	 * after reading.
+	 *
+	 * @param entity the {@link HttpEntity} whose content to extract.
+	 * @return The extracted {@link String} content.
+	 * @throws IOException If an error occurs during the operation.
+	 */
 	@Nullable
 	public static String entityToString(@Nullable HttpEntity entity) throws IOException {
 		if (entity == null) {
@@ -1489,12 +1580,29 @@ public class CrowdinAPI {
 		return result.toString();
 	}
 
-	public enum HTTPMethod { //TODO: (Nad) Move somewhere more sensible..?
+	/**
+	 * An enum that makes it possible to pass HTTP methods in a typesafe manner.
+	 *
+	 * @author Nadahar
+	 */
+	public enum HTTPMethod {
+
+		/** HTTP DELETE */
 		DELETE(HttpDelete.METHOD_NAME),
+
+		/** HTTP GET */
 		GET(HttpGet.METHOD_NAME),
+
+		/** HTTP HEAD */
 		HEAD(HttpHead.METHOD_NAME),
+
+		/** HTTP PATCH */
 		PATCH(HttpPatch.METHOD_NAME),
+
+		/** HTTP POST */
 		POST(HttpPost.METHOD_NAME),
+
+		/** HTTP PUT */
 		PUT(HttpPut.METHOD_NAME);
 
 		@Nonnull
@@ -1504,9 +1612,17 @@ public class CrowdinAPI {
 			this.value = value;
 		}
 
+		/**
+		 * @return The {@link String} representation of this HTTP method.
+		 */
 		@Nonnull
 		public String getValue() {
 			return value;
+		}
+
+		@Override
+		public String toString() {
+			return getValue();
 		}
 	}
 }
