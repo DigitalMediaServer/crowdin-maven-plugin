@@ -110,12 +110,12 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * @parameter
 	 * @required
 	 */
-	protected String fileNameWhenExported;
+	protected String exportPattern;
 
 	/**
 	 * The file path relative to {@link #languageFilesFolder} to use when
 	 * deploying the translation files. If left blank,
-	 * {@link #fileNameWhenExported} will be used.
+	 * {@link #exportPattern} will be used.
 	 * <p>
 	 * The following variables are available:
 	 * <ul>
@@ -144,7 +144,7 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li><b>%original_path%</b> &ndash; Use parent folders' names in your
 	 * project to build the file path in the resulting archive (*)</li>
 	 * </ul>
-	 * (*) The variable must also be used in {@link #fileNameWhenExported} to be
+	 * (*) The variable must also be used in {@link #exportPattern} to be
 	 * supported.
 	 *
 	 * @parameter
@@ -180,6 +180,14 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * @parameter default-value="delete_translations"
 	 */
 	protected UpdateOption updateOption;
+
+	/**
+	 * Enable to replace context even if it has been modified in Crowdin when
+	 * updating source files.
+	 *
+	 * @parameter default-value="false"
+	 */
+	protected Boolean replaceModifiedContext;
 
 	/**
 	 * Paths to include using a basic filter where {@code ?} and {@code *} are
@@ -264,14 +272,14 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * @return The "Resulting file name when exported" to use on Crowdin.
 	 */
 	@Nonnull
-	public String getFileNameWhenExported() {
-		return fileNameWhenExported;
+	public String getExportPattern() {
+		return exportPattern;
 	}
 
 	/**
 	 * @return The file path relative to {@link #languageFilesFolder} to use
 	 *         when deploying translation files. If left blank,
-	 *         {@link #fileNameWhenExported} will be used.
+	 *         {@link #exportPattern} will be used.
 	 */
 	@Nullable
 	public String getTargetFileName() {
@@ -291,6 +299,14 @@ public class TranslationFileSet extends AbstractFileSet {
 	 */
 	public UpdateOption getUpdateOption() {
 		return updateOption;
+	}
+
+	/**
+	 * @return the {@link #replaceModifiedContext} value.
+	 */
+	@Nullable
+	public Boolean getReplaceModifiedContext() {
+		return replaceModifiedContext;
 	}
 
 	/**
@@ -466,9 +482,9 @@ public class TranslationFileSet extends AbstractFileSet {
 		}
 
 		// Filename when exported
-		if (isBlank(fileNameWhenExported)) {
+		if (isBlank(exportPattern)) {
 			throw new MojoExecutionException(
-				"\"fileNameWhenExported\" isn't defined for translation fileset \"" + title + "\""
+				"\"exportPattern\" isn't defined for translation fileset \"" + title + "\""
 			);
 		}
 

@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
@@ -34,6 +36,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.digitalmediaserver.crowdin.api.CrowdinAPI;
+import org.digitalmediaserver.crowdin.api.FileExportOptions;
 import org.digitalmediaserver.crowdin.api.FileType;
 import org.digitalmediaserver.crowdin.api.response.BranchInfo;
 import org.digitalmediaserver.crowdin.api.response.FileInfo;
@@ -69,7 +72,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	protected String confirm;
 
 	/**
-	 * The default update behavior for updates string when pushing. Valid values
+	 * The default update behavior for updated string when pushing. Valid values
 	 * are:
 	 * <ul>
 	 * <li>clear_translations_and_approvals — Delete translations of changed
@@ -82,6 +85,13 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	@Parameter(property = "updateOption", defaultValue = "clear_translations_and_approvals")
 	protected UpdateOption updateOption;
+
+	/**
+	 * Enable to replace context even if it has been modified in Crowdin when
+	 * updating source files.
+	 */
+	@Parameter(property = "replaceModifiedContext", defaultValue = "false")
+	protected Boolean replaceModifiedContext;
 
 	@Override
 	@SuppressFBWarnings({"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"})
@@ -243,10 +253,10 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 							projectId,
 							file.getId(),
 							storage,
-							updateOption,
+							getUpdateOption(fileSet),
 							file.getImportOptions(),
 							file.getExportOptions(),
-							null, //TODO: (Nad) Handle replaceModifiedContext
+							getReplaceModifiedContext(fileSet),
 							token,
 							getLog()
 						) != null) {
@@ -282,11 +292,11 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 							folder == null && branch != null ? branch.getId() : null,
 							folder == null ? null : folder.getId(),
 							fileSet.getTitle(),
-							null, //TODO: (Nad) Handle context?
-							null, //TODO: (Nad) Handle excludeTargetLanguages?
-							templateFile == null ? null : templateFile.getExportOptions(), //TODO: (Nad) Make some default if no template
+							null,
+							null,
+							generateExportOptions(fileSet, templateFile),
 							templateFile == null ? null : templateFile.getImportOptions(),
-							null, //TODO: (Nad) Handle perserVersion?
+							null,
 							token,
 							getLog()
 						);
@@ -305,7 +315,6 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 					// Delete storage
 					CrowdinAPI.deleteStorage(client, storage, token, getLog());
 				}
-//				parameters.put("escape_quotes", Integer.toString(getEscapeQuotes(fileSet))); //TODO: (Nad) What to do with this parameter
 			} else {
 				if (!fileSet.getBaseFileName().equals(fileSet.getTitle())) {
 					getLog().warn(
@@ -328,6 +337,46 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	 */
 	protected UpdateOption getUpdateOption(TranslationFileSet fileSet) {
 		return fileSet != null && fileSet.getUpdateOption() != null ? fileSet.getUpdateOption() : updateOption;
+	}
+
+	/**
+	 * Gets the effective "{@code replaceModifiedContext}" value from either the
+	 * {@link TranslationFileSet} or the default parameter.
+	 *
+	 * @param fileSet the {@link TranslationFileSet} to use.
+	 * @return The effective "{@code replaceModifiedContext}" value.
+	 */
+	protected Boolean getReplaceModifiedContext(TranslationFileSet fileSet) {
+		return fileSet != null && fileSet.getReplaceModifiedContext() != null ?
+			fileSet.getReplaceModifiedContext() :
+			replaceModifiedContext;
+	}
+
+	protected FileExportOptions generateExportOptions(
+		@Nonnull TranslationFileSet fileSet,
+		@Nullable FileInfo templateFile
+	) throws MojoExecutionException {
+		FileExportOptions result = templateFile == null ? null : templateFile.getExportOptions();
+		if (result == null) {
+			result = new FileExportOptions();
+		}
+		result.setExportPattern(fileSet.getExportPattern());
+		if (fileSet.getType() == FileType.properties || fileSet.getType() == FileType.properties_play) {
+			if (fileSet.getEscapeQuotes() != null) {
+				result.setEscapeQuotes(fileSet.getEscapeQuotes());
+			}
+//			if (fileSet.getEscapeSpecialCharacters() != null) {
+//				result.setEscapeSpecialCharacters(fileSet.getEscapeSpecialCharacters()); //TODO: (Nad) Make/implement
+//			}
+		}
+//		if (fileSet.getType() == FileType.js) {
+//			if (fileSet.getExportQuotes() != null) {
+//				result.setExportQuotes(fileSet.getExportQuotes()); //TODO: (Nad) Make/implement
+//			}
+//		}
+
+		result.validate(fileSet.getType());
+		return result;
 	}
 
 	@Override

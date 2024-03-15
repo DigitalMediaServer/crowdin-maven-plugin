@@ -144,7 +144,7 @@ Here is a skeleton project configuration showing the location of all configurati
                 <encoding></encoding>
                 <escapeQuotes></escapeQuotes>
                 <escapeUnicode></escapeUnicode>
-                <fileNameWhenExported></fileNameWhenExported>
+                <exportPattern></exportPattern>
                 <languageFilesFolder></languageFilesFolder>
                 <lineSeparator></lineSeparator>
                 <sortLines></sortLines>
@@ -233,7 +233,7 @@ Here is a skeleton project configuration showing the location of all configurati
 |<sub>`language` `FilesFolder`</sub>|<sub>String</sub>|<sub>Yes</sub>| |<sub>The folder where this set of files is located.</sub>|
 |<sub>`lineSeparator`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>An alternative line separator to apply to the translation files, for example `\n` or `\r\n`. If defined, this parameter overrides the corresponding global parameter.</sub>|
 |<sub>`sortLines`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`true`</sub>|<sub>This only applies if the type is `properties`. If `true`, this will sort the lines of the translation files by key when deploying. The keys are "grouped" by `.`. Integer groups are sorted numerically, all other groups are sorted lexicographically. When comparing integer groups with non-integer groups, integer groups are sorted last.</sub>|
-|<sub>`targetFileName`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>The file path relative to `languageFilesFolder` to use when deploying the translation files. If left blank, the path exported by Crowdin (`fileNameWhenExported`) is used. Any placeholders used in `fileNameWhenExported` can be used. In addition, [these placeholders](#1228-additional-targetfilename-placeholders) can be used independently of what is used in  `fileNameWhenExported`.</sub>|
+|<sub>`targetFileName`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>The file path relative to `languageFilesFolder` to use when deploying the translation files. If left blank, the path exported by Crowdin (`exportPattern`) is used. Any placeholders used in `exportPattern` can be used. In addition, [these placeholders](#1228-additional-targetfilename-placeholders) can be used independently of what is used in  `exportPattern`.</sub>|
 |<sub>`title`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>The title of this file as it should appear to translators at Crowdin.</sub>|
 |<sub>`type`</sub>|<sub>Enum</sub>|<sub>No</sub>|<sub>Auto</sub>|<sub>The file type to use both when uploading to Crowdin and when processing files during the `deploy` goal. See [separate definition](#1226-crowdin-file-types). If not specified, auto-detection will be attempted based on the file extension.</sub>|
 |<sub>`updateOption`</sub>|<sub>Enum</sub>|<sub>No</sub>|<sub>Clear</sub>|<sub>The `Update or Restore File` [Crowdin API parameter](https://developer.crowdin.com/api/v2/#operation/api.projects.files.put). See [separate definition](#1225-updateoption-options). This is not used by this plugin, and is merely passed on to Crowdin. If defined, this parameter overrides the corresponding global parameter.</sub>|

@@ -424,8 +424,8 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 						} else if (placeholder != null) {
 							throw new MojoExecutionException(
 								"targetFileName refers to placeholder \"" + placeholder.getIdentifier() +
-								"\" not found in the exported file name \"" +
-								matchedfileSetMatchInfo.getFileSet().getFileNameWhenExported() + "\""
+								"\" not found in the export pattern \"" +
+								matchedfileSetMatchInfo.getFileSet().getExportPattern() + "\""
 							);
 						} else if ("%crowdin_code%".equals(group)) {
 							replacement = convertPlaceholder(crowdinCode, conversions);
@@ -650,10 +650,10 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 	private Set<MatchInfo> buildFileSetMatches() throws MojoExecutionException {
 		HashSet<MatchInfo> fileSetMatches = new HashSet<>();
 		for (TranslationFileSet fileSet : translationFileSets) {
-			if (isBlank(fileSet.getFileNameWhenExported())) {
+			if (isBlank(fileSet.getExportPattern())) {
 				getLog().warn(
 					"Can't deploy translation file set \"" + fileSet.getTitle() +
-					"\" because \"file name when exported\" is missing"
+					"\" because \"exportPattern\" is missing"
 				);
 				continue;
 			}
@@ -662,7 +662,7 @@ public class DeployCrowdinMojo extends AbstractCrowdinMojo {
 			if (isNotBlank(pushFolder)) {
 				sb.append(Pattern.quote(pushFolder));
 			}
-			String remaining = fileSet.getFileNameWhenExported();
+			String remaining = fileSet.getExportPattern();
 			List<PathPlaceholder> matchPlaceHolders = new ArrayList<>();
 			while (remaining.length() > 0) {
 				Matcher matcher = PLACEHOLDER_PATTERN.matcher(remaining);
