@@ -87,8 +87,8 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	protected UpdateOption updateOption;
 
 	/**
-	 * Enable to replace context even if it has been modified in Crowdin when
-	 * updating source files.
+	 * The global option of whether to overwrite context when updating source
+	 * files, even if the context has been modified on Crowdin.
 	 */
 	@Parameter(property = "replaceModifiedContext", defaultValue = "false")
 	protected Boolean replaceModifiedContext;
@@ -365,15 +365,15 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			if (fileSet.getEscapeQuotes() != null) {
 				result.setEscapeQuotes(fileSet.getEscapeQuotes());
 			}
-//			if (fileSet.getEscapeSpecialCharacters() != null) {
-//				result.setEscapeSpecialCharacters(fileSet.getEscapeSpecialCharacters()); //TODO: (Nad) Make/implement
-//			}
+			if (fileSet.getEscapeSpecialCharacters() != null) {
+				result.setEscapeSpecialCharacters(fileSet.getEscapeSpecialCharacters());
+			}
 		}
-//		if (fileSet.getType() == FileType.js) {
-//			if (fileSet.getExportQuotes() != null) {
-//				result.setExportQuotes(fileSet.getExportQuotes()); //TODO: (Nad) Make/implement
-//			}
-//		}
+		if (fileSet.getType() == FileType.js) {
+			if (fileSet.getExportQuotes() != null) {
+				result.setExportQuotes(fileSet.getExportQuotes());
+			}
+		}
 
 		result.validate(fileSet.getType());
 		return result;
