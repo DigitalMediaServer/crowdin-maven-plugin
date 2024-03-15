@@ -97,7 +97,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 	@SuppressFBWarnings({"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"})
 	public void execute() throws MojoExecutionException {
 		if (!confirm.equalsIgnoreCase("confirm") && !confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("true")) {
-//			throw new MojoExecutionException("Push is not confirmed - aborting!"); //TODO: (Nad) Temp disabled
+			throw new MojoExecutionException("Push is not confirmed - aborting!");
 		}
 
 		if (!project.getName().equals(projectName)) {
@@ -126,6 +126,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 		BranchInfo branch = getBranch(true, null);
 		String loggingTitle, pushFileName;
 		FolderInfo folder;
+		Path tmpPath; // This is here just to shut FindBugs up - the NPE can't actually happen
 		FileInfo file, templateFile; // templateFile is the corresponding file from the "root" branch
 		for (TranslationFileSet fileSet : translationFileSets) {
 			Path pushFile = fileSet.getLanguageFilesFolder().toPath().resolve(fileSet.getBaseFileName());
@@ -134,7 +135,7 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			if (Files.exists(pushFile)) {
 				folder = null;
 				templateFile = null;
-				pushFileName = pushFile.getFileName().toString();
+				pushFileName = (tmpPath = pushFile.getFileName()) == null ? "" : tmpPath.toString();
 				String pushFolder = FileUtil.getPushFolder(fileSet, true);
 				if (isNotBlank(pushFolder)) {
 					folder = CrowdinAPI.getFolder(client, projectId, branch, pushFolder, true, token, getLog());
@@ -352,6 +353,18 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 			replaceModifiedContext;
 	}
 
+	/**
+	 * Builds the "effective" {@link FileExportOptions} from a combination of
+	 * the template file settings (if any) and the {@link TranslationFileSet}
+	 * configuration.
+	 *
+	 * @param fileSet the {@link TranslationFileSet} from which to get the
+	 *            configuration.
+	 * @param templateFile the {@link FileInfo} for the template file, if any.
+	 * @return the combined/merged {@link FileExportOptions}.
+	 * @throws MojoExecutionException If validation of the resulting options
+	 *             fails.
+	 */
 	protected FileExportOptions generateExportOptions(
 		@Nonnull TranslationFileSet fileSet,
 		@Nullable FileInfo templateFile

@@ -228,6 +228,15 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		downloadStatusFile();
 	}
 
+	/**
+	 * Requests a new build at Crowdin and returns the resulting
+	 * {@link BuildInfo}.
+	 *
+	 * @param branch the {@link BranchInfo} if building for a branch.
+	 * @param token the API token.
+	 * @return The resulting {@link BuildInfo}.
+	 * @throws MojoExecutionException If the build fails for some reason.
+	 */
 	@Nonnull
 	protected BuildInfo buildTranslations(
 		@Nullable BranchInfo branch,
@@ -249,7 +258,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			exportApprovedOnly,
 			getLog()
 		);
-		build = waitForBuild(build, 500L, 30000L, token, getLog());
+		build = waitForBuild(build, 2000L, 60000L, token, getLog()); //TODO: (Nad) Make build timeout configurable
 		if (build.getStatus() != ProjectBuildStatus.FINISHED) {
 			throw new MojoExecutionException(
 				"Failed to build translations at Crowdin with status: " + build.getStatus()
@@ -280,6 +289,20 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		}
 	}
 
+	/**
+	 * Polls Crowdin for the status of the specified build until the build is
+	 * either completed or failed.
+	 *
+	 * @param build the {@link BuildInfo} for the build to wait for.
+	 * @param pollIntervalMS the time in milliseconds between each poll.
+	 * @param timeoutMS the time in milliseconds before abandoning waiting and
+	 *            declaring the build a failure.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return the {@link BuildInfo} with containing the new build status.
+	 * @throws MojoExecutionException If the polling fails or the timeout
+	 *             expires.
+	 */
 	@Nonnull
 	public BuildInfo waitForBuild(
 		@Nonnull BuildInfo build,
