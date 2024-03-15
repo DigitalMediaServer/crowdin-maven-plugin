@@ -30,10 +30,10 @@ import javax.annotation.Nullable;
 
 /**
  * A {@link OrderedProperties} implementation that sorts the elements by key by
- * grouping the keys into groups separated by {@code "."}. Integer groups are
- * sorted numerically, all other groups are sorted lexicographically. When
- * comparing an integer group with a non-integer group, integer groups are
- * sorted last.
+ * grouping the keys into groups separated by {@code "."} and {@code "-"}.
+ * Integer groups are sorted numerically, all other groups are sorted
+ * lexicographically. When comparing an integer group with a non-integer group,
+ * integer groups are sorted last.
  * <p>
  * The elements are sorted when {@link #iterator()} is called instead of every
  * time a key/value pair is added.
@@ -97,6 +97,7 @@ public class GroupSortedProperties extends OrderedProperties {
 			int s1end = 0;
 			int s2end = 0;
 			int result = 0;
+			char c;
 			while (result == 0 && (s1start < s1.length() || s2start < s2.length())) {
 				while (s1start < s1.length() && Character.isWhitespace(s1.charAt(s1start))) {
 					s1start++;
@@ -110,13 +111,13 @@ public class GroupSortedProperties extends OrderedProperties {
 				boolean s2HasDigit = false;
 				s1end = s1start;
 				s2end = s2start;
-				while (s1end < s1.length() && s1.charAt(s1end) != '.') {
+				while (s1end < s1.length() && (c = s1.charAt(s1end)) != '.' && c != '-') {
 					boolean isDigit = Character.isDigit(s1.charAt(s1end));
 					s1IsNumber &= isDigit;
 					s1HasDigit |= isDigit;
 					s1end++;
 				}
-				while (s2end < s2.length() && s2.charAt(s2end) != '.') {
+				while (s2end < s2.length() && (c = s2.charAt(s2end)) != '.' && c != '-') {
 					boolean isDigit = Character.isDigit(s2.charAt(s2end));
 					s2IsNumber &= isDigit;
 					s2HasDigit |= isDigit;
