@@ -77,6 +77,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		FetchCrowdinMojo fetch = new FetchCrowdinMojo();
 		fetch.setCrowdinServerId(crowdinServerId);
 		fetch.setDownloadFolder(downloadFolderPath);
+		fetch.setHTTPTimeout(httpTimeout);
 		fetch.setProject(project);
 		fetch.setProjectId(projectId);
 		fetch.setRootBranch(rootBranch);

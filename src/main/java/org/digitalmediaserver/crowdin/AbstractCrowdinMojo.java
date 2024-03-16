@@ -78,6 +78,19 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		project = value;
 	}
 
+	/** The HTTP timeout in seconds */
+	@Parameter(property = "timeout")
+	protected Integer httpTimeout;
+
+	/**
+	 * Sets the HTTP timeout value.
+	 *
+	 * @param timeout the timeout value in seconds.
+	 */
+	protected void setHTTPTimeout(Integer timeout) {
+		this.httpTimeout = timeout;
+	}
+
 	/**
 	 * The folder where the downloaded language files should be placed.
 	 */
@@ -292,7 +305,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			return;
 		}
 		try {
-			client = CrowdinAPI.createHTTPClient(getPluginVersion());
+			client = CrowdinAPI.createHTTPClient(getPluginVersion(), httpTimeout);
 		} catch (IOException e) {
 			throw new MojoExecutionException("An error occurred while creating the HTTP client: " + e.getMessage(), e);
 		}

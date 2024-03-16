@@ -118,12 +118,25 @@ public class CrowdinAPI {
 	 *
 	 * @param projectVersion a {@link String} containing the current version of
 	 *            this plugin.
+	 * @param timeout the timeout in seconds for HTTP operations.
 	 * @return The new {@link CloseableHttpClient}.
 	 * @throws IOException If an error occurs during the operation.
 	 */
-	public static CloseableHttpClient createHTTPClient(String projectVersion) throws IOException {
+	public static CloseableHttpClient createHTTPClient(
+		String projectVersion,
+		@Nullable Integer timeout
+	) throws IOException {
 		HttpClientBuilder clientBuilder = HttpClientBuilder.create();
 		clientBuilder.setUserAgent("crowdin-maven-plugin/" + projectVersion);
+
+		RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+		int timeoutMS;
+		if (timeout != null && (timeoutMS = timeout.intValue() * 1000) > 0) {
+			requestConfigBuilder.setConnectionRequestTimeout(timeoutMS);
+			requestConfigBuilder.setConnectTimeout(timeoutMS);
+			requestConfigBuilder.setSocketTimeout(timeoutMS);
+		}
+
 		if (System.getProperty(HTTP_PROXY_HOST) != null) {
 			String host = System.getProperty(HTTP_PROXY_HOST);
 			String port = System.getProperty(HTTP_PROXY_PORT);
@@ -131,7 +144,6 @@ public class CrowdinAPI {
 			if (port == null) {
 				throw new IOException("http.proxyHost without http.proxyPort");
 			}
-			RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
 			HttpHost proxy = new HttpHost(host, Integer.parseInt(port));
 			requestConfigBuilder.setProxy(proxy);
 			Credentials credentials = null;
@@ -161,8 +173,8 @@ public class CrowdinAPI {
 				);
 				clientBuilder.setDefaultCredentialsProvider(credsProvider);
 			}
-			clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
 		}
+		clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
 		return clientBuilder.build();
 	}
 
