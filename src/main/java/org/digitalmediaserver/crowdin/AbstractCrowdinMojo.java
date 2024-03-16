@@ -47,6 +47,7 @@ import org.digitalmediaserver.crowdin.configuration.TranslationFileSet;
 import org.digitalmediaserver.crowdin.tool.GitUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+
 /**
  * The abstract base class for the Crowdin {@link Mojo}s.
  *
@@ -60,15 +61,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 })
 public abstract class AbstractCrowdinMojo extends AbstractMojo {
 
-	/**
-	* The Maven Session object.
-	*/
+	/** The Maven Session object */
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
 	protected MavenSession mavenSession;
 
-	/**
-	 * The current Maven project.
-	 */
+	/** The current Maven project */
 	@Parameter(defaultValue = "${project}", required = true, readonly = true)
 	protected MavenProject project;
 
@@ -79,6 +76,19 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 	protected void setProject(MavenProject value) {
 		project = value;
+	}
+
+	/** The HTTP timeout in seconds */
+	@Parameter(property = "timeout")
+	protected Integer httpTimeout;
+
+	/**
+	 * Sets the HTTP timeout value.
+	 *
+	 * @param timeout the timeout value in seconds.
+	 */
+	protected void setHTTPTimeout(Integer timeout) {
+		this.httpTimeout = timeout;
 	}
 
 	/**
@@ -295,7 +305,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 			return;
 		}
 		try {
-			client = CrowdinAPI.createHTTPClient(getPluginVersion());
+			client = CrowdinAPI.createHTTPClient(getPluginVersion(), httpTimeout);
 		} catch (IOException e) {
 			throw new MojoExecutionException("An error occurred while creating the HTTP client: " + e.getMessage(), e);
 		}

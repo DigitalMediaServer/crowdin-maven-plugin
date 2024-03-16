@@ -118,12 +118,25 @@ public class CrowdinAPI {
 	 *
 	 * @param projectVersion a {@link String} containing the current version of
 	 *            this plugin.
+	 * @param timeout the timeout in seconds for HTTP operations.
 	 * @return The new {@link CloseableHttpClient}.
 	 * @throws IOException If an error occurs during the operation.
 	 */
-	public static CloseableHttpClient createHTTPClient(String projectVersion) throws IOException {
+	public static CloseableHttpClient createHTTPClient(
+		String projectVersion,
+		@Nullable Integer timeout
+	) throws IOException {
 		HttpClientBuilder clientBuilder = HttpClientBuilder.create();
 		clientBuilder.setUserAgent("crowdin-maven-plugin/" + projectVersion);
+
+		RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+		int timeoutMS;
+		if (timeout != null && (timeoutMS = timeout.intValue() * 1000) > 0) {
+			requestConfigBuilder.setConnectionRequestTimeout(timeoutMS);
+			requestConfigBuilder.setConnectTimeout(timeoutMS);
+			requestConfigBuilder.setSocketTimeout(timeoutMS);
+		}
+
 		if (System.getProperty(HTTP_PROXY_HOST) != null) {
 			String host = System.getProperty(HTTP_PROXY_HOST);
 			String port = System.getProperty(HTTP_PROXY_PORT);
@@ -131,7 +144,6 @@ public class CrowdinAPI {
 			if (port == null) {
 				throw new IOException("http.proxyHost without http.proxyPort");
 			}
-			RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
 			HttpHost proxy = new HttpHost(host, Integer.parseInt(port));
 			requestConfigBuilder.setProxy(proxy);
 			Credentials credentials = null;
@@ -161,8 +173,8 @@ public class CrowdinAPI {
 				);
 				clientBuilder.setDefaultCredentialsProvider(credsProvider);
 			}
-			clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
 		}
+		clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
 		return clientBuilder.build();
 	}
 
@@ -387,6 +399,22 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Triggers a build at Crowdin.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param token the API token.
+	 * @param branchId the branch ID for the branch to build.
+	 * @param skipUntranslatedStrings whether to skip untranslated strings.
+	 *            Can't be combined with {@code skipUntranslatedFiles}.
+	 * @param skipUntranslatedFiles whether to skip untranslated files. Can't be
+	 *            combined with {@code skipUntranslatedStrings}.
+	 * @param exportApprovedOnly whether to export approved translations only.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link BuildInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static BuildInfo createBuild( //TODO: (Nad) JavaDocs,
 		@Nonnull CloseableHttpClient httpClient,
@@ -446,6 +474,17 @@ public class CrowdinAPI {
 		return build;
 	}
 
+	/**
+	 * Queries Crowdin for the status of the specified build.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param buildId the build ID for which to get the build status.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link BuildInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static BuildInfo getBuildStatus(
 		@Nonnull CloseableHttpClient httpClient,
@@ -1431,7 +1470,7 @@ public class CrowdinAPI {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T, V> T sendRequest( //TODO: (Nad) Handle HTTP timeout
+	public static <T, V> T sendRequest(
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
 		@Nonnull URI uri,
@@ -1514,7 +1553,7 @@ public class CrowdinAPI {
 	}
 
 	//Doc: Does NOT close the response
-	public static CloseableHttpResponse sendStreamRequest( //TODO: (Nad) Handle HTTP timeout
+	public static CloseableHttpResponse sendStreamRequest(
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
 		@Nonnull URI uri,
