@@ -212,6 +212,7 @@ public class NSISUtil {
 		 *
 		 * @param file the NSIS source file.
 		 * @throws IOException If an error occurs during the operation.
+		 * @throws IllegalArgumentException if {@code file} is {@code null}.
 		 */
 		public NSISInputStream(@Nonnull Path file) throws IOException {
 			if (file == null) {
