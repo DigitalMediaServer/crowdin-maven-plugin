@@ -109,6 +109,7 @@ Here is a skeleton project configuration showing the location of all configurati
             <confirm></confirm>
             <crowdinServerId></crowdinServerId>
             <httpTimeout></httpTimeout>
+            <buildTimeout></buildTimeout>
             <downloadFolder></downloadFolder>
             <lineSeparator></lineSeparator>
             <projectName></projectName>
@@ -199,6 +200,7 @@ Here is a skeleton project configuration showing the location of all configurati
 |<sub>`confirm`</sub>|<sub>String</sub>|<sub>`push`</sub>| |<sub>This is required to be `true` to use the `push` goal. This parameter can be overridden on the command line with `-Dconfirm`. Any strings that exist on Crowdin but don't exist in the uploaded files will have all their translations deleted on Crowdin when pushed. As such, it's important to make sure that a push is intended. Although this parameter can be set to `true` in `pom.xml`, it is recommended not to. That way, adding `-Dconfirm` to the command line is required to be able to push.</sub>|
 |<sub>`crowdinServerId`</sub>|<sub>String</sub>|<sub>Yes</sub>| |<sub>The `id` of the Maven configured `server` to be used for Crowdin authentication.</sub>|
 |<sub>`httpTimeout`</sub>|<sub>Integer</sub>|<sub>No<sub>| |<sub>Timeout in seconds for HTTP operations when communicating with the Crowdin API. The default is no timeout.</sub>
+|<sub>`buildTimeout`</sub>|<sub>Integer</sub>|<sub>No<sub>|<sub>`60`</sub>|<sub>Timeout in seconds for building translations at Crowdin.</sub>
 |<sub>`downloadFolder`</sub>|<sub>String</sub>|<sub>Yes</sub>| |<sub>The intermediate folder used to store the downloaded files.</sub>|
 |<sub>`lineSeparator`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>The global alternative line separator to apply to the downloaded files, for example `\n` or `\r\n`. If defined, this parameter acts as the default for all `translationFileSets` and `statusFiles`.</sub>|
 |<sub>`projectName`</sub>|<sub>String</sub>|<sub>`push`</sub>| |<sub>This is required to use the `push` goal. The value must match the project name defined in `pom.xml`. It is a safety check to make sure you don't push to the wrong project if the configuration has been copied from another project.</sub>|

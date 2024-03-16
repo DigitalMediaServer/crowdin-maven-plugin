@@ -114,6 +114,19 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 		exportApprovedOnly = value;
 	}
 
+	/** The number of seconds to wait for builds to complete */
+	@Parameter(property = "buildTimeout", defaultValue = "60")
+	protected Integer buildTimeout;
+
+	/**
+	 * Sets the {@link #buildTimeout} value.
+	 *
+	 * @param buildTimeout the build timeout in seconds to set.
+	 */
+	protected void setBuildTimeout(@Nonnull Integer buildTimeout) {
+		this.buildTimeout = buildTimeout;
+	}
+
 	@Override
 	public void execute() throws MojoExecutionException {
 		initializeParameters();
@@ -258,7 +271,13 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			exportApprovedOnly,
 			getLog()
 		);
-		build = waitForBuild(build, 2000L, 60000L, token, getLog());
+		build = waitForBuild(
+			build,
+			2000L,
+			buildTimeout == null ? 60000L : buildTimeout.longValue() * 1000L,
+			token,
+			getLog()
+		);
 		if (build.getStatus() != ProjectBuildStatus.FINISHED) {
 			throw new MojoExecutionException(
 				"Failed to build translations at Crowdin with status: " + build.getStatus()
