@@ -789,7 +789,7 @@ public class CrowdinAPI {
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable Long branchId,
-		@Nullable Long directoryId, //Doc: Branch and directory can't be used together
+		@Nullable Long folderId, //Doc: Branch and directory can't be used together
 		@Nullable String filter,
 		boolean recursion,
 		@Nonnull String token,
@@ -797,14 +797,24 @@ public class CrowdinAPI {
 	) throws MojoExecutionException {
 		int chunkSize = 500;
 		if (logger != null && logger.isDebugEnabled()) {
-			logger.debug("Requesting file list"); //TODO: (Nad) More detail?
+			StringBuilder sb = new StringBuilder().append("Requesting file list");
+			if (branchId != null) {
+				sb.append(" for branch ID ").append(branchId.toString());
+			}
+			if (folderId != null) {
+				sb.append(" for folder ID ").append(folderId.toString());
+			}
+			if (filter != null) {
+				sb.append(" with filter \"").append(filter).append('\"');
+			}
+			logger.debug(sb.toString());
 		}
 		HashMap<String, String> parameters = new LinkedHashMap<>();
 		if (branchId != null) {
 			parameters.put("branchId", branchId.toString());
 		}
-		if (directoryId != null) {
-			parameters.put("directoryId", directoryId.toString());
+		if (folderId != null) {
+			parameters.put("directoryId", folderId.toString());
 		}
 		if (isNotBlank(filter)) {
 			parameters.put("filter", filter);
@@ -969,7 +979,7 @@ public class CrowdinAPI {
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable Long branchId,
-		@Nullable Long directoryId, //Doc: Branch and directory can't be used together
+		@Nullable Long folderId, //Doc: Branch and directory can't be used together
 		@Nullable String filter,
 		boolean recursion,
 		@Nonnull String token,
@@ -977,14 +987,24 @@ public class CrowdinAPI {
 	) throws MojoExecutionException {
 		int chunkSize = 500;
 		if (logger != null && logger.isDebugEnabled()) {
-			logger.debug("Requesting folder list"); //TODO: (Nad) More detail?
+			StringBuilder sb = new StringBuilder().append("Requesting folder list");
+			if (branchId != null) {
+				sb.append(" for branch ID ").append(branchId.toString());
+			}
+			if (folderId != null) {
+				sb.append(" for folder ID ").append(folderId.toString());
+			}
+			if (filter != null) {
+				sb.append(" with filter \"").append(filter).append('\"');
+			}
+			logger.debug(sb.toString());
 		}
 		HashMap<String, String> parameters = new LinkedHashMap<>();
 		if (branchId != null) {
 			parameters.put("branchId", branchId.toString());
 		}
-		if (directoryId != null) {
-			parameters.put("directoryId", directoryId.toString());
+		if (folderId != null) {
+			parameters.put("directoryId", folderId.toString());
 		}
 		if (isNotBlank(filter)) {
 			parameters.put("filter", filter);
