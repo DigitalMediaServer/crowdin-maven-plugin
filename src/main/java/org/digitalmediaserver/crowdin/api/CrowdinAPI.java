@@ -350,8 +350,9 @@ public class CrowdinAPI {
 		@Nullable String branchName,
 		@Nullable Log logger
 	) throws MojoExecutionException {
+		int chunkSize = 500;
 		HashMap<String, String> parameters = new LinkedHashMap<>();
-		parameters.put("limit", "500");
+		parameters.put("limit", Integer.toString(chunkSize));
 		if (isNotBlank(branchName)) {
 			parameters.put("name", branchName);
 		}
@@ -359,40 +360,54 @@ public class CrowdinAPI {
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Requesting a list of branches");
 		}
-		String response;
-		try {
-			response = CrowdinAPI.sendRequest(
-				httpClient,
-				HTTPMethod.GET,
-				"projects/" + projectId + "/branches",
-				parameters,
-				null,
-				token,
-				null,
-				null,
-				String.class,
-				logger
-			);
-		} catch (HttpException e) {
-			throw new MojoExecutionException(
-				"Error while requesting list of branches: " + e.getMessage(),
-				e
-			);
-		}
 
 		List<BranchInfo> result = new ArrayList<>();
-		try {
-			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
-			JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
-			for (JsonElement element : jsonArray) {
-				result.add(GSON.fromJson(element.getAsJsonObject().get("data"), BranchInfo.class));
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"projects/" + projectId + "/branches",
+					parameters,
+					null,
+					token,
+					null,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting list of branches: " + e.getMessage(),
+					e
+				);
 			}
-		} catch (JsonParseException | IllegalStateException e) {
-			throw new MojoExecutionException(
-				"Error while parsing list of branches response: " + e.getMessage(),
-				e
-			);
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), BranchInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing list of branches response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
 		}
+
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin responded with branches: " + result);
 		}
@@ -541,8 +556,9 @@ public class CrowdinAPI {
 		@Nullable Long branchId,
 		@Nullable Log logger
 	) throws MojoExecutionException {
+		int chunkSize = 500;
 		HashMap<String, String> parameters = new LinkedHashMap<>();
-		parameters.put("limit", "500");
+		parameters.put("limit", Integer.toString(chunkSize));
 		if (branchId != null) {
 			parameters.put("branchId", branchId.toString());
 		}
@@ -550,40 +566,54 @@ public class CrowdinAPI {
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Requesting a list of builds");
 		}
-		String response;
-		try {
-			response = CrowdinAPI.sendRequest(
-				httpClient,
-				HTTPMethod.GET,
-				"projects/" + projectId + "/translations/builds",
-				parameters,
-				null,
-				token,
-				null,
-				null,
-				String.class,
-				logger
-			);
-		} catch (HttpException e) {
-			throw new MojoExecutionException(
-				"Error while requesting list of project builds: " + e.getMessage(),
-				e
-			);
-		}
 
 		List<BuildInfo> result = new ArrayList<>();
-		try {
-			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
-			JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
-			for (JsonElement element : jsonArray) {
-				result.add(GSON.fromJson(element.getAsJsonObject().get("data"), BuildInfo.class));
+		String response;
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"projects/" + projectId + "/translations/builds",
+					parameters,
+					null,
+					token,
+					null,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting list of project builds: " + e.getMessage(),
+					e
+				);
 			}
-		} catch (JsonParseException | IllegalStateException e) {
-			throw new MojoExecutionException(
-				"Error while parsing list of project builds response: " + e.getMessage(),
-				e
-			);
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					result.add(GSON.fromJson(element.getAsJsonObject().get("data"), BuildInfo.class));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing list of project builds response: " + e.getMessage(),
+					e
+				);
+			}
+			count = result.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
 		}
+
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin responded with builds: " + result);
 		}
@@ -597,49 +627,64 @@ public class CrowdinAPI {
 		@Nonnull String token,
 		@Nullable Log logger
 	) throws MojoExecutionException {
+		int chunkSize = 500;
 		HashMap<String, String> parameters = new LinkedHashMap<>();
-		parameters.put("limit", "500");
+		parameters.put("limit", Integer.toString(chunkSize));
 
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Requesting translations status");
 		}
+
 		String response;
-		try {
-			response = CrowdinAPI.sendRequest(
-				httpClient,
-				HTTPMethod.GET,
-				"projects/" + projectId + "/languages/progress",
-				parameters,
-				null,
-				token,
-				null,
-				null,
-				String.class,
-				logger
-			);
-		} catch (HttpException e) {
-			throw new MojoExecutionException(
-				"Error while requesting translations status: " + e.getMessage(),
-				e
-			);
+		JsonArray languages = new JsonArray();
+		int i = 0;
+		int prevCount = 0;
+		int count;
+		while (true) {
+			parameters.put("offset", Integer.toString(i * chunkSize));
+			try {
+				response = CrowdinAPI.sendRequest(
+					httpClient,
+					HTTPMethod.GET,
+					"projects/" + projectId + "/languages/progress",
+					parameters,
+					null,
+					token,
+					null,
+					null,
+					String.class,
+					logger
+				);
+			} catch (HttpException e) {
+				throw new MojoExecutionException(
+					"Error while requesting translations status: " + e.getMessage(),
+					e
+				);
+			}
+
+			try {
+				JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+				JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
+				for (JsonElement element : jsonArray) {
+					languages.add(element.getAsJsonObject().get("data"));
+				}
+			} catch (JsonParseException | IllegalStateException e) {
+				throw new MojoExecutionException(
+					"Error while parsing translations status response: " + e.getMessage(),
+					e
+				);
+			}
+			count = languages.size() - prevCount;
+			if (count < chunkSize) {
+				break;
+			}
+			prevCount += count;
+			i++;
 		}
 
-		JsonArray languages = new JsonArray();
-		try {
-			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
-			JsonArray jsonArray = jsonObject.get("data").getAsJsonArray();
-			for (JsonElement element : jsonArray) {
-				languages.add(element.getAsJsonObject().get("data"));
-			}
-		} catch (JsonParseException | IllegalStateException e) {
-			throw new MojoExecutionException(
-				"Error while parsing translations status response: " + e.getMessage(),
-				e
-			);
-		}
 		String result = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create().toJson(languages);
 		if (logger != null && logger.isDebugEnabled()) {
-			logger.debug("Crowdin responded with translations status: " + languages.toString());
+			logger.debug("Crowdin responded with translations status for " + languages.size() + " languages");
 		}
 		return result;
 	}
@@ -774,7 +819,7 @@ public class CrowdinAPI {
 		int i = 0;
 		int prevCount = 0;
 		int count;
-		while (true) { //TODO: (Nad) Apply "pagination" logic to other relevant calls
+		while (true) {
 			parameters.put("offset", Integer.toString(i * chunkSize));
 			try {
 				response = CrowdinAPI.sendRequest(
