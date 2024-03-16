@@ -431,7 +431,7 @@ public class CrowdinAPI {
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	@Nonnull
-	public static BuildInfo createBuild( //TODO: (Nad) JavaDocs,
+	public static BuildInfo createBuild(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nonnull String token,
@@ -548,12 +548,23 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Requests a list of builds from Crowdin.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branchId the branch ID for which to list builds.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link List} of {@link BuildInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static List<BuildInfo> listProjectBuilds(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
-		@Nonnull String token,
 		@Nullable Long branchId,
+		@Nonnull String token,
 		@Nullable Log logger
 	) throws MojoExecutionException {
 		int chunkSize = 500;
@@ -620,8 +631,18 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Queries Crowdin for the current translation status.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The JSON formatted translation status.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
-	public static String getProjectStatus(
+	public static String getTranslationStatus(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nonnull String token,
@@ -689,6 +710,16 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Queries Crowdin for project information.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link ProjectInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static ProjectInfo getProjectInfo(
 		@Nonnull CloseableHttpClient httpClient,
@@ -736,6 +767,17 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Asks Crowdin for a download link for the specified build.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param buildId the build ID for which to get a download link.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link DownloadLinkInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static DownloadLinkInfo getDownloadLink(
 		@Nonnull CloseableHttpClient httpClient,
@@ -784,12 +826,29 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Asks Crowdin for a list of files.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branchId the branch ID for which to list files. <b>Note:</b> Can't
+	 *            be used together with {@code folderId}.
+	 * @param folderId the folder ID for which to list files. <b>Note:</b> Can't
+	 *            be used together with {@code branchId}.
+	 * @param filter an optional filter for the returned files.
+	 * @param recursion whether to get recurive results. Can only be used with
+	 *            either {@code branchId} or {@code folderId}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link List} of {@link FileInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static List<FileInfo> listFiles(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable Long branchId,
-		@Nullable Long folderId, //Doc: Branch and directory can't be used together
+		@Nullable Long folderId,
 		@Nullable String filter,
 		boolean recursion,
 		@Nonnull String token,
@@ -877,16 +936,33 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Queries Crowdin for information about a file with the specified name.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branch the branch to look in.
+	 * @param folder the folder to look in. <b>Note:</b> If specified together
+	 *            with {@code branch}, {@code folder} takes precedence.
+	 * @param fileName the file name to look for. <b>Note:</b> If path elements
+	 *            are present, they will be stripped and only the file name will
+	 *            be used.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FileInfo} or {@code null} if no such file
+	 *         exists.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nullable
-	public static FileInfo getFileIfExists( //Doc: Will strip path elements from fileName
+	public static FileInfo getFileIfExists(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable BranchInfo branch,
-		@Nullable FolderInfo folder, //Doc: Folder takes precedence over branch
+		@Nullable FolderInfo folder,
 		@Nullable String fileName,
 		@Nonnull String token,
 		@Nullable Log logger
-	) throws MojoExecutionException { //Doc: Returns null if file doesn't exist
+	) throws MojoExecutionException {
 		if (isBlank(fileName)) {
 			return null;
 		}
@@ -925,6 +1001,17 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Queries Crowdin for information about the specified file.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param fileId the file ID for the file.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FileInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static FileInfo getFile(
 		@Nonnull CloseableHttpClient httpClient,
@@ -974,12 +1061,29 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Asks Crowdin for a list of folders.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param branchId the branch ID for which to list folders. <b>Note:</b>
+	 *            Can't be used together with {@code parentFolderId}.
+	 * @param parentFolderId the folder ID for which to list files. <b>Note:</b>
+	 *            Can't be used together with {@code branchId}.
+	 * @param filter an optional filter for the returned folders.
+	 * @param recursion whether to get recurive results. Can only be used with
+	 *            either {@code branchId} or {@code parentFolderId}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link List} of {@link FolderInfo} instances.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static List<FolderInfo> listFolders(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nullable Long branchId,
-		@Nullable Long folderId, //Doc: Branch and directory can't be used together
+		@Nullable Long parentFolderId,
 		@Nullable String filter,
 		boolean recursion,
 		@Nonnull String token,
@@ -991,8 +1095,8 @@ public class CrowdinAPI {
 			if (branchId != null) {
 				sb.append(" for branch ID ").append(branchId.toString());
 			}
-			if (folderId != null) {
-				sb.append(" for folder ID ").append(folderId.toString());
+			if (parentFolderId != null) {
+				sb.append(" for parent folder ID ").append(parentFolderId.toString());
 			}
 			if (filter != null) {
 				sb.append(" with filter \"").append(filter).append('\"');
@@ -1003,8 +1107,8 @@ public class CrowdinAPI {
 		if (branchId != null) {
 			parameters.put("branchId", branchId.toString());
 		}
-		if (folderId != null) {
-			parameters.put("directoryId", folderId.toString());
+		if (parentFolderId != null) {
+			parameters.put("directoryId", parentFolderId.toString());
 		}
 		if (isNotBlank(filter)) {
 			parameters.put("filter", filter);
@@ -1067,23 +1171,34 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Queries Crowdin for information about the specified folder.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param folderId the folder ID for the folder.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link FolderInfo}.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static FolderInfo getFolder(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
-		long directoryId,
+		long folderId,
 		@Nonnull String token,
 		@Nullable Log logger
 	) throws MojoExecutionException {
 		if (logger != null && logger.isDebugEnabled()) {
-			logger.debug("Requesting folder info for ID " + directoryId);
+			logger.debug("Requesting folder info for ID " + folderId);
 		}
 		String response;
 		try {
 			response = CrowdinAPI.sendRequest(
 				httpClient,
 				HTTPMethod.GET,
-				"projects/" + projectId + "/directories/" + directoryId,
+				"projects/" + projectId + "/directories/" + folderId,
 				null,
 				null,
 				token,
@@ -1116,19 +1231,36 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Asks Crowdin to create a new folder.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param name the name of the new folder.
+	 * @param branchId the branch ID for the branch in which to create the new
+	 *            folder. <b>Note:</b> Can't be used together with
+	 *            {@code parentFolderId}.
+	 * @param parentFolderId the parent folder ID for the folder in which to
+	 *            create the new folder. <b>Note:</b> Can't be used together
+	 *            with {@code branchId}.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link FolderInfo} for the new folder.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static FolderInfo createFolder(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		@Nonnull String name,
 		@Nullable Long branchId,
-		@Nullable Long directoryId, //Doc: branch and dir can't be specified at the same call
+		@Nullable Long parentFolderId,
 		@Nonnull String token,
 		@Nullable Log logger
 	) throws MojoExecutionException {
 		CreateFolderRequest payload = new CreateFolderRequest(name);
 		payload.setBranchId(branchId);
-		payload.setDirectoryId(directoryId);
+		payload.setDirectoryId(parentFolderId);
 
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Requesting a new folder with: " + payload);
@@ -1170,6 +1302,32 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Asks Crowdin to create a new file from a file that has already been
+	 * uploaded to storage.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param storage the {@link StorageInfo} for the previously uploaded file.
+	 * @param name the name of the new file.
+	 * @param type the {@link FileType} for the new file.
+	 * @param branchId the branch ID for the branch in which to create the new
+	 *            file. <b>Note:</b> Can't be used together with
+	 *            {@code folderId}.
+	 * @param folderId the folder ID for the folder in which to create the new
+	 *            file. <b>Note:</b> Can't be used together with
+	 *            {@code branchId}.
+	 * @param title the title for the new file as shown to translators.
+	 * @param context the context for the new file.
+	 * @param excludedTargetLanguages the array of excluded target languages.
+	 * @param exportOptions the {@link FileExportOptions} for the new file.
+	 * @param importOptions the {@link FileImportOptions} for the new file.
+	 * @param parserVersion the parser version to use for the new file.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link FileInfo} for the new file.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nonnull
 	public static FileInfo createFile(
 		@Nonnull CloseableHttpClient httpClient,
@@ -1178,7 +1336,7 @@ public class CrowdinAPI {
 		@Nonnull String name,
 		@Nullable FileType type,
 		@Nullable Long branchId,
-		@Nullable Long directoryId, //Doc: branch and dir can't be specified at the same call
+		@Nullable Long folderId,
 		@Nullable String title,
 		@Nullable String context,
 		@Nullable String[] excludedTargetLanguages,
@@ -1193,7 +1351,7 @@ public class CrowdinAPI {
 		if (isNotBlank(context)) {
 			payload.setContext(context);
 		}
-		payload.setDirectoryId(directoryId);
+		payload.setDirectoryId(folderId);
 		payload.setExcludedTargetLanguages(excludedTargetLanguages);
 		payload.setExportOptions(exportOptions);
 		payload.setImportOptions(importOptions);
@@ -1243,8 +1401,27 @@ public class CrowdinAPI {
 		return result;
 	}
 
+	/**
+	 * Asks Crowdin to update an existing file from a file that has already been
+	 * uploaded to storage.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param projectId the Crowdin project ID.
+	 * @param fileId the file ID for the file to update.
+	 * @param storage the {@link StorageInfo} for the previously uploaded file.
+	 * @param updateOption the {@link UpdateOption} to use for the update.
+	 * @param importOptions the {@link FileImportOptions} for the file.
+	 * @param exportOptions the {@link FileExportOptions} for the file.
+	 * @param replaceModifiedContext whether to overwrite modified context
+	 *            during the update.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The {@link FileInfo} for the updated file or {@code null} if the
+	 *         file wasn't modified.
+	 * @throws MojoExecutionException If an error occurs during the operation.
+	 */
 	@Nullable
-	public static FileInfo updateFile( //Doc: Returns null if not modified
+	public static FileInfo updateFile(
 		@Nonnull CloseableHttpClient httpClient,
 		long projectId,
 		long fileId,
@@ -1508,6 +1685,28 @@ public class CrowdinAPI {
 		}
 	}
 
+	/**
+	 * Sends a HTTP request to the Crowdin API using the specified "function"
+	 * and the specified parameters.
+	 *
+	 * @param <T> the type of the returned object.
+	 * @param <V> the type of the payload, if any.
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param method the {@link HTTPMethod} to use.
+	 * @param function the "function" parameters to append to the API URI.
+	 * @param parameters a {@link Map} of query parameters to append to the
+	 *            constructed {@link URI}.
+	 * @param headers a {@link Collection} of {@link Header}s to send.
+	 * @param token the API token.
+	 * @param payload the request content, if any.
+	 * @param payloadContentType the {@code Content-Type} for the payload, if
+	 *            any. <b>Note:</b> Only used if the payload is {@link String}
+	 *            or {@link InputStream}.
+	 * @param clazz the {@link Class} used to indicate the return type to use.
+	 * @param logger to {@link Log} to log to.
+	 * @return The resulting object.
+	 * @throws HttpException If an error occurs during the operation.
+	 */
 	public static <T, V> T sendRequest(
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
@@ -1534,6 +1733,28 @@ public class CrowdinAPI {
 		);
 	}
 
+	/**
+	 * Sends a HTTP request to the specified {@link URI} using the specified
+	 * parameters.
+	 *
+	 * @param <T> the type of the returned object.
+	 * @param <V> the type of the payload, if any.
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param method the {@link HTTPMethod} to use.
+	 * @param uri the {@link URI} to contact.
+	 * @param parameters a {@link Map} of query parameters to append to
+	 *            {@code uri}.
+	 * @param headers a {@link Collection} of {@link Header}s to send.
+	 * @param token the API token.
+	 * @param payload the request content, if any.
+	 * @param payloadContentType the {@code Content-Type} for the payload, if
+	 *            any. <b>Note:</b> Only used if the payload is {@link String}
+	 *            or {@link InputStream}.
+	 * @param clazz the {@link Class} used to indicate the return type to use.
+	 * @param logger to {@link Log} to log to.
+	 * @return The resulting object.
+	 * @throws HttpException If an error occurs during the operation.
+	 */
 	@SuppressWarnings("unchecked")
 	public static <T, V> T sendRequest(
 		@Nonnull CloseableHttpClient httpClient,
@@ -1543,7 +1764,7 @@ public class CrowdinAPI {
 		@Nullable Collection<Header> headers,
 		@Nullable String token,
 		@Nullable V payload,
-		@Nullable ContentType payloadContentType, //Doc: Only used for Sting and InputStream payloads
+		@Nullable ContentType payloadContentType,
 		@Nonnull Class<T> clazz,
 		@Nullable Log logger
 	) throws HttpException {
@@ -1613,18 +1834,34 @@ public class CrowdinAPI {
 				return GSON.fromJson(entityToString(response.getEntity()), clazz);
 			}
 		} catch (IOException e) {
-			throw new HttpException("Error closing HTTPResponse: " + e.getMessage(), e);
+			throw new HttpException("An HTTP error occurred while sending request: " + e.getMessage(), e);
 		}
 	}
 
-	//Doc: Does NOT close the response
+	/**
+	 * Sends a HTTP request where the response itself is returned so that is can
+	 * be read as an {@link InputStream}, to the specified {@link URI} using the
+	 * specified parameters.
+	 * <p>
+	 * <b>Note:</b> This method does <i>not</i> close the returned response for
+	 * obvious reasons, so it's the caller's responsibility to make sure it is
+	 * closed.
+	 *
+	 * @param httpClient the {@link CloseableHttpClient} to use.
+	 * @param method the {@link HTTPMethod} to use.
+	 * @param uri the {@link URI} to contact.
+	 * @param token the API token.
+	 * @param logger the {@link Log} to log to.
+	 * @return The resulting {@link CloseableHttpResponse}.
+	 * @throws HttpException If an error occurs during the operation.
+	 */
 	public static CloseableHttpResponse sendStreamRequest(
 		@Nonnull CloseableHttpClient httpClient,
 		@Nonnull HTTPMethod method,
 		@Nonnull URI uri,
 		@Nullable String token,
 		@Nullable Log logger
-	) throws HttpException, IOException {
+	) throws HttpException {
 		RequestBuilder requestBuilder = RequestBuilder.create(method.getValue());
 		requestBuilder.setUri(uri);
 		if (isNotBlank(token)) {
@@ -1635,18 +1872,25 @@ public class CrowdinAPI {
 		}
 
 		HttpUriRequest request = requestBuilder.build();
-		CloseableHttpResponse response = httpClient.execute(request);
-		StatusLine statusLine = response.getStatusLine();
-		if (statusLine == null) {
-			httpClient.close();
-			throw new HttpException("Request \"" + request.getURI() + "\" returned no status");
+		CloseableHttpResponse response;
+		int statusCode;
+		try {
+			response = httpClient.execute(request);
+			StatusLine statusLine = response.getStatusLine();
+			if (statusLine == null) {
+				httpClient.close();
+				throw new HttpException("Request \"" + request.getURI() + "\" returned no status");
+			}
+			statusCode = statusLine.getStatusCode();
+			if (statusCode < 200 || statusCode >= 300) {
+				String error = entityToString(response.getEntity());
+				httpClient.close();
+				throw new HttpException("Request \"" + request.getURI() + "\" failed with: " + error);
+			}
+		} catch (IOException e) {
+			throw new HttpException("An HTTP error occurred while sending request: " + e.getMessage(), e);
 		}
-		int statusCode = statusLine.getStatusCode();
-		if (statusCode < 200 || statusCode >= 300) {
-			String error = entityToString(response.getEntity());
-			httpClient.close();
-			throw new HttpException("Request \"" + request.getURI() + "\" failed with: " + error);
-		}
+
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug("Crowdin API replied with status code " + statusCode);
 		}

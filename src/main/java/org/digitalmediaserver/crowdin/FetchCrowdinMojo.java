@@ -279,7 +279,7 @@ public class FetchCrowdinMojo extends AbstractCrowdinMojo {
 			return;
 		}
 
-		String status = CrowdinAPI.getProjectStatus(client, projectId, server.getPassword(), getLog());
+		String status = CrowdinAPI.getTranslationStatus(client, projectId, server.getPassword(), getLog());
 		Path statusFile = downloadFolderPath.resolve(STATUS_DOWNLOAD_FILENAME);
 		getLog().info("Writing translations status to \"" + statusFile + "\"");
 		try (BufferedWriter writer = Files.newBufferedWriter(statusFile, StandardCharsets.UTF_8)) {
