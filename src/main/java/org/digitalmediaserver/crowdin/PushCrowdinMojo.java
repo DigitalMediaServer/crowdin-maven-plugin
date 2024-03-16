@@ -289,15 +289,17 @@ public class PushCrowdinMojo extends AbstractCrowdinMojo {
 							projectId,
 							storage,
 							pushFileName,
-							fileSet.getType(),
+							templateFile != null && (fileSet.getType() == null || fileSet.getType() == FileType.auto) ?
+								templateFile.getType() :
+								fileSet.getType(),
 							folder == null && branch != null ? branch.getId() : null,
 							folder == null ? null : folder.getId(),
 							fileSet.getTitle(),
-							null,
-							null,
+							templateFile == null ? null : templateFile.getContext(),
+							templateFile == null ? null : templateFile.getExcludedTargetLanguages(),
 							generateExportOptions(fileSet, templateFile),
 							templateFile == null ? null : templateFile.getImportOptions(),
-							null,
+							templateFile == null ? null : templateFile.getParserVersion(),
 							token,
 							getLog()
 						);
