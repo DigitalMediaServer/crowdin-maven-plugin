@@ -63,6 +63,10 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 	@Parameter(property = "exportApprovedOnly", defaultValue = "false")
 	protected boolean exportApprovedOnly;
 
+	/** The number of seconds to wait for builds to complete */
+	@Parameter(property = "buildTimeouot", defaultValue = "60")
+	protected Integer buildTimeout;
+
 	@Override
 	public void execute() throws MojoExecutionException {
 		initializeParameters();
@@ -78,6 +82,7 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		fetch.setCrowdinServerId(crowdinServerId);
 		fetch.setDownloadFolder(downloadFolderPath);
 		fetch.setHTTPTimeout(httpTimeout);
+		fetch.setBuildTimeout(buildTimeout);
 		fetch.setProject(project);
 		fetch.setProjectId(projectId);
 		fetch.setRootBranch(rootBranch);
