@@ -47,7 +47,7 @@ public class Constants {
 	public static final String API_URL = "https://api.crowdin.com/api/v2/";
 
 	/** The system property to use for NTLM domain */
-	public static final String HTTP_AUTH_NTLM_DOMAIN = "http.auth.ntlm.domain"; //TODO: (Nad) CHeck what's in use
+	public static final String HTTP_AUTH_NTLM_DOMAIN = "http.auth.ntlm.domain";
 
 	/** The system property to use for proxy password */
 	public static final String HTTP_PROXY_PASSWORD = "http.proxyPassword";
