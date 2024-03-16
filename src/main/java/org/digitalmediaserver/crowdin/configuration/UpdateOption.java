@@ -25,7 +25,7 @@ package org.digitalmediaserver.crowdin.configuration;
  *
  * @author Nadahar
  */
-public enum UpdateOption { //TODO: (NAd) Document enum value changes
+public enum UpdateOption {
 
 	/** Delete translations of changed strings */
 	clear_translations_and_approvals,

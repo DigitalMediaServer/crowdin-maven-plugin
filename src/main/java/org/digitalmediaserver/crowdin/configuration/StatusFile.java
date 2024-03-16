@@ -38,10 +38,7 @@ import org.digitalmediaserver.crowdin.tool.FileUtil.LetterCase;
 public class StatusFile extends AbstractFileSet {
 
 	/**
-	 * The full status file path.
-	 *
-	 * @parameter
-	 * @required
+	 * <b>Required</b>. The full status file path.
 	 */
 	protected String targetFile;
 
@@ -55,6 +52,11 @@ public class StatusFile extends AbstractFileSet {
 
 	@Override
 	protected void initializeInstance() throws MojoExecutionException {
+
+		// Target filename
+		if (isBlank(targetFile)) {
+			throw new MojoExecutionException("\"targetFile\" must be specified for status files");
+		}
 
 		// File type and file type defaults
 		if (type == null) {
@@ -89,20 +91,9 @@ public class StatusFile extends AbstractFileSet {
 				if (addComment == null) {
 					addComment = Boolean.FALSE;
 				}
-				if (sortLines == null) {
-					sortLines = Boolean.FALSE;
-				}
-				if (escapeUnicode == null) {
-					escapeUnicode = Boolean.FALSE;
-				}
 				break;
 			default:
 				throw new MojoExecutionException("Only properties and JSON formats are supported for status files");
-		}
-
-		// Target filename
-		if (isBlank(targetFile)) {
-			throw new MojoExecutionException("\"targetFile\" must be specified for status files");
 		}
 
 		targetFile = FileUtil.formatPath(targetFile, false);

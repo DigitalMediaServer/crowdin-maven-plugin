@@ -43,10 +43,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TranslationFileSet extends AbstractFileSet {
 
 	/**
-	 * The folder where the language files are located.
-	 *
-	 * @parameter
-	 * @required
+	 * <b>Required</b>. The folder where the language files are located.
 	 */
 	protected File languageFilesFolder;
 
@@ -54,33 +51,24 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * The path from the Crowdin (branch) root folder to the files of this
 	 * {@link TranslationFileSet}. Only specify it the files are located in a
 	 * subfolder at Crowdin.
-	 *
-	 * @parameter
 	 */
 	protected String crowdinPath;
 
 	/**
-	 * The base language file that should be uploaded to Crowdin.
-	 *
-	 * @parameter
-	 * @required
+	 * <b>Required</b>. The base language file that should be uploaded to Crowdin.
 	 */
 	protected String baseFileName;
 
 	/**
 	 * The title as it should appear to translators at Crowdin.
-	 *
-	 * @parameter
 	 */
 	protected String title;
 
 	/**
 	 * The comment character or character combination to use for comment lines
 	 * when exporting files from Crowdin if {@code addComment} is {@code true}.
-	 *
-	 * @parameter default-value="#"
 	 */
-	protected String commentTag;
+	protected String commentTag = "#";
 
 	/**
 	 * The value to use in the {@code "Resulting file name when exported"}
@@ -107,9 +95,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li><b>%original_path%</b> &ndash; Use parent folders' names in your
 	 * project to build the file path in the resulting archive</li>
 	 * </ul>
-	 *
-	 * @parameter
-	 * @required
 	 */
 	protected String exportPattern;
 
@@ -147,8 +132,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * </ul>
 	 * (*) The variable must also be used in {@link #exportPattern} to be
 	 * supported.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected String targetFileName;
@@ -166,8 +149,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li>3 — Escape single quote by another single quote only in strings
 	 * containing variables (<code>{0}</code>)</li>
 	 * </ul>
-	 *
-	 * @parameter default-value="0"
 	 */
 	@Nullable
 	protected Integer escapeQuotes;
@@ -184,8 +165,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li>0 — Do not escape special characters (<b>default</b>)</li>
 	 * <li>1 — Escape special characters by a backslash</li>
 	 * </ul>
-	 *
-	 * @parameter default-value="0"
 	 */
 	@Nullable
 	protected Integer escapeSpecialCharacters;
@@ -203,11 +182,9 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * (<b>default</b>)</li>
 	 * <li>double — Output will be enclosed in double quotes</li>
 	 * </ul>
-	 *
-	 * @parameter default-value="single"
 	 */
 	@Nullable
-	protected JavaScriptExportQuotes exportQuotes; //TODO: (Nad) Verify that enum works with Maven magic
+	protected JavaScriptExportQuotes exportQuotes;
 
 	/**
 	 * The update behavior for updates string when pushing. Valid values are:
@@ -218,26 +195,20 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * <li>update_without_changes — Preserve translations and validations of
 	 * changed strings</li>
 	 * </ul>
-	 *
-	 * @parameter default-value="delete_translations"
 	 */
 	protected UpdateOption updateOption;
 
 	/**
 	 * Whether or not to overwrite context when updating the source file, even
 	 * if the context has been modified on Crowdin.
-	 *
-	 * @parameter default-value="false"
 	 */
-	protected Boolean replaceModifiedContext;
+	protected Boolean replaceModifiedContext = Boolean.FALSE;
 
 	/**
 	 * Paths to include using a basic filter where {@code ?} and {@code *} are
 	 * wildcards and the rest are literals. If one or more includes are
 	 * configured the file set becomes a white-list where anything not included
 	 * is excluded.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected List<String> includes;
@@ -245,8 +216,6 @@ public class TranslationFileSet extends AbstractFileSet {
 	/**
 	 * Paths to exclude using a basic filter where {@code ?} and {@code *} are
 	 * wildcards and the rest are literals.
-	 *
-	 * @parameter
 	 */
 	@Nullable
 	protected List<String> excludes;
@@ -258,11 +227,9 @@ public class TranslationFileSet extends AbstractFileSet {
 	 * this, some systems, like NSIS, requires a UTF-8 BOM to be present to
 	 * interpret the file as UTF-8. In such cases, set this parameter to
 	 * {@code true}.
-	 *
-	 * @parameter default-value="false"
 	 */
 	@Nullable
-	protected Boolean writeBOM;
+	protected Boolean writeBOM = Boolean.FALSE;
 
 	/**
 	 * @return The comment tag.
@@ -457,15 +424,41 @@ public class TranslationFileSet extends AbstractFileSet {
 			}
 		}
 
+		if (updateOption == null) {
+			updateOption = UpdateOption.clear_translations_and_approvals;
+		}
+
+		//Add comment
+		if (addComment == null) {
+			addComment = Boolean.valueOf(
+				type == FileType.adoc || type == FileType.android || type == FileType.coffee ||
+				type == FileType.dita || type == FileType.fm_html || type == FileType.gettext ||
+				type == FileType.html || type == FileType.ini || type == FileType.js ||
+				type == FileType.nsh || type == FileType.php || type == FileType.properties ||
+				type == FileType.properties_play || type == FileType.properties_xml ||
+				type == FileType.resw || type == FileType.resx || type == FileType.toml ||
+				type == FileType.ts || type == FileType.webxml || type == FileType.xaml ||
+				type == FileType.xliff || type == FileType.xliff_two || type == FileType.xml ||
+				type == FileType.yaml
+			);
+		}
+
 		// Charset
 		switch (type) {
 			// Set charset from type when it is defined
 			case properties:
+			case properties_play:
 				if (isBlank(encoding)) {
 					charset = StandardCharsets.ISO_8859_1;
 					encoding = charset.name();
 				} else {
 					charset = Charset.forName(encoding);
+				}
+				if (escapeQuotes == null) {
+					escapeQuotes = Integer.valueOf(0);
+				}
+				if (escapeSpecialCharacters == null) {
+					escapeSpecialCharacters = Integer.valueOf(0);
 				}
 				if (sortLines == null) {
 					sortLines = Boolean.TRUE;
@@ -494,6 +487,11 @@ public class TranslationFileSet extends AbstractFileSet {
 			case html:
 			case ini:
 			case joomla:
+			case js:
+				if (exportQuotes == null) {
+					exportQuotes = JavaScriptExportQuotes.SINGLE;
+				}
+				break;
 			case json:
 			case macosx:
 			case md:
@@ -522,21 +520,6 @@ public class TranslationFileSet extends AbstractFileSet {
 				charset = StandardCharsets.UTF_8;
 				encoding = charset.name();
 				break;
-		}
-
-		// Sort lines
-		if (sortLines == null) {
-			sortLines = Boolean.FALSE;
-		}
-
-		// Add comment
-		if (addComment == null) {
-			addComment = Boolean.TRUE;
-		}
-
-		// Comment tag
-		if (commentTag == null) {
-			commentTag = "#";
 		}
 
 		// Export pattern

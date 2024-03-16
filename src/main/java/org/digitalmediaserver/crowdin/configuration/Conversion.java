@@ -32,17 +32,11 @@ public class Conversion {
 
 	/**
 	 * The placeholder value to convert from.
-	 *
-	 * @parameter
-	 * @required
 	 */
 	protected String from;
 
 	/**
 	 * The placeholder value to convert to.
-	 *
-	 * @parameter
-	 * @required
 	 */
 	protected String to;
 
