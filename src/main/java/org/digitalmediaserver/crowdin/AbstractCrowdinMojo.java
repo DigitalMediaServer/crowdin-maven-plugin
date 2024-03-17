@@ -25,7 +25,9 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Map;
@@ -156,6 +158,33 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 */
 	protected void setLineSeparator(String lineSeparator) {
 		this.lineSeparator = lineSeparator;
+	}
+
+	/** Disables branches and the reliance on Git */
+	@Parameter(defaultValue = "false")
+	protected Boolean disableBranches;
+
+	/**
+	 * Sets the {@link #disableBranches} value.
+	 *
+	 * @param disableBranches {@code true} to disable branches, {@code false}
+	 *            otherwise.
+	 */
+	protected void setDisableBranches(Boolean disableBranches) {
+		this.disableBranches = disableBranches;
+	}
+
+	/** The Git base folder, if different from Maven project base folder */
+	@Parameter
+	protected String gitBaseFolder;
+
+	/**
+	 * Sets the Git base folder.
+	 *
+	 * @param gitBaseFolder the Git base folder to set.
+	 */
+	protected void setGitBaseFolder(String gitBaseFolder) {
+		this.gitBaseFolder = gitBaseFolder;
 	}
 
 	/**
@@ -362,7 +391,7 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 	 * @param branches a {@link List} of {@link BranchInfo} if it's already
 	 *            possessed, {@code null} to make this method retrieve it.
 	 * @return The {@link BranchInfo} or {@code null} if the current git branch
-	 *         is the Crowdin root.
+	 *         is the Crowdin root, or if branches are disabled.
 	 * @throws MojoExecutionException If an error occurs during the operation.
 	 */
 	@Nullable
@@ -370,8 +399,25 @@ public abstract class AbstractCrowdinMojo extends AbstractMojo {
 		boolean create,
 		@Nullable List<BranchInfo> branches
 	) throws MojoExecutionException {
-		getLog().info("Determining git branch..");
-		String branch = GitUtil.getBranch(project.getBasedir(), getLog());
+		if (Boolean.TRUE.equals(disableBranches)) {
+			getLog().info("Branches are disabled, working only with Crowdin \"root branch\"");
+			return null;
+		}
+		Path gitFolder;
+		if (isBlank(gitBaseFolder)) {
+			gitFolder = project.getBasedir().toPath();
+		} else {
+			try {
+				gitFolder = Paths.get(gitBaseFolder);
+			} catch (InvalidPathException e) {
+				throw new MojoExecutionException("Unable to resolve \"" + gitBaseFolder + "\": " + e.getMessage(), e);
+			}
+			if (!gitFolder.isAbsolute()) {
+				gitFolder = project.getBasedir().toPath().resolve(gitFolder).normalize();
+			}
+		}
+		getLog().info("Determining git branch in repository \"" + gitFolder.toString() + '\"');
+		String branch = GitUtil.getBranch(gitFolder, getLog());
 		if (isBlank(branch)) {
 			throw new MojoExecutionException("Could not determine current git branch");
 		}

@@ -85,6 +85,8 @@ public class PullCrowdinMojo extends AbstractCrowdinMojo {
 		fetch.setBuildTimeout(buildTimeout);
 		fetch.setProject(project);
 		fetch.setProjectId(projectId);
+		fetch.setDisableBranches(disableBranches);
+		fetch.setGitBaseFolder(gitBaseFolder);
 		fetch.setRootBranch(rootBranch);
 		fetch.setServer(server);
 		fetch.setClient(client);
