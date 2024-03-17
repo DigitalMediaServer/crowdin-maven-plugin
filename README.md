@@ -2,7 +2,7 @@
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin)
 
-This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin API v2. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository since Git branches are translated to Crowdin branches.
+This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin API v2. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository to use branches, since Git branches are translated to Crowdin branches.
 
 ## Table of Contents
 - [1. Configuration](#1-configuration)
@@ -113,6 +113,8 @@ Here is a skeleton project configuration showing the location of all configurati
             <downloadFolder></downloadFolder>
             <lineSeparator></lineSeparator>
             <projectName></projectName>
+            <disableBranches></disableBranches>
+            <gitBaseFolder></gitBaseFolder>
             <rootBranch></rootBranch>
             <skipUntranslatedStrings></skipUntranslatedStrings>
             <skipUntranslatedFiles></skipUntranslatedFiles>
@@ -204,6 +206,8 @@ Here is a skeleton project configuration showing the location of all configurati
 |<sub>`downloadFolder`</sub>|<sub>String</sub>|<sub>Yes</sub>| |<sub>The intermediate folder used to store the downloaded files.</sub>|
 |<sub>`lineSeparator`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>The global alternative line separator to apply to the downloaded files, for example `\n` or `\r\n`. If defined, this parameter acts as the default for all `translationFileSets` and `statusFiles`.</sub>|
 |<sub>`projectName`</sub>|<sub>String</sub>|<sub>`push`</sub>| |<sub>This is required to use the `push` goal. The value must match the project name defined in `pom.xml`. It is a safety check to make sure you don't push to the wrong project if the configuration has been copied from another project.</sub>|
+|<sub>`disableBranches`</sub>|<sub>Boolean</sub>|<sub>No</sub>|<sub>`false`</sub>|<sub>Disables the use of Crowdin branches and all reliance on Git. Useful if the workflow doesn't involve Crowdin branches, or if the project doesn't reside in a Git repository.</sub>|
+|<sub>`gitBaseFolder`</sub>|<sub>String</sub>|<sub>No</sub>| |<sub>By default the Git repository is assumed to be the same folder as `${project.basedir}` as defined by Maven. Use this parameter to make Git look elsewhere for the repository. The value can be an absolute or a relative path. An absolute path is used as it is, while a relative path is resolved from `${project.basedir}`.</sub>|
 |<sub>`rootBranch`</sub>|<sub>String</sub>|<sub>No</sub>|<sub>`master`</sub>|<sub>The Git branch that should be considered the root on Crowdin (that is; not exist in a branch folder). This parameter can be overridden on the command line with `-DrootBranch=`. Any local Git branch not matching this parameter will push to and fetch from a branch folder at Crowdin.</sub>|
 |<sub>`statusFiles`</sub>|<sub>List</sub>|<sub>No</sub>| |<sub>A list of one or more `statusFile` elements. A `statusFile` element represents a local status file. This is a file a file in either `properties` or `xml` format, whose content is the output of the `status` [Crowdin API method](https://support.crowdin.com/api/status/). The file contains basic information about the state of the translations per language for all files in total. Crowdin doesn't allow getting the status per file, so having more than one status file for a project would serve little purpose. See [separate definition](#1221-statusfile-parameter-description).</sub>|
 |<sub>`translationFileSets`</sub>|<sub>List</sub>|<sub>Yes</sub>| |<sub>A list of one or more `translationFileSet` elements. A `translationsFileSet` element represents a local *base language file* and its set of corresponding translations in other languages. It also represents a single file on Crowdin. Only the *base language file* will be uploaded to Crowdin, and only the corresponding translated language files will be downloaded. See [separate definition](#1222-translationfileset-parameter-description).</sub>|
@@ -452,7 +456,9 @@ Here is a skeleton project configuration showing the location of all configurati
 
 ## 2. Using the plugin
 
-This plugin requires Git, and will automatically look up the current Git branch. Unless the current Git branch matches the `rootBranch` parameter, all operation will be performed against a branch with the same name on Crowdin. If no Git branch is found (e.g. checked out to a tag or detached) all goals except `deploy` will fail. This allows translation of a branch while it's being worked on and merging of the translations at Crowdin when the branch is merged. For further information about versions management and branches on Crowdin, see the [Crowdin documentation](https://support.crowdin.com/articles/versions-management/).
+Using Crowdin branches with this plugin requires a local Git repository. The plugin will automatically look up the current Git branch and synchronize with a Crowdin branch with the same name, unless the current Git branch matches the `rootBranch` parameter, in which case the plugin will synchronize with the Crowdin "root". If no Git branch is found (e.g. checked out to a tag or detached) all goals except `deploy` will fail. This allows translation of a branch while it's being worked on and merging of the translations at Crowdin when the branch is merged. For further information about versions management and branches on Crowdin, see the [Crowdin documentation](https://support.crowdin.com/versions-management/).
+
+If you do not wish to use branches, you can disable it by setting the `disableBranches` parameter to `true`. This also disables the reliance on Git, so that the plugin can be used even if the Maven project doesn't reside in a Git repository.
 
 If the configuration is correct, you can execute a goal with:
 
@@ -463,8 +469,6 @@ The prefix or alias `crowdin` will be resolved to this plugin, unless another pl
 `mvn crowdin:<goal> [-D<property>=<value>]`
 
 This short form will be used in the descriptions below.
-
-
 
 ### 2.1 Pushing strings for translation to Crowdin
 
