@@ -2,7 +2,7 @@
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.digitalmediaserver/crowdin-maven-plugin)
 
-This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin API. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository since Git branches are translated to Crowdin branches.
+This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin v2 API. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository since Git branches are translated to Crowdin branches.
 
 ## Table of Contents
 - [1. Configuration](#1-configuration)
@@ -36,7 +36,9 @@ The `pom.xml` configuration for this plugin doesn't affect the Maven build proce
 
 ### 1.1 Credentials
 
-To access Crowdin the project identifier and API key are needed. This is configured by specifying a ```server``` in Maven's configuration. The API key needs to be kept private, so the best place to put it is usually in Maven's user settings. This can be achieved by adding a server to your ```~/.m2/settings.xml``` as shown in the example below. If you don't have a ```~/.m2/settings.xml``` file, a template that can be pasted into an empty file [is provided](#112-settings-template).
+To access Crowdin your API token is needed. This is configured by specifying a ```server``` in Maven's configuration, which is then referenced in the plugin configuration with the `crowdinServerId` parameter. You can create an API token under [Account settings -> API](https://crowdin.com/settings#api-key) at Crowdin.
+
+The API token needs to be kept private, so the best place to put it is usually in Maven's user settings. This can be achieved by adding a server to your ```~/.m2/settings.xml``` as shown in the example below. If you don't have a ```~/.m2/settings.xml``` file, a template that can be pasted into an empty file [is provided](#112-settings-template).
 
 #### 1.1.1 Example credentials configuration
 ```xml
@@ -46,8 +48,7 @@ To access Crowdin the project identifier and API key are needed. This is configu
     <!-- ... -->
     <server>
       <id>crowdin</id>
-      <username>DigitalMediaServer</username>
-      <password>API key</password>
+      <password>API token</password>
     </server>
     <!-- ... -->
   </servers>
@@ -71,8 +72,7 @@ If you're missing the file ```~/.m2/settings.xml```, you can copy and paste the 
   <servers>
     <server>
       <id>crowdin</id>
-      <username>Your project identifier</username>
-      <password>Your API key</password>
+      <password>Your API token</password>
     </server>
   </servers>
   <mirrors>
@@ -104,10 +104,12 @@ Here is a skeleton project configuration showing the location of all configurati
           <artifactId>crowdin-maven-plugin</artifactId>
           <version>...</version>
           <configuration>
+            <projectId></projectId>
             <comment></comment>
             <confirm></confirm>
             <crowdinServerId></crowdinServerId>
             <httpTimeout></httpTimeout>
+            <buildTimeout></buildTimeout>
             <downloadFolder></downloadFolder>
             <lineSeparator></lineSeparator>
             <projectName></projectName>
@@ -116,6 +118,7 @@ Here is a skeleton project configuration showing the location of all configurati
             <skipUntranslatedFiles></skipUntranslatedFiles>
             <exportApprovedOnly></exportApprovedOnly>
             <updateOption></updateOption>
+            <replaceModifiedContext></replaceModifiedContext>
             <statusFiles>
               <statusFile>
                 <addComment></addComment>
@@ -156,6 +159,7 @@ Here is a skeleton project configuration showing the location of all configurati
                 <title></title>
                 <type></type>
                 <updateOption></updateOption>
+                <replaceModifiedContext></replaceModifiedContext>
                 <writeBOM></writeBOM>
                 <conversions>
                   <conversion><from></from><to></to></conversion>
@@ -191,6 +195,7 @@ Here is a skeleton project configuration showing the location of all configurati
 
 |<sub>Name</sub>|<sub>Type</sub>|<sub>Req.</sub>|<sub>Default</sub>|<sub>Description</sub>|
 |--|:--:|:--:|:--:|--|
+|<sub>`projectId`</sub>|<sub>Integer</sub>|<sub>Yes</sub>| |<sub>The Crowdin project Id. It can be found at Crowdin under `Tools -> API` </sub>|
 |<sub>`comment`</sub>|<sub>String</sub>|<sub>No</sub>| * |<sub>The global comment to add to the top of downloaded translation files. If defined, this parameter acts as the default for all `translationFileSets` and `statusFiles`.</sub>|
 |<sub>`confirm`</sub>|<sub>String</sub>|<sub>`push`</sub>| |<sub>This is required to be `true` to use the `push` goal. This parameter can be overridden on the command line with `-Dconfirm`. Any strings that exist on Crowdin but don't exist in the uploaded files will have all their translations deleted on Crowdin when pushed. As such, it's important to make sure that a push is intended. Although this parameter can be set to `true` in `pom.xml`, it is recommended not to. That way, adding `-Dconfirm` to the command line is required to be able to push.</sub>|
 |<sub>`crowdinServerId`</sub>|<sub>String</sub>|<sub>Yes</sub>| |<sub>The `id` of the Maven configured `server` to be used for Crowdin authentication.</sub>|
@@ -399,6 +404,7 @@ Here is a skeleton project configuration showing the location of all configurati
           <artifactId>crowdin-maven-plugin</artifactId>
           <version>...</version>   
           <configuration>
+            <projectId>xxxxxx</projectID>
             <projectName>Digital Media Server</projectName>
             <crowdinServerId>crowdin</crowdinServerId>
             <downloadFolder>${project.basedir}/extras/crowdin</downloadFolder>
