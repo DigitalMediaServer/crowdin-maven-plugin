@@ -5,8 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0] - 2024-03-18
 ### Added
+- Added support for new Crowdin file types.
+- Added HTTP and build timeout configuration options.
 - Created this changelog.
+- Added configuration option to disable branches and Git reliance.
+- Added configuration option to specify Git repository path.
+### Changed
+- Refactored the plugin to use Crowdin API v2 instead of v1.
+- Merged the `build` goal into the `fetch` goal.
+- Changed and added several configuration options - see the [quick migration guide](https://github.com/DigitalMediaServer/crowdin-maven-plugin#131-migration-from-v1x) for details.
+- Added dependency `com.google.code.gson:gson` version `2.10.1`.
+- Removed dependencies `org.jdom:jdom2` and `org.apache.httpcomponents:httpmime`.
+- Modified `properties` files group sorting to also consider hyphen (`-`) a group separator.
 
 ## [1.1.2] - 2024-02-14
 ### Added
@@ -43,7 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### First release
 - Requires Java 7 or later.
 
-[Unreleased]: https://github.com/DigitalMediaServer/crowdin-maven-plugin/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/DigitalMediaServer/crowdin-maven-plugin/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/DigitalMediaServer/crowdin-maven-plugin/compare/v1.1.2...v2.0.0
 [1.1.2]: https://github.com/DigitalMediaServer/crowdin-maven-plugin/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/DigitalMediaServer/crowdin-maven-plugin/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/DigitalMediaServer/crowdin-maven-plugin/compare/v1.0.1...v1.1.0
