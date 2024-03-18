@@ -4,6 +4,8 @@
 
 This Maven plugin synchronizes translation files between the local project and Crowdin using the Crowdin API v2. It was originally based on [glandais' crowdin-maven plugin](https://github.com/glandais/crowdin-maven), but has since been completely rewritten. The Maven project must be in a Git repository to use branches, since Git branches are translated to Crowdin branches.
 
+If you're migrating from a 1.x version of this plugin, you might want to skip directly to the [migration guide](#131-migration-from-v1x).
+
 ## Table of Contents
 - [1. Configuration](#1-configuration)
   - [1.1 Credentials](#11-credentials)
@@ -23,6 +25,8 @@ This Maven plugin synchronizes translation files between the local project and C
       - [1.2.2.9 Crowdin placeholders](#1229-crowdin-placeholders)
       - [1.2.2.10 Additional `targetFileName` placeholders](#12210-additional-targetfilename-placeholders)
     - [1.2.3 Example project configuration](#123-example-project-configuration)
+  - [1.3 Migration](#13-migration)
+    - [1.3.1 Migration from v1.x](#131-migration-from-v1x)
 - [2. Using the plugin](#2-using-the-plugin)
   - [2.1 Pushing strings for translation to Crowdin](#21-pushing-strings-for-translation-to-crowdin)
   - [2.2 Getting translations from Crowdin](#22-getting-translations-from-crowdin)
@@ -453,6 +457,29 @@ Here is a skeleton project configuration showing the location of all configurati
   <!-- ... -->
 </project>
 ```
+
+### 1.3 Migration
+
+#### 1.3.1 Migration from v1.x
+
+Versions 1.x of this plugin use Crowdin API v1, which is no longer supported. Versions 2.x use Crowdin API v2 instead. This plugin aims to follow the Crowdin terminology and options as closely, to make Crowdin's documentation as applicable as possible. The changes between the two API versions at Crowdin has therefore led to some changes in this plugin's configuration as well.
+
+While this documentation has been updated, it can be hard to spot what's changed. So, here is a "quick migration guide" covering the things you're most likely to have to address if you migrate from 1.x to 2.x.
+
+- API v1 used a "project identifier" string and an "API key". API v2 uses a "project Id" number and an "API token" instead. The API token is unique for each Crowdin user. Configuration wise, the "project identifier" used to be configured as `<username>` in the [Maven settings](#11-credentials). `<username>` is no longer used by this plugin and the "project Id" is instead configured in the plugin configuration under `<projectId>`. The API token must still be configured in the [Maven settings](#11-credentials) under `<password>`, where the API key used to be.
+- The `updateOptions` options have changed names, the new option names can be found [here](#1227-updateoption-options).
+- `escapeQuotes` is no longer a global parameter - it must be configured per `translationFileSet`.
+- New parameter `replaceModifiedContext` which governs how to deal with contexts conflicts.
+- The `fileNameWhenExported` parameter has been renamed to `exportPattern`.
+- New parameter `escapeSpecialCharacters` for Java `properties` files.
+- New parameter `exportQuotes` for JavaScript files.
+- New build parameters `skipUntranslatedStrings`, `skipUntranslatedFiles` and `exportApprovedOnly`.
+- New parameter `httpTimeout` to control HTTP timeouts.
+- New parameter `buildTimeout` to control how long to wait for a build to finish.
+
+All applicable parameters have been given defaults that is the same or similar to previous behavior, so unconfigured parameters can most likely stay unconfigured.
+
+It's advisable to pay close attention to the first pushes and pulls to make sure that everything behaves as expected, as there are many changes "under the hood".
 
 ## 2. Using the plugin
 
